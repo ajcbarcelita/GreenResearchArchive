@@ -1,0 +1,28 @@
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+
+# Logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+
+# VSCode
+.vscode/
+
+# MacOS
+.DS_Store
+
+# Build output (optional if using build tools)
+dist/
+build/
