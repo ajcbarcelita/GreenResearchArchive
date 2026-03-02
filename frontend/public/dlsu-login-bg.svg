@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" fill="none">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2A3B36"/>
+      <stop offset="1" stop-color="#0F1715"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="0" y2="900" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3D524A" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#0B1110" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#g1)"/>
+  <rect width="1600" height="900" fill="url(#g2)"/>
+  <rect x="70" y="120" width="1460" height="115" fill="#223029" opacity="0.42"/>
+  <rect x="130" y="290" width="1200" height="460" fill="#17231F" opacity="0.45"/>
+  <rect x="220" y="360" width="230" height="320" fill="#26362F" opacity="0.42"/>
+  <rect x="520" y="360" width="300" height="320" fill="#203029" opacity="0.38"/>
+  <rect x="900" y="360" width="380" height="320" fill="#1B2924" opacity="0.35"/>
+  <rect x="0" y="770" width="1600" height="130" fill="#0A0F0E" opacity="0.6"/>
+</svg>

@@ -37,6 +37,13 @@ pnpm dev
 pnpm build
 ```
 
+## Google Authentication Setup
+
+1. Copy `.env.example` to `.env`.
+2. Set `VITE_GOOGLE_CLIENT_ID` to your Google OAuth Web Client ID.
+3. Ensure `VITE_API_BASE_URL` points to the running backend (default: `http://localhost:3000`).
+4. Restart the dev server after editing `.env`.
+
 ### Lint with [ESLint](https://eslint.org/)
 
 ```sh

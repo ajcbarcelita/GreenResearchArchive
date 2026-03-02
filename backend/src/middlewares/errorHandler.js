@@ -4,10 +4,16 @@ export const notFoundHandler = (req, res) => {
   });
 };
 
-export const errorHandler = (error, _req, res, _next) => {
+export const errorHandler = (error, req, res, next) => {
   const statusCode = error.statusCode || 500;
+  
+  console.log('');
+  console.log('ERROR CAUGHT:');
+  console.log('Status:', statusCode);
+  console.log('Message:', error.message);
+  console.log('');
 
   res.status(statusCode).json({
-    message: error.message || 'Internal server error',
+    message: error.message || "Internal server error",
   });
 };
