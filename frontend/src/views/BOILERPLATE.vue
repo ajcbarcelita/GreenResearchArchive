@@ -13,7 +13,8 @@ import Footer from '@/components/Footer.vue';
 
     <!-- MAIN CONTENT -->
     <main class="flex-1 container mx-auto px-6 py-6 space-y-8">
-      <h2>Hello to the DLSU Department of IT Repository & KMS</h2>
+
+
     </main>
     
     <!-- FOOTER -->

@@ -5,6 +5,7 @@ import PrimeVue from 'primevue/config'
 import App from './App.vue'
 import Aura from '@primeuix/themes/aura'
 import router from './router'
+import './styles/tailwind.css'
 
 const app = createApp(App)
 

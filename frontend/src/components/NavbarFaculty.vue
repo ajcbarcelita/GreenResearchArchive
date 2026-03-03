@@ -6,7 +6,7 @@
         <div class="flex items-center space-x-4">
           <router-link to="/" class="flex items-center space-x-3">
             <img
-              src="@/assets/DLSU-logo.png"
+              src="@/assets/CCS-logo.png"
               alt="Green Archive"
               class="logo-img h-12 w-auto"
             />
@@ -18,9 +18,10 @@
         </div>
 
         <div class="flex justify-center">
-          <div class="space-x-8 text-base font-semibold">
+          <div class="flex items-center space-x-6 text-base font-semibold whitespace-nowrap">
             <router-link to="/" class="nav-link">Home</router-link>
-            <router-link to="/submission" class="nav-link">Capstone Submission</router-link>
+            <router-link to="/advisory" class="nav-link">Advisory Load</router-link>
+            <router-link to="/submission" class="nav-link">Submission Monitoring</router-link>
             <router-link to="/repository" class="nav-link">Repository</router-link>
           </div>
         </div>
