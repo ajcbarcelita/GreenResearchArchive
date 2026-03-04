@@ -6,8 +6,6 @@ const googleAuthSchema = Joi.object({
 });
 
 export const authenticateWithGoogle = async (req, res, next) => {
-  console.log('AUTH REQUEST RECEIVED');
-  
   try {
     const { error, value } = googleAuthSchema.validate(req.body, {
       abortEarly: false,
@@ -21,16 +19,13 @@ export const authenticateWithGoogle = async (req, res, next) => {
       });
     }
 
-    console.log('VALIDATING TOKEN');
     const user = await verifyGoogleIdToken(value.idToken);
-    console.log('AUTH SUCCESS');
 
     return res.status(200).json({
       message: "Google authentication successful",
       user,
     });
   } catch (authError) {
-    console.log('AUTH CONTROLLER CATCH:', authError.message);
     return next(authError);
   }
 };
