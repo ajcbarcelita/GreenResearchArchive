@@ -1,39 +1,46 @@
-import app from "./app.js";
-import pino from "pino";
+// src/server.js
+import app from './app.js';
+import logger from './utils/logger.js';
+import { initDB, closeDB } from './db/db.js';
 
 const PORT = process.env.PORT || 3000;
-const logger = pino({
-  transport: {
-    target: "pino-pretty",
-    options: {
-      colorize: true,
-      levelFirst: true,
-      translateTime: true,
-    },
-  },
-});
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('UNCAUGHT EXCEPTION:');
-  console.error(error);
-  process.exit(1);
-});
+async function startServer() {
+  try {
+    logger.info('[INFO] Initializing database connection...');
+    const dbClient = await initDB(); // wait for SSH tunnel + DB ready
+    // Optionally attach dbClient to app locals if needed
+    app.locals.db = dbClient;
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('UNHANDLED REJECTION:');
-  console.error('Reason:', reason);
-  console.error('Promise:', promise);
-});
+    const server = app.listen(PORT, () => {
+      logger.info(`[SUCCESS] Backend is running on port ${PORT}`);
+    });
 
-const server = app.listen(PORT, () => {
-  logger.info(`Backend is running on port ${PORT}`);
-});
+    // Handle server errors
+    server.on('error', (error) => {
+      logger.error('[ERROR] Server error:');
+      logger.error(error);
+    });
 
-// Handle server errors
-server.on('error', (error) => {
-  console.error('SERVER ERROR:');
-  console.error(error);
-});
+    // Graceful shutdown
+    const shutdown = async () => {
+      logger.info('[INFO] Shutting down server...');
+      server.close(async () => {
+        await closeDB();
+        logger.info('[INFO] Server closed, exiting process.');
+        process.exit(0);
+      });
+    };
 
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+
+  } catch (err) {
+    logger.error('[ERROR] Failed to start backend:');
+    logger.error(err);
+    await closeDB();
+    process.exit(1);
+  }
+}
+
+startServer();
