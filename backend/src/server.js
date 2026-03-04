@@ -1,11 +1,6 @@
 import app from "./app.js";
 import pino from "pino";
 
-console.log('=== SERVER.JS STARTING ===');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'EXISTS' : 'MISSING');
-console.log('========================');
-
 const PORT = process.env.PORT || 3000;
 const logger = pino({
   transport: {

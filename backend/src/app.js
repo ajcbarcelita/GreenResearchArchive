@@ -8,10 +8,6 @@ import { errorHandler, notFoundHandler } from "./middlewares/errorHandler.js";
 dotenv.config();
 const app = express();
 
-console.log('=== BACKEND STARTUP ===');
-console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'SET' : 'MISSING');
-console.log('======================');
-
 // Set middleware
 app.use(helmet());
 app.use(cors());
