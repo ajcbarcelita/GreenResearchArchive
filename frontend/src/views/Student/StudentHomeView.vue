@@ -239,6 +239,7 @@ const submissionSeverity = computed(() => {
   border-radius: 1rem;
   border: 1px solid #d5e2db;
   box-shadow: 0 12px 32px rgba(18, 43, 32, 0.07);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
 }
 
 .panel-card-accent {
@@ -258,7 +259,7 @@ const submissionSeverity = computed(() => {
   margin: 0.25rem 0 0;
   color: #17362b;
   font-size: clamp(1.25rem, 2.8vw, 2rem);
-  line-height: 1.15;
+  font-weight: 700;
 }
 
 .support-text {
@@ -398,5 +399,9 @@ footer {
     align-items: flex-start;
     gap: 0.15rem;
   }
+}
+
+.panel-card:hover {
+  border-color: #0e662e;
 }
 </style>

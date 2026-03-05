@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import helmet from "helmet";
 import authRoutes from "./routes/authRoutes.js";
+import repositoryRoutes from "./routes/repositoryRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -20,5 +21,6 @@ app.use((req, res, next) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/repository", repositoryRoutes);
 
 export default app;

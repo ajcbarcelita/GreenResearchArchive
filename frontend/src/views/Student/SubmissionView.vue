@@ -292,6 +292,7 @@ function submitFinal() {
   border-radius: 1rem;
   border: 1px solid #d5e2db;
   box-shadow: 0 12px 32px rgba(18, 43, 32, 0.07);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
 }
 
 .panel-card-accent {
@@ -321,9 +322,8 @@ function submitFinal() {
 }
 
 .support-text {
-  margin-top: 0.5rem;
+  margin-top: 0.65rem;
   color: #4c6658;
-  font-size: 0.92rem;
 }
 
 .field-wrap {
@@ -350,5 +350,10 @@ function submitFinal() {
   border-radius: 0.65rem;
   background: #f9fcfa;
   padding: 0.55rem 0.7rem;
+}
+
+.panel-card:hover,
+.panel-card-accent:hover {
+  border-color: #0e662e; 
 }
 </style>

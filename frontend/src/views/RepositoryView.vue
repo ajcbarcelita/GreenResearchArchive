@@ -1,31 +1,23 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Chip from 'primevue/chip'
 import InputText from 'primevue/inputtext'
+import DatePicker from 'primevue/datepicker'
 import Paginator from 'primevue/paginator'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import Navbar from '@/components/Navbar.vue'
 import Footer from '@/components/Footer.vue'
+import { useRouter } from 'vue-router'
 
 const searchValue = ref('')
-const selectedStatus = ref('All')
 const selectedProgram = ref('All')
 const selectedSort = ref('submitted_desc')
+const selectedDate = ref(null)
 const pageStart = ref(0)
 const pageSize = ref(6)
-
-const statusOptions = [
-  'All',
-  'Draft',
-  'Submitted',
-  'Under Review',
-  'Revision Requested',
-  'Approved',
-  'Archived',
-]
 
 const programOptions = [
   'All',
@@ -41,135 +33,23 @@ const sortOptions = [
   { label: 'A-Z Title', value: 'title_asc' },
 ]
 
-const repositoryItems = ref([
-  {
-    submissionId: 1224,
-    title: 'Green Archive: A Capstone Repository Platform for DLSU CCS',
-    abstract:
-      'A searchable repository for capstone metadata, files, and review workflow to improve discoverability and governance.',
-    keywords: ['repository', 'search', 'metadata'],
-    status: 'Approved',
-    versionNo: 4,
-    groupName: 'GROUP-4',
-    programCode: 'BSIT',
-    adviserName: 'Prof. Maria Santos',
-    submittedAt: '2026-03-01 18:21',
-    createdAt: '2026-02-07 13:44',
-    hasCapstonePaper: true,
-    hasDataset: true,
-    isLocked: true,
-  },
-  {
-    submissionId: 1227,
-    title: 'Predictive Faculty Consultation Scheduler using Queue Forecasting',
-    abstract:
-      'A forecasting-assisted scheduler that predicts consultation load and suggests optimal slots per adviser.',
-    keywords: ['forecasting', 'scheduler', 'optimization'],
-    status: 'Under Review',
-    versionNo: 2,
-    groupName: 'GROUP-2',
-    programCode: 'BSCS',
-    adviserName: 'Dr. Ramon Santos',
-    submittedAt: '2026-03-04 10:03',
-    createdAt: '2026-02-16 09:20',
-    hasCapstonePaper: true,
-    hasDataset: false,
-    isLocked: false,
-  },
-  {
-    submissionId: 1211,
-    title: 'Barangay Incident Classifier with Explainable NLP',
-    abstract:
-      'An NLP-driven classifier with explainability outputs for local incident triage and monitoring.',
-    keywords: ['nlp', 'classification', 'explainable-ai'],
-    status: 'Revision Requested',
-    versionNo: 3,
-    groupName: 'GROUP-6',
-    programCode: 'BSIT',
-    adviserName: 'Prof. Louella Cruz',
-    submittedAt: '2026-02-28 20:45',
-    createdAt: '2026-02-10 11:10',
-    hasCapstonePaper: true,
-    hasDataset: true,
-    isLocked: false,
-  },
-  {
-    submissionId: 1208,
-    title: 'Enrollment Fraud Pattern Detection using Hybrid Rules + ML',
-    abstract:
-      'Combines business rules and machine learning scoring to flag suspicious enrollment behaviors.',
-    keywords: ['fraud-detection', 'ml', 'rules-engine'],
-    status: 'Submitted',
-    versionNo: 1,
-    groupName: 'GROUP-3',
-    programCode: 'BSIS',
-    adviserName: 'Dr. Jaime Velasco',
-    submittedAt: '2026-03-03 15:08',
-    createdAt: '2026-02-20 09:35',
-    hasCapstonePaper: true,
-    hasDataset: false,
-    isLocked: false,
-  },
-  {
-    submissionId: 1199,
-    title: 'Computer Vision Parking Occupancy Tracker for Campus Buildings',
-    abstract:
-      'Vision model for counting parking occupancy and exposing live availability dashboards for students.',
-    keywords: ['computer-vision', 'iot', 'dashboard'],
-    status: 'Archived',
-    versionNo: 5,
-    groupName: 'GROUP-8',
-    programCode: 'BSCS',
-    adviserName: 'Prof. Carla Mendoza',
-    submittedAt: '2025-12-15 08:09',
-    createdAt: '2025-10-11 14:47',
-    hasCapstonePaper: true,
-    hasDataset: true,
-    isLocked: true,
-  },
-  {
-    submissionId: 1216,
-    title: 'Capstone Group Analytics Portal with Adviser Insights',
-    abstract:
-      'Analytics portal that surfaces review bottlenecks, status trends, and submission throughput.',
-    keywords: ['analytics', 'kpi', 'portal'],
-    status: 'Draft',
-    versionNo: 1,
-    groupName: 'GROUP-1',
-    programCode: 'BSIS',
-    adviserName: 'Prof. Anne Reyes',
-    submittedAt: null,
-    createdAt: '2026-03-02 16:02',
-    hasCapstonePaper: false,
-    hasDataset: false,
-    isLocked: false,
-  },
-  {
-    submissionId: 1231,
-    title: 'Knowledge Graph Builder for Cross-Department Research Themes',
-    abstract:
-      'Maps concept relationships among projects to surface reusable methods and collaborators.',
-    keywords: ['knowledge-graph', 'research', 'discovery'],
-    status: 'Approved',
-    versionNo: 2,
-    groupName: 'GROUP-9',
-    programCode: 'BSCS',
-    adviserName: 'Dr. Emilio Tan',
-    submittedAt: '2026-03-05 09:52',
-    createdAt: '2026-02-26 12:22',
-    hasCapstonePaper: true,
-    hasDataset: true,
-    isLocked: true,
-  },
-])
+import { listRepository } from '@/services/repositoryService'
 
-const statusSeverity = (status) => {
-  if (status === 'Approved') return 'success'
-  if (status === 'Revision Requested') return 'warn'
-  if (status === 'Archived') return 'secondary'
-  if (status === 'Draft') return 'contrast'
-  return 'info'
-}
+const repositoryItems = ref([])
+const loading = ref(false)
+
+onMounted(async () => {
+  loading.value = true
+  try {
+    const data = await listRepository()
+    repositoryItems.value = data
+  } catch (e) {
+    console.error('Failed to load repository items', e)
+    repositoryItems.value = []
+  } finally {
+    loading.value = false
+  }
+})
 
 const filteredItems = computed(() => {
   const keyword = searchValue.value.trim().toLowerCase()
@@ -180,10 +60,16 @@ const filteredItems = computed(() => {
       .toLowerCase()
 
     const matchesKeyword = !keyword || searchTarget.includes(keyword)
-    const matchesStatus = selectedStatus.value === 'All' || item.status === selectedStatus.value
     const matchesProgram = selectedProgram.value === 'All' || item.programCode === selectedProgram.value
+    let matchesDate = true
+    if (selectedDate.value) {
+      // compare month/year against createdAt or submittedAt
+      const target = new Date(selectedDate.value)
+      const itemDate = item.submittedAt ? new Date(item.submittedAt) : new Date(item.createdAt)
+      matchesDate = itemDate.getMonth() === target.getMonth() && itemDate.getFullYear() === target.getFullYear()
+    }
 
-    return matchesKeyword && matchesStatus && matchesProgram
+    return matchesKeyword && matchesProgram && matchesDate
   })
 
   output = [...output].sort((a, b) => {
@@ -209,23 +95,32 @@ const pagedItems = computed(() => {
 
 const activeFilterPills = computed(() => {
   const pills = []
-  if (selectedStatus.value !== 'All') pills.push(`Status: ${selectedStatus.value}`)
   if (selectedProgram.value !== 'All') pills.push(`Program: ${selectedProgram.value}`)
   if (searchValue.value.trim()) pills.push(`Query: ${searchValue.value.trim()}`)
+  if (selectedDate.value) {
+    const d = new Date(selectedDate.value)
+    pills.push(`Date: ${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`)
+  }
   return pills
 })
 
 const clearFilters = () => {
   searchValue.value = ''
-  selectedStatus.value = 'All'
   selectedProgram.value = 'All'
   selectedSort.value = 'submitted_desc'
+  selectedDate.value = null
   pageStart.value = 0
 }
 
 const onPageChange = (event) => {
   pageStart.value = event.first
   pageSize.value = event.rows
+}
+
+const router = useRouter()
+
+const viewDetails = (id) => {
+  router.push({ name: 'capstone-details', params: { id } })
 }
 </script>
 
@@ -264,12 +159,7 @@ const onPageChange = (event) => {
               />
             </span>
 
-            <Select
-              v-model="selectedStatus"
-              :options="statusOptions"
-              placeholder="Filter status"
-              @change="pageStart = 0"
-            />
+            <DatePicker v-model="selectedDate" view="month" dateFormat="mm/yy" placeholder="Month/Year" />
 
             <Select
               v-model="selectedProgram"
@@ -305,12 +195,12 @@ const onPageChange = (event) => {
         <Card v-for="item in pagedItems" :key="item.submissionId" class="catalog-card">
           <template #content>
             <div class="row-top">
-              <Tag :value="item.status" :severity="statusSeverity(item.status)" rounded />
               <Tag :value="item.isLocked ? 'Locked' : 'Open'" :severity="item.isLocked ? 'secondary' : 'success'" rounded />
             </div>
 
             <h2 class="item-title">{{ item.title }}</h2>
             <p class="meta-line">{{ item.groupName }} · {{ item.programCode }} · Adviser: {{ item.adviserName }}</p>
+            <p class="meta-line">By: {{ (item.authors && item.authors.length) ? item.authors.join(', ') : item.groupName }}</p>
 
             <p class="abstract-preview">{{ item.abstract }}</p>
 
@@ -338,7 +228,9 @@ const onPageChange = (event) => {
             </div>
 
             <div class="action-row">
-              <Button label="View Details" />
+              <router-link :to="{ name: 'capstone-details', params: { id: item.submissionId } }">
+                <Button label="View Details" />
+              </router-link>
             </div>
           </template>
         </Card>
@@ -382,9 +274,10 @@ const onPageChange = (event) => {
 :deep(.filter-card.p-card),
 :deep(.catalog-card.p-card),
 :deep(.empty-card.p-card) {
-  border: 1px solid #d2e1da;
-  border-radius: 1rem;
-  box-shadow: 0 14px 28px rgba(19, 56, 41, 0.07);
+  border: 2px solid #d1d5db; 
+  border-radius: 0.75rem; 
+  box-shadow: 0 10px 15px rgba(2, 6, 23, 0.06);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
 }
 
 .hero-content {
@@ -404,10 +297,10 @@ const onPageChange = (event) => {
 }
 
 .headline {
-  margin: 0.35rem 0 0;
-  font-size: clamp(1.35rem, 3.2vw, 2.1rem);
-  line-height: 1.15;
-  color: #183a2e;
+  margin: 0.25rem 0 0;
+  color: #17362b;
+  font-size: clamp(1.25rem, 2.8vw, 2rem);
+  font-weight: 700;
 }
 
 .support-text {
@@ -541,5 +434,12 @@ const onPageChange = (event) => {
   .action-row :deep(.p-button) {
     width: 100%;
   }
+}
+
+:deep(.hero-card.p-card):hover,
+:deep(.filter-card.p-card):hover,
+:deep(.catalog-card.p-card):hover,
+:deep(.empty-card.p-card):hover {
+  border-color: #0e662e; 
 }
 </style>

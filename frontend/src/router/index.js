@@ -2,11 +2,10 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import StudentHomeView from '../views/Student/StudentHomeView.vue'
 import CapstoneDetailsView from '../views/CapstoneDetails.vue'
-import SubmissionView from '../views/SubmissionView.vue'
+import SubmissionView from '../views/Student/SubmissionView.vue'
 import RepositoryView from '../views/RepositoryView.vue'
 import CompleteProfileView from '../views/CompleteProfileView.vue'
 import ProfileView from '../views/ProfileView.vue'
-import CompleteProfileView from '../views/CompleteProfileView.vue'
 import {
   getStoredUser,
   hasAccessToken,
@@ -42,9 +41,8 @@ const router = createRouter({
     },
 
     // Repository routes
-    // To be implemented id of capstone /id
     {
-      path: '/capstone',
+      path: '/capstone/:id',
       name: 'capstone-details',
       component: CapstoneDetailsView,
     },

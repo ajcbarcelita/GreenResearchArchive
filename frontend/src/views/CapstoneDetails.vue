@@ -1,8 +1,3 @@
-<script setup>
-import Navbar from '@/components/Navbar.vue';
-import Footer from '@/components/Footer.vue';
-</script>
-
 <template>
     <div class="min-h-screen flex flex-col bg-ash-white font-Montserrat">
         <header>
@@ -10,7 +5,44 @@ import Footer from '@/components/Footer.vue';
         </header>
 
         <main class="flex-1 container mx-auto px-6 py-6 pt-32">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div v-if="loading" class="animate-pulse grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-2">
+                    <div class="bg-white rounded-xl shadow-lg border-2 border-gray-300 p-8.5">
+                        <div class="h-8 bg-gray-200 rounded w-3/4 mb-6"></div>
+                        <div class="space-y-5">
+                            <div class="h-10 bg-gray-200 rounded"></div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="h-10 bg-gray-200 rounded"></div>
+                                <div class="h-10 bg-gray-200 rounded"></div>
+                            </div>
+                            <div class="h-10 bg-gray-200 rounded"></div>
+                            <div class="h-24 bg-gray-200 rounded"></div>
+                            <div class="h-10 bg-gray-200 rounded"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="space-y-6">
+                    <div class="bg-white rounded-xl shadow-lg border-2 border-gray-300 p-5">
+                        <div class="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
+                        <div class="space-y-4">
+                            <div class="h-8 bg-gray-200 rounded"></div>
+                            <div class="h-8 bg-gray-200 rounded"></div>
+                            <div class="h-8 bg-gray-200 rounded"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-lg border-2 border-gray-300 p-5">
+                        <div class="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
+                        <div class="space-y-3">
+                            <div class="h-10 bg-gray-200 rounded"></div>
+                            <div class="h-10 bg-gray-200 rounded"></div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Left: Capstone Project Details -->
                 <section class="md:col-span-2">
                     <div class="bg-white rounded-xl shadow-lg border-2 border-gray-300 p-8.5 hover:border-green-text transition-all">
@@ -20,19 +52,19 @@ import Footer from '@/components/Footer.vue';
                             <!-- Title Section -->
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">TITLE</div>
-                                <div class="text-gray-900 font-semibold text-base">Green Archive : A Capstone Repository Platform for DLSU CCS</div>
+                                <div class="text-gray-900 font-semibold text-base">{{ capstone?.title }}</div>
                             </div>
 
                             <!-- Authors and Adviser Grid -->
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                     <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">AUTHORS</div>
-                                    <div class="text-gray-900 font-medium text-base">Aron Mendoza, John Pork</div>
+                                    <div class="text-gray-900 font-medium text-base">{{ (capstone?.authors && capstone.authors.length) ? capstone.authors.join(', ') : capstone?.groupName }}</div>
                                 </div>
                                 <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                     <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-2">ADVISER</div>
                                     <div class="flex items-center gap-2 flex-wrap">
-                                        <span class="text-gray-900 font-medium text-base">Dr. Marivic Tangkeko</span>
+                                        <span class="text-gray-900 font-medium text-base">{{ capstone?.adviserName }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -40,7 +72,7 @@ import Footer from '@/components/Footer.vue';
                             <!-- Program and Section Grid -->
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">PROGRAM</div>
-                                <div class="text-gray-900 font-medium text-base">BACKEND Information Technology</div>
+                                <div class="text-gray-900 font-medium text-base">{{ capstone?.programCode }}</div>
                             </div>
 
                             <!-- Academic Year -->
@@ -53,16 +85,14 @@ import Footer from '@/components/Footer.vue';
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-2">ABSTRACT</div>
                                 <div class="bg-white border border-gray-300 rounded-lg p-3">
-                                    <p class="text-gray-700 leading-relaxed text-base">
-                                        Green Archive is a dedicated capstone repository platform developed for the College of Computer Studies (CCS) at De La Salle University (DLSU). The platform aims to centralize the storage, management, and accessibility of capstone project submissions, facilitating easy search, review, and monitoring by students, faculty, and staff.
-                                    </p>
+                                    <p class="text-gray-700 leading-relaxed text-base">{{ capstone?.abstract }}</p>
                                 </div>
                             </div>
                             
                             <!-- Keywords -->
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">Keywords</div>
-                                <div class="text-gray-900 font-medium text-base">Tech, Try, Test, Dog, Cat</div>
+                                <div class="text-gray-900 font-medium text-base">{{ (capstone?.keywords || ['Tech','Try','Test','Dog','Cat']).join(', ') }}</div>
                             </div>
                             
 
@@ -89,21 +119,13 @@ import Footer from '@/components/Footer.vue';
                             <!-- Submission Date -->
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">SUBMISSION DATE</div>
-                                <div class="text-gray-900 font-medium text-base">May 10, 2024</div>
-                            </div>
-
-                            <!-- Status -->
-                            <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
-                                <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">STATUS</div>
-                                <div class="mt-1">
-                                    <span class="inline-block bg-green-highlight text-dark-green px-4 py-1.5 rounded-full text-sm font-bold border-2 border-green-text/40">APPROVED</span>
-                                </div>
+                                <div class="text-gray-900 font-medium text-base">{{ capstone?.submittedAt }}</div>
                             </div>
 
                             <!-- Research Field -->
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">RESEARCH FIELD</div>
-                                <div class="text-gray-900 font-medium text-base">Data Management</div>
+                                <div class="text-gray-900 font-medium text-base">{{ capstone?.researchField }}</div>
                             </div>
 
                             <!-- Monitoring -->
@@ -139,3 +161,43 @@ import Footer from '@/components/Footer.vue';
         </footer>
     </div>
 </template>
+
+<script setup>
+import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import Navbar from '@/components/Navbar.vue'
+import Footer from '@/components/Footer.vue'
+import { getCapstoneDetails } from '@/services/repositoryService'
+
+const route = useRoute()
+const capstone = ref(null)
+const loading = ref(true)
+const MIN_LOAD_MS = 300
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+const load = async (id) => {
+    loading.value = true
+    const start = Date.now()
+    try {
+        const data = await getCapstoneDetails(id)
+        const elapsed = Date.now() - start
+        if (elapsed < MIN_LOAD_MS) await sleep(MIN_LOAD_MS - elapsed)
+        capstone.value = data
+    } catch (e) {
+        console.error('Failed to load capstone details', e)
+        capstone.value = null
+    } finally {
+        loading.value = false
+    }
+}
+
+onMounted(() => {
+    const id = route.params.id || null
+    load(id)
+})
+
+watch(() => route.params.id, (newId) => {
+    if (newId) load(newId)
+})
+
+</script>

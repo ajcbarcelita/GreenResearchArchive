@@ -230,6 +230,10 @@ watch(universityId, (value) => {
   max-width: 42rem;
 }
 
+:deep(.complete-profile-card.p-card:hover) {
+  border-color: #0e662e;
+}
+
 :deep(.complete-profile-card.p-card) {
   background-color: #ffffff;
   border: 1px solid #d1d5db;

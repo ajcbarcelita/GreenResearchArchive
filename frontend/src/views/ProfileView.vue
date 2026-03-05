@@ -342,4 +342,9 @@ footer {
     flex: 1;
   }
 }
+
+:deep(.profile-card):hover {
+  border-color: #0e662e; 
+}
+
 </style>
