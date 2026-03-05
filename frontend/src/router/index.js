@@ -1,7 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
-import StudentHomeView from '../views/StudentHomeView.vue'
+import StudentHomeView from '../views/Student/StudentHomeView.vue'
 import CapstoneDetailsView from '../views/CapstoneDetails.vue'
+import SubmissionView from '../views/SubmissionView.vue'
+import RepositoryView from '../views/RepositoryView.vue'
 import CompleteProfileView from '../views/CompleteProfileView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import {
@@ -45,6 +47,16 @@ const router = createRouter({
       path: '/capstone',
       name: 'capstone-details',
       component: CapstoneDetailsView,
+    },
+    {
+      path: '/submission',
+      name: 'submission-view',
+      component: SubmissionView,
+    },
+    {
+      path: '/repository',
+      name: 'repository-view',
+      component: RepositoryView,
     },
 
     // Student Routes

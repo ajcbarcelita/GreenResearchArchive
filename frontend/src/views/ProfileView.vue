@@ -14,6 +14,7 @@ const toast = useToast()
 const user = ref(getStoredUser())
 const programs = ref([])
 const programName = ref('Not set')
+const loadingPrograms = ref(false)
 const isEditing = ref(false)
 const draftFirstName = ref('')
 const draftMiddleName = ref('')
@@ -83,21 +84,46 @@ const saveEdit = () => {
 }
 
 const resolveProgramName = () => {
-  const selected = programs.value.find((program) => program.program_id === user.value?.programId)
-  if (selected) {
-    programName.value = `${selected.program_code} - ${selected.program_name}`
-  } else {
-    programName.value = 'Not set'
+  const profile = user.value || {}
+  const userProgramId = Number(profile.programId)
+
+  if (!Number.isNaN(userProgramId) && userProgramId > 0) {
+    const selected = programs.value.find((program) => Number(program.program_id) === userProgramId)
+    if (selected) {
+      programName.value = `${selected.program_code} - ${selected.program_name}`
+      return
+    }
   }
+
+  if (profile.programCode && profile.programName) {
+    programName.value = `${profile.programCode} - ${profile.programName}`
+    return
+  }
+
+  if (profile.programName) {
+    programName.value = profile.programName
+    return
+  }
+
+  programName.value = 'Not set'
 }
 
 onMounted(async () => {
+  resolveProgramName()
+
   try {
+    loadingPrograms.value = true
     const response = await getDegreePrograms()
-    programs.value = response?.programs || []
+    programs.value = Array.isArray(response?.programs)
+      ? response.programs
+      : Array.isArray(response)
+        ? response
+        : []
     resolveProgramName()
   } catch {
-    programName.value = 'Unable to load'
+    resolveProgramName()
+  } finally {
+    loadingPrograms.value = false
   }
 })
 </script>
@@ -138,7 +164,10 @@ onMounted(async () => {
 
             <div class="field-box">
               <span class="label">Degree Program</span>
-              <span class="value">{{ programName }}</span>
+              <span class="value">
+                {{ programName }}
+                <small v-if="loadingPrograms" class="loading-caption">(loading...)</small>
+              </span>
             </div>
 
             <div class="field-box">
@@ -276,6 +305,12 @@ footer {
 .value {
   color: #163328;
   font-weight: 600;
+}
+
+.loading-caption {
+  margin-left: 0.35rem;
+  font-weight: 500;
+  color: #486457;
 }
 
 .action-row {

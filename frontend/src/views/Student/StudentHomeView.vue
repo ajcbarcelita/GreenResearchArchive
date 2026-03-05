@@ -7,7 +7,7 @@ import Chip from 'primevue/chip'
 import Tag from 'primevue/tag'
 import Navbar from '@/components/Navbar.vue'
 import Footer from '@/components/Footer.vue'
-import { getStoredUser } from '../services/authService'
+import { getStoredUser } from '../../services/authService'
 
 const user = getStoredUser()
 
