@@ -109,7 +109,7 @@ onMounted(async () => {
       <Navbar />
     </header>
 
-    <main class="content-wrap mx-auto w-full max-w-5xl px-4 pb-10 pt-32">
+    <main class="content-wrap mx-auto w-full max-w-6xl px-4 pb-8 pt-24 sm:px-6 sm:pb-10 sm:pt-28 lg:pt-32">
       <Card class="profile-card">
         <template #title>
           <div class="title-row">
@@ -258,6 +258,7 @@ footer {
   background: #fbfdfc;
   display: grid;
   gap: 0.35rem;
+  min-height: 5.5rem;
 }
 
 .label {
@@ -295,6 +296,15 @@ footer {
   .title-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .action-row {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .action-row :deep(.p-button) {
+    flex: 1;
   }
 }
 </style>

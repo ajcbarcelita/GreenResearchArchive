@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
-import IndexView from '../views/index.vue'
+import StudentHomeView from '../views/StudentHomeView.vue'
 import CapstoneDetailsView from '../views/CapstoneDetails.vue'
 import CompleteProfileView from '../views/CompleteProfileView.vue'
 import ProfileView from '../views/ProfileView.vue'
@@ -25,8 +25,8 @@ const router = createRouter({
     },
     {
       path: '/dashboard',
-      name: 'index',
-      component: IndexView,
+      name: 'student-home',
+      component: StudentHomeView,
     },
     {
       path: '/complete-profile',

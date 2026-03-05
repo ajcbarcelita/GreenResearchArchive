@@ -71,6 +71,8 @@ const renderGoogleButton = () => {
     openErrorModal('VITE_GOOGLE_CLIENT_ID is missing. Set it in frontend/.env and restart the dev server.')
     return
   }
+  const buttonWidth = Math.min(320, Math.max(220, container.clientWidth))
+
   try {
     console.log('[LoginView] Initializing Google with clientId:', googleClientId)
     window.google.accounts.id.initialize({
@@ -86,7 +88,7 @@ const renderGoogleButton = () => {
         size: 'large',
         text: 'signin_with',
         shape: 'rectangular',
-        width: 320,
+        width: buttonWidth,
       }
     )
     console.log('[LoginView] Google button rendered successfully')
@@ -117,7 +119,12 @@ onMounted(reloadGoogleSignIn)
       </div>
     </section>
     <section class="right-panel" :style="heroBackgroundStyle" />
-    <Dialog v-model:visible="showErrorModal" modal header="Authentication Error" :style="{ width: '28rem' }">
+    <Dialog
+      v-model:visible="showErrorModal"
+      modal
+      header="Authentication Error"
+      :style="{ width: 'min(28rem, 92vw)' }"
+    >
       <p class="modal-message">{{ errorMessage }}</p>
       <template #footer>
         <Button label="Close" @click="showErrorModal = false" />
@@ -145,7 +152,7 @@ onMounted(reloadGoogleSignIn)
 
 .content-wrapper {
   width: 100%;
-  max-width: 480px;
+  max-width: 32rem;
 }
 
 .right-panel {

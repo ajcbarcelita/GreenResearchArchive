@@ -85,7 +85,7 @@ onMounted(async () => {
       <Navbar />
     </header>
 
-    <main class="flex-1 flex items-center justify-center px-4 py-8 pt-32">
+    <main class="flex-1 flex items-center justify-center px-4 py-6 pt-24 sm:px-6 sm:py-8 sm:pt-28 lg:pt-32">
       <CompleteProfileForm
         :programs="programs"
         :loading-programs="isLoadingPrograms"
