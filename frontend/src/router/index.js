@@ -3,6 +3,7 @@ import LoginView from '../views/LoginView.vue'
 import IndexView from '../views/index.vue'
 import CapstoneDetailsView from '../views/CapstoneDetails.vue'
 import CompleteProfileView from '../views/CompleteProfileView.vue'
+import ProfileView from '../views/ProfileView.vue'
 import {
   getStoredUser,
   hasAccessToken,
@@ -31,6 +32,11 @@ const router = createRouter({
       path: '/complete-profile',
       name: 'complete-profile',
       component: CompleteProfileView,
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: ProfileView,
     },
 
     // Repository routes
