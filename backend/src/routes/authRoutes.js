@@ -1,19 +1,13 @@
 import { Router } from "express";
-import {
-	authenticateWithGoogle,
-	completeProfile,
-	getAuthenticatedUser,
-	logout,
-	listDegreePrograms,
-} from "../controllers/authController.js";
-import { requireAuth, requireRegisteredUser } from "../middlewares/authMiddleware.js";
+import loginRoutes from "./loginRoutes.js";
+import onboardingRoutes from "./onboardingRoutes.js";
+import sessionRoutes from "./sessionRoutes.js";
 
 const router = Router();
 
-router.post("/google", authenticateWithGoogle);
-router.post("/logout", requireAuth, logout);
-router.get("/me", requireAuth, requireRegisteredUser, getAuthenticatedUser);
-router.get("/programs", requireAuth, listDegreePrograms);
-router.post("/complete-profile", requireAuth, completeProfile);
+// Grouped by frontend usage while keeping endpoint paths unchanged under /api/auth/*
+router.use(loginRoutes);
+router.use(sessionRoutes);
+router.use(onboardingRoutes);
 
 export default router;
