@@ -42,6 +42,20 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
+import { logout as logoutUser } from '../services/authService'
+
+const router = useRouter()
+
+const logout = async () => {
+  await logoutUser()
+
+  if (window.google?.accounts?.id) {
+    window.google.accounts.id.disableAutoSelect()
+  }
+
+  router.push('/login')
+}
 
 </script>
 

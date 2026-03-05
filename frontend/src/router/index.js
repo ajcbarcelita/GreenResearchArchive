@@ -2,6 +2,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import IndexView from '../views/index.vue'
 import CapstoneDetailsView from '../views/CapstoneDetails.vue'
+import CompleteProfileView from '../views/CompleteProfileView.vue'
+import {
+  getStoredUser,
+  hasAccessToken,
+  needsProfileCompletion,
+} from '../services/authService'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -21,6 +27,11 @@ const router = createRouter({
       name: 'index',
       component: IndexView,
     },
+    {
+      path: '/complete-profile',
+      name: 'complete-profile',
+      component: CompleteProfileView,
+    },
 
     // Repository routes
     // To be implemented id of capstone /id
@@ -38,6 +49,31 @@ const router = createRouter({
 
 
   ],
+})
+
+router.beforeEach((to) => {
+  const isPublicRoute = to.path === '/login'
+  const authenticated = hasAccessToken()
+  const user = getStoredUser()
+  const requiresProfileCompletion = needsProfileCompletion(user)
+
+  if (!authenticated && !isPublicRoute) {
+    return '/login'
+  }
+
+  if (authenticated && isPublicRoute) {
+    return requiresProfileCompletion ? '/complete-profile' : '/dashboard'
+  }
+
+  if (authenticated && requiresProfileCompletion && to.path !== '/complete-profile') {
+    return '/complete-profile'
+  }
+
+  if (authenticated && !requiresProfileCompletion && to.path === '/complete-profile') {
+    return '/dashboard'
+  }
+
+  return true
 })
 
 export default router

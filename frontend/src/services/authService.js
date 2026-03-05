@@ -10,6 +10,10 @@ const api = axios.create({
 
 const getStoredAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY)
 
+export const hasAccessToken = () => Boolean(getStoredAccessToken())
+
+export const needsProfileCompletion = (user) => !user?.lastLogin
+
 const setAccessToken = (token) => {
   if (!token) return
   localStorage.setItem(ACCESS_TOKEN_KEY, token)
@@ -67,5 +71,36 @@ export const authenticateWithGoogle = async (idToken) => {
 export const getMyProfile = async () => {
   const response = await api.get('/api/auth/me')
   return response.data
+}
+
+export const getDegreePrograms = async () => {
+  const response = await api.get('/api/auth/programs')
+  return response.data
+}
+
+export const completeProfile = async (payload) => {
+  const response = await api.post('/api/auth/complete-profile', payload)
+  const accessToken = response?.data?.accessToken
+  const user = response?.data?.user
+
+  if (accessToken) {
+    setAccessToken(accessToken)
+  }
+
+  if (user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user))
+  }
+
+  return response.data
+}
+
+export const logout = async () => {
+  try {
+    await api.post('/api/auth/logout')
+  } catch {
+    // Clear local auth state even if backend logout fails.
+  } finally {
+    clearSession()
+  }
 }
 

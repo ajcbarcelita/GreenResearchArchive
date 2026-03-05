@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
-import { authenticateWithGoogle } from '../services/authService'
+import { authenticateWithGoogle, needsProfileCompletion } from '../services/authService'
 import LoginBg from '../assets/Login_BG.jpg'
 
 const router = useRouter()
@@ -29,6 +29,10 @@ const handleGoogleCredential = async (response) => {
       throw new Error('Authentication succeeded but no access token was returned.')
     }
     console.log('[LoginView] Authentication successful, redirecting...')
+    if (needsProfileCompletion(result?.user)) {
+      router.push('/complete-profile')
+      return
+    }
     router.push('/dashboard')
   } catch (error) {
     console.error('[LoginView] Authentication error:', error)

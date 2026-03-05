@@ -27,3 +27,13 @@ export const requireAuth = (req, res, next) => {
     })
   }
 }
+
+export const requireRegisteredUser = (req, res, next) => {
+  if (req.auth?.onboardingRequired) {
+    return res.status(403).json({
+      message: 'Complete your profile first to access this resource.',
+    })
+  }
+
+  return next()
+}
