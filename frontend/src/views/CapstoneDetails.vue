@@ -38,40 +38,15 @@ import Footer from '@/components/Footer.vue';
                             </div>
 
                             <!-- Program and Section Grid -->
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
-                                    <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">PROGRAM</div>
-                                    <div class="text-gray-900 font-medium text-base">BS Information Technology</div>
-                                </div>
-                                <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
-                                    <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">SECTION</div>
-                                    <div class="text-gray-900 font-medium text-base">CAPIT3</div>
-                                </div>
+                            <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
+                                <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">PROGRAM</div>
+                                <div class="text-gray-900 font-medium text-base">BACKEND Information Technology</div>
                             </div>
 
                             <!-- Academic Year -->
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">ACADEMIC YEAR</div>
                                 <div class="text-gray-900 font-medium text-base">2025 - 2026</div>
-                            </div>
-
-                            <!-- Panelists -->
-                            <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
-                                <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-3">PANELISTS</div>
-                                <div class="space-y-2">
-                                    <div class="flex items-center justify-between bg-white border-2 border-gray-300 rounded-lg px-4 py-2 shadow-sm">
-                                        <span class="text-gray-900 text-base font-semibold">Dr. Ramon Santos</span>
-                                        <span class="inline-block bg-green-highlight text-dark-green px-3 py-1 rounded-full text-xs font-bold border border-green-text/30">Panelist</span>
-                                    </div>
-                                    <div class="flex items-center justify-between bg-white border-2 border-gray-300 rounded-lg px-4 py-2 shadow-sm">
-                                        <span class="text-gray-900 text-base font-semibold">Prof. Luisa Reyes</span>
-                                        <span class="inline-block bg-green-highlight text-dark-green px-3 py-1 rounded-full text-xs font-bold border border-green-text/30">Panelist</span>
-                                    </div>
-                                    <div class="flex items-center justify-between bg-white border-2 border-gray-300 rounded-lg px-4 py-2 shadow-sm">
-                                        <span class="text-gray-900 text-base font-semibold">Engr. Marco dela Cruz</span>
-                                        <span class="inline-block bg-green-highlight text-dark-green px-3 py-1 rounded-full text-xs font-bold border border-green-text/30">Panelist</span>
-                                    </div>
-                                </div>
                             </div>
 
                             <!-- Abstract -->
@@ -83,6 +58,13 @@ import Footer from '@/components/Footer.vue';
                                     </p>
                                 </div>
                             </div>
+                            
+                            <!-- Keywords -->
+                            <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
+                                <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">Keywords</div>
+                                <div class="text-gray-900 font-medium text-base">Tech, Try, Test, Dog, Cat</div>
+                            </div>
+                            
 
                             <!-- Download Button -->
                             <div class="mt-4 pt-2 border-t-2 border-gray-300">
@@ -94,6 +76,7 @@ import Footer from '@/components/Footer.vue';
                                 </button>
                             </div>
                         </div>
+
                     </div>
                 </section>
 
@@ -146,28 +129,7 @@ import Footer from '@/components/Footer.vue';
                         </div>
                     </div>
 
-                    <!-- Additional Stats Card -- Lagay ko lang for now but might be removed -->
-                    <div class="bg-white rounded-xl shadow-lg border-2 border-gray-300 p-5 hover:border-green-text transition-all">
-                        <h3 class="text-green-text text-xl font-semibold mb-4 pb-2 border-b-2 border-green-text/30">Statistics</h3>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="text-center p-3 bg-gray-100 border-2 border-gray-400 rounded-lg shadow-sm">
-                                <div class="text-2xl font-bold text-gray-800">247</div>
-                                <div class="text-xs font-semibold text-gray-600 uppercase">Views</div>
-                            </div>
-                            <div class="text-center p-3 bg-gray-100 border-2 border-gray-400 rounded-lg shadow-sm">
-                                <div class="text-2xl font-bold text-gray-800">89</div>
-                                <div class="text-xs font-semibold text-gray-600 uppercase">Downloads</div>
-                            </div>
-                            <div class="text-center p-3 bg-gray-100 border-2 border-gray-400 rounded-lg shadow-sm">
-                                <div class="text-2xl font-bold text-gray-800">4.5</div>
-                                <div class="text-xs font-semibold text-gray-600 uppercase">Rating</div>
-                            </div>
-                            <div class="text-center p-3 bg-gray-100 border-2 border-gray-400 rounded-lg shadow-sm">
-                                <div class="text-2xl font-bold text-gray-800">12</div>
-                                <div class="text-xs font-semibold text-gray-600 uppercase">Citations</div>
-                            </div>
-                        </div>
-                    </div>
+
                 </aside>
             </div>
         </main>

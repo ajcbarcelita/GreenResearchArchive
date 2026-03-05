@@ -6,12 +6,12 @@ import SubmissionView from '../views/SubmissionView.vue'
 import RepositoryView from '../views/RepositoryView.vue'
 import CompleteProfileView from '../views/CompleteProfileView.vue'
 import ProfileView from '../views/ProfileView.vue'
+import CompleteProfileView from '../views/CompleteProfileView.vue'
 import {
   getStoredUser,
   hasAccessToken,
   needsProfileCompletion,
 } from '../services/authService'
-
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [

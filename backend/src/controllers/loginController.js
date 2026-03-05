@@ -5,7 +5,10 @@ import {
   findGoogleUser,
   updateGoogleUserLogin,
 } from "../services/userService.js";
-import { signAccessToken, signOnboardingToken } from "../services/tokenService.js";
+import {
+  signAccessToken,
+  signOnboardingToken,
+} from "../services/tokenService.js";
 
 const googleAuthSchema = Joi.object({
   idToken: Joi.string().trim().required(),

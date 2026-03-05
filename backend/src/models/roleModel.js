@@ -7,10 +7,10 @@ export const findRoleByNameExact = async (db, roleName) => {
       LIMIT 1
     `,
     [roleName],
-  )
+  );
 
-  return result.rows[0] || null
-}
+  return result.rows[0] || null;
+};
 
 export const findRoleByNameLike = async (db, roleName) => {
   const result = await db.query(
@@ -22,10 +22,10 @@ export const findRoleByNameLike = async (db, roleName) => {
       LIMIT 1
     `,
     [`%${roleName}%`],
-  )
+  );
 
-  return result.rows[0] || null
-}
+  return result.rows[0] || null;
+};
 
 export const createRole = async (db, roleName) => {
   const result = await db.query(
@@ -35,10 +35,10 @@ export const createRole = async (db, roleName) => {
       RETURNING role_id, role_name
     `,
     [roleName],
-  )
+  );
 
-  return result.rows[0]
-}
+  return result.rows[0];
+};
 
 export const findRoleNameById = async (db, roleId) => {
   const result = await db.query(
@@ -49,7 +49,7 @@ export const findRoleNameById = async (db, roleId) => {
       LIMIT 1
     `,
     [roleId],
-  )
+  );
 
-  return result.rows[0]?.role_name || null
-}
+  return result.rows[0]?.role_name || null;
+};

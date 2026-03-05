@@ -7,7 +7,10 @@ import {
 import { signAccessToken } from "../services/tokenService.js";
 
 const completeProfileSchema = Joi.object({
-  universityId: Joi.string().trim().pattern(/^\d{8}$/).required(),
+  universityId: Joi.string()
+    .trim()
+    .pattern(/^\d{8}$/)
+    .required(),
   firstName: Joi.string().trim().max(100).required(),
   lastName: Joi.string().trim().max(100).required(),
   middleName: Joi.string().trim().max(100).allow("", null),

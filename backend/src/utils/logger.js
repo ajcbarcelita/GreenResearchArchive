@@ -1,19 +1,19 @@
-import pino from 'pino';
+import pino from "pino";
 
 const logger = pino({
-  level: 'info', // default minimum level
+  level: "info", // default minimum level
   transport: {
-    target: 'pino-pretty',
+    target: "pino-pretty",
     options: {
       colorize: true,
-      translateTime: 'HH:MM:ss',
+      translateTime: "HH:MM:ss",
       levelFirst: true,
     },
   },
 });
 
 // sanity check: ensure all levels exist
-['info', 'warn', 'error', 'debug'].forEach(level => {
+["info", "warn", "error", "debug"].forEach((level) => {
   if (!logger[level]) {
     logger[level] = (...args) => logger.info(...args);
   }

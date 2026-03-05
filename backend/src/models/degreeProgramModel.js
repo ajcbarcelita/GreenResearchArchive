@@ -5,10 +5,10 @@ export const listDegreePrograms = async (db) => {
       FROM ref_degree_programs
       ORDER BY program_name ASC
     `,
-  )
+  );
 
-  return result.rows
-}
+  return result.rows;
+};
 
 export const findDegreeProgramById = async (db, programId) => {
   const result = await db.query(
@@ -19,7 +19,7 @@ export const findDegreeProgramById = async (db, programId) => {
       LIMIT 1
     `,
     [programId],
-  )
+  );
 
-  return result.rows[0] || null
-}
+  return result.rows[0] || null;
+};

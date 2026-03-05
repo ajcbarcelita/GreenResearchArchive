@@ -7,10 +7,10 @@ export const findUserByGoogleIdOrEmail = async (db, { googleId, email }) => {
       LIMIT 1
     `,
     [googleId, email],
-  )
+  );
 
-  return result.rows[0] || null
-}
+  return result.rows[0] || null;
+};
 
 export const existsUserByGoogleIdOrEmail = async (db, { googleId, email }) => {
   const result = await db.query(
@@ -21,10 +21,10 @@ export const existsUserByGoogleIdOrEmail = async (db, { googleId, email }) => {
       LIMIT 1
     `,
     [googleId, email],
-  )
+  );
 
-  return result.rowCount > 0
-}
+  return result.rowCount > 0;
+};
 
 export const updateUserLoginWithGoogle = async (
   db,
@@ -46,14 +46,23 @@ export const updateUserLoginWithGoogle = async (
       RETURNING user_id, email, university_id, fname, lname, mname, program_id, role_id, is_active, last_login
     `,
     [googleId, email, fname, lname, mname, roleId, userId],
-  )
+  );
 
-  return result.rows[0]
-}
+  return result.rows[0];
+};
 
 export const insertUserFromOnboarding = async (
   db,
-  { googleId, email, universityId, firstName, lastName, middleName, programId, roleId },
+  {
+    googleId,
+    email,
+    universityId,
+    firstName,
+    lastName,
+    middleName,
+    programId,
+    roleId,
+  },
 ) => {
   const result = await db.query(
     `
@@ -61,11 +70,20 @@ export const insertUserFromOnboarding = async (
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, true)
       RETURNING user_id, email, university_id, fname, lname, mname, program_id, role_id, is_active, created_at, last_login
     `,
-    [googleId, email, universityId, firstName, lastName, middleName, programId, roleId],
-  )
+    [
+      googleId,
+      email,
+      universityId,
+      firstName,
+      lastName,
+      middleName,
+      programId,
+      roleId,
+    ],
+  );
 
-  return result.rows[0]
-}
+  return result.rows[0];
+};
 
 export const completeUserFirstLoginProfile = async (
   db,
@@ -87,10 +105,10 @@ export const completeUserFirstLoginProfile = async (
       RETURNING user_id, email, university_id, fname, lname, mname, program_id, role_id, is_active, last_login
     `,
     [universityId, firstName, lastName, middleName, programId, userId],
-  )
+  );
 
-  return result.rows[0] || null
-}
+  return result.rows[0] || null;
+};
 
 export const findUserById = async (db, userId) => {
   const result = await db.query(
@@ -101,7 +119,7 @@ export const findUserById = async (db, userId) => {
       LIMIT 1
     `,
     [userId],
-  )
+  );
 
-  return result.rows[0] || null
-}
+  return result.rows[0] || null;
+};

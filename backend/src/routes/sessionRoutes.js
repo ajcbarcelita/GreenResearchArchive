@@ -1,6 +1,12 @@
 import { Router } from "express";
-import { getAuthenticatedUser, logout } from "../controllers/sessionController.js";
-import { requireAuth, requireRegisteredUser } from "../middlewares/authMiddleware.js";
+import {
+  getAuthenticatedUser,
+  logout,
+} from "../controllers/sessionController.js";
+import {
+  requireAuth,
+  requireRegisteredUser,
+} from "../middlewares/authMiddleware.js";
 
 const router = Router();
 

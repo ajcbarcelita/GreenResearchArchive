@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { completeProfile, listDegreePrograms } from "../controllers/onboardingController.js";
+import {
+  completeProfile,
+  listDegreePrograms,
+} from "../controllers/onboardingController.js";
 import { requireAuth } from "../middlewares/authMiddleware.js";
 
 const router = Router();

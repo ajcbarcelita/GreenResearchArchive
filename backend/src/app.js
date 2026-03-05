@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Allow Google Sign-In popup communication
 app.use((req, res, next) => {
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   next();
 });
 
