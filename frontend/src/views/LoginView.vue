@@ -24,7 +24,10 @@ const handleGoogleCredential = async (response) => {
     console.log('[LoginView] response:', response)
     console.log('[LoginView] credential:', response?.credential ? `${response.credential.substring(0, 50)}...` : 'EMPTY')
     isLoading.value = true
-    await authenticateWithGoogle(response.credential)
+    const result = await authenticateWithGoogle(response.credential)
+    if (!result?.accessToken) {
+      throw new Error('Authentication succeeded but no access token was returned.')
+    }
     console.log('[LoginView] Authentication successful, redirecting...')
     router.push('/dashboard')
   } catch (error) {

@@ -64,6 +64,8 @@ export const verifyGoogleIdToken = async (idToken) => {
       id: payload.sub,
       email: payload.email,
       name: payload.name,
+      givenName: payload.given_name,
+      familyName: payload.family_name,
       picture: payload.picture,
     };
   } catch (err) {
