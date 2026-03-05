@@ -1,3 +1,17 @@
+import {
+  findDegreeProgramById,
+  listDegreePrograms as listDegreeProgramsModel,
+} from '../models/degreeProgramModel.js'
+import { createRole, findRoleByNameExact, findRoleByNameLike, findRoleNameById } from '../models/roleModel.js'
+import {
+  completeUserFirstLoginProfile,
+  existsUserByGoogleIdOrEmail,
+  findUserByGoogleIdOrEmail,
+  findUserById,
+  insertUserFromOnboarding,
+  updateUserLoginWithGoogle,
+} from '../models/userModel.js'
+
 const ROLE_NAMES = {
   ADMIN: 'Admin',
   FACULTY: 'Faculty',
@@ -69,6 +83,14 @@ const buildRbacConfig = () => ({
   blacklist: parseEmailList(process.env.RBAC_BLACKLIST_EMAILS || ''),
 })
 
+const ensureDb = (db) => {
+  if (!db) {
+    const error = new Error('Database client is not initialized')
+    error.statusCode = 500
+    throw error
+  }
+}
+
 const resolveRoleFromEmail = (email) => {
   const normalizedEmail = email.toLowerCase()
   const localPart = normalizedEmail.split('@')[0] || ''
@@ -104,154 +126,95 @@ const resolveRoleFromEmail = (email) => {
 }
 
 const resolveRoleIdByName = async (db, roleName) => {
-  const exactRole = await db.query(
-    `
-      SELECT role_id, role_name
-      FROM ref_roles
-      WHERE LOWER(role_name) = LOWER($1)
-      LIMIT 1
-    `,
-    [roleName],
-  )
+  const exactRole = await findRoleByNameExact(db, roleName)
+  if (exactRole) return exactRole
 
-  if (exactRole.rowCount > 0) {
-    return exactRole.rows[0]
+  const fuzzyRole = await findRoleByNameLike(db, roleName)
+  if (fuzzyRole) return fuzzyRole
+
+  return createRole(db, roleName)
+}
+
+const mapUserWithRole = async (db, userRow) => {
+  const roleName = await findRoleNameById(db, userRow.role_id)
+
+  return {
+    ...userRow,
+    role_name: roleName,
+  }
+}
+
+const ensureGoogleProfile = (profile) => {
+  const googleId = profile?.id
+  const email = (profile?.email || '').toLowerCase().trim()
+
+  if (!googleId || !email) {
+    const error = new Error('Invalid Google profile payload')
+    error.statusCode = 400
+    throw error
   }
 
-  const fuzzyRole = await db.query(
-    `
-      SELECT role_id, role_name
-      FROM ref_roles
-      WHERE LOWER(role_name) LIKE LOWER($1)
-      ORDER BY role_id ASC
-      LIMIT 1
-    `,
-    [`%${roleName}%`],
-  )
+  return { googleId, email }
+}
 
-  if (fuzzyRole.rowCount > 0) {
-    return fuzzyRole.rows[0]
+const rethrowUniqueConstraint = (error) => {
+  if (error?.code === '23505' && error?.constraint === 'uni_id_idx') {
+    const duplicateError = new Error('University ID is already in use.')
+    duplicateError.statusCode = 409
+    throw duplicateError
   }
 
-  const createdRole = await db.query(
-    `
-      INSERT INTO ref_roles (role_name)
-      VALUES ($1)
-      RETURNING role_id, role_name
-    `,
-    [roleName],
-  )
+  if (error?.code === '23505') {
+    const duplicateError = new Error('A unique value already exists for this account.')
+    duplicateError.statusCode = 409
+    throw duplicateError
+  }
 
-  return createdRole.rows[0]
+  throw error
 }
 
 export const findGoogleUser = async (db, profile) => {
-  if (!db) {
-    const error = new Error('Database client is not initialized')
-    error.statusCode = 500
-    throw error
-  }
+  ensureDb(db)
+  const { googleId, email } = ensureGoogleProfile(profile)
 
-  const googleId = profile.id
-  const email = (profile.email || '').toLowerCase().trim()
+  const existingUser = await findUserByGoogleIdOrEmail(db, { googleId, email })
+  if (!existingUser) return null
 
-  if (!googleId || !email) {
-    const error = new Error('Invalid Google profile payload')
-    error.statusCode = 400
-    throw error
-  }
-
-  const existingResult = await db.query(
-    `
-      SELECT user_id, email, university_id, fname, lname, mname, program_id, role_id, is_active, last_login
-      FROM users
-      WHERE google_id = $1 OR email = $2
-      LIMIT 1
-    `,
-    [googleId, email],
-  )
-
-  if (existingResult.rowCount === 0) {
-    return null
-  }
-
-  const existingUser = existingResult.rows[0]
-  const role = await db.query(
-    `
-      SELECT role_name
-      FROM ref_roles
-      WHERE role_id = $1
-      LIMIT 1
-    `,
-    [existingUser.role_id],
-  )
-
-  return {
-    ...existingUser,
-    role_name: role.rows[0]?.role_name || null,
-  }
+  return mapUserWithRole(db, existingUser)
 }
 
 export const updateGoogleUserLogin = async (db, profile) => {
-  if (!db) {
-    const error = new Error('Database client is not initialized')
-    error.statusCode = 500
-    throw error
-  }
-
-  const googleId = profile.id
-  const email = (profile.email || '').toLowerCase().trim()
-
-  if (!googleId || !email) {
-    const error = new Error('Invalid Google profile payload')
-    error.statusCode = 400
-    throw error
-  }
+  ensureDb(db)
+  const { googleId, email } = ensureGoogleProfile(profile)
 
   const existingUser = await findGoogleUser(db, profile)
-
-  if (!existingUser) {
-    return null
-  }
+  if (!existingUser) return null
 
   const { fname, lname, mname } = splitName(profile)
   const roleName = resolveRoleFromEmail(email)
   const role = await resolveRoleIdByName(db, roleName)
 
-  const updated = await db.query(
-    `
-      UPDATE users
-      SET
-        google_id = $1,
-        email = $2,
-        fname = $3,
-        lname = $4,
-        mname = $5,
-        role_id = $6,
-        last_login = CURRENT_TIMESTAMP,
-        is_active = true
-      WHERE user_id = $7
-      RETURNING user_id, email, university_id, fname, lname, mname, program_id, role_id, is_active, last_login
-    `,
-    [googleId, email, fname, lname, mname, role.role_id, existingUser.user_id],
-  )
+  const updatedUser = await updateUserLoginWithGoogle(db, {
+    googleId,
+    email,
+    fname,
+    lname,
+    mname,
+    roleId: role.role_id,
+    userId: existingUser.user_id,
+  })
 
   return {
-    ...updated.rows[0],
+    ...updatedUser,
     role_name: role.role_name,
   }
 }
 
 export const buildOnboardingProfile = (profile) => {
-  const email = (profile?.email || '').toLowerCase().trim()
-  if (!profile?.id || !email) {
-    const error = new Error('Invalid Google profile payload')
-    error.statusCode = 400
-    throw error
-  }
+  const { googleId, email } = ensureGoogleProfile(profile)
 
   return {
-    googleId: profile.id,
+    googleId,
     email,
     name: profile.name || null,
     givenName: profile.givenName || null,
@@ -264,184 +227,88 @@ export const createUserFromOnboarding = async (
   db,
   { googleId, email, firstName, lastName, middleName, programId, universityId },
 ) => {
-  if (!db) {
-    const error = new Error('Database client is not initialized')
-    error.statusCode = 500
-    throw error
-  }
+  ensureDb(db)
 
   const roleName = resolveRoleFromEmail(email)
   const role = await resolveRoleIdByName(db, roleName)
 
-  const programExists = await db.query(
-    `
-      SELECT program_id
-      FROM ref_degree_programs
-      WHERE program_id = $1
-      LIMIT 1
-    `,
-    [programId],
-  )
-
-  if (programExists.rowCount === 0) {
+  const programExists = await findDegreeProgramById(db, programId)
+  if (!programExists) {
     const error = new Error('Selected degree program does not exist.')
     error.statusCode = 400
     throw error
   }
 
-  const existingResult = await db.query(
-    `
-      SELECT user_id
-      FROM users
-      WHERE google_id = $1 OR email = $2
-      LIMIT 1
-    `,
-    [googleId, email],
-  )
-
-  if (existingResult.rowCount > 0) {
+  const userExists = await existsUserByGoogleIdOrEmail(db, { googleId, email })
+  if (userExists) {
     const error = new Error('Account already exists. Please sign in again.')
     error.statusCode = 409
     throw error
   }
 
   try {
-    const inserted = await db.query(
-      `
-        INSERT INTO users (google_id, email, university_id, fname, lname, mname, program_id, role_id, last_login, is_active)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, true)
-        RETURNING user_id, email, university_id, fname, lname, mname, program_id, role_id, is_active, created_at, last_login
-      `,
-      [googleId, email, universityId, firstName, lastName, middleName, programId, role.role_id],
-    )
+    const insertedUser = await insertUserFromOnboarding(db, {
+      googleId,
+      email,
+      universityId,
+      firstName,
+      lastName,
+      middleName,
+      programId,
+      roleId: role.role_id,
+    })
 
     return {
-      ...inserted.rows[0],
+      ...insertedUser,
       role_name: role.role_name,
     }
   } catch (error) {
-    if (error?.code === '23505' && error?.constraint === 'uni_id_idx') {
-      const duplicateError = new Error('University ID is already in use.')
-      duplicateError.statusCode = 409
-      throw duplicateError
-    }
-
-    if (error?.code === '23505') {
-      const duplicateError = new Error('A unique value already exists for this account.')
-      duplicateError.statusCode = 409
-      throw duplicateError
-    }
-    throw error
+    rethrowUniqueConstraint(error)
   }
 }
 
 export const getDegreePrograms = async (db) => {
-  if (!db) {
-    const error = new Error('Database client is not initialized')
-    error.statusCode = 500
-    throw error
-  }
-
-  const result = await db.query(
-    `
-      SELECT program_id, program_code, program_name, program_level
-      FROM ref_degree_programs
-      ORDER BY program_name ASC
-    `,
-  )
-
-  return result.rows
+  ensureDb(db)
+  return listDegreeProgramsModel(db)
 }
 
 export const completeFirstLoginProfile = async (
   db,
   { userId, firstName, lastName, middleName, programId, universityId },
 ) => {
-  if (!db) {
-    const error = new Error('Database client is not initialized')
-    error.statusCode = 500
-    throw error
-  }
+  ensureDb(db)
 
-  const programExists = await db.query(
-    `
-      SELECT program_id
-      FROM ref_degree_programs
-      WHERE program_id = $1
-      LIMIT 1
-    `,
-    [programId],
-  )
-
-  if (programExists.rowCount === 0) {
+  const programExists = await findDegreeProgramById(db, programId)
+  if (!programExists) {
     const error = new Error('Selected degree program does not exist.')
     error.statusCode = 400
     throw error
   }
 
-  let updatedResult
+  let updatedUser
   try {
-    updatedResult = await db.query(
-      `
-        UPDATE users
-        SET
-          university_id = $1,
-          fname = $2,
-          lname = $3,
-          mname = $4,
-          program_id = $5,
-          last_login = CURRENT_TIMESTAMP,
-          is_active = true
-        WHERE user_id = $6
-          AND last_login IS NULL
-        RETURNING user_id, email, university_id, fname, lname, mname, program_id, role_id, is_active, last_login
-      `,
-      [universityId, firstName, lastName, middleName, programId, userId],
-    )
+    updatedUser = await completeUserFirstLoginProfile(db, {
+      userId,
+      universityId,
+      firstName,
+      lastName,
+      middleName,
+      programId,
+    })
   } catch (error) {
-    if (error?.code === '23505' && error?.constraint === 'uni_id_idx') {
-      const duplicateError = new Error('University ID is already in use.')
-      duplicateError.statusCode = 409
-      throw duplicateError
-    }
-
-    if (error?.code === '23505') {
-      const duplicateError = new Error('A unique value already exists for this account.')
-      duplicateError.statusCode = 409
-      throw duplicateError
-    }
-
-    throw error
+    rethrowUniqueConstraint(error)
   }
 
-  if (updatedResult.rowCount > 0) {
-    const role = await db.query(
-      `
-        SELECT role_name
-        FROM ref_roles
-        WHERE role_id = $1
-        LIMIT 1
-      `,
-      [updatedResult.rows[0].role_id],
-    )
-
+  if (updatedUser) {
+    const roleName = await findRoleNameById(db, updatedUser.role_id)
     return {
-      ...updatedResult.rows[0],
-      role_name: role.rows[0]?.role_name || null,
+      ...updatedUser,
+      role_name: roleName,
     }
   }
 
-  const existingUser = await db.query(
-    `
-      SELECT user_id, last_login
-      FROM users
-      WHERE user_id = $1
-      LIMIT 1
-    `,
-    [userId],
-  )
-
-  if (existingUser.rowCount === 0) {
+  const existingUser = await findUserById(db, userId)
+  if (!existingUser) {
     const error = new Error('User was not found.')
     error.statusCode = 404
     throw error
