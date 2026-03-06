@@ -8,7 +8,8 @@
     "dev": "nodemon ./src/server.js",
     "test": "jest",
     "install": "prettier --write --experimental-cli src/",
-    "seed": "node ./src/scripts/seedDatabase.js"
+    "seed": "node ./src/scripts/seedDatabase.js",
+    "seed:advisory-mock": "node ./src/scripts/seedAdvisoryMockData.js"
   },
   "keywords": [],
   "author": "",
