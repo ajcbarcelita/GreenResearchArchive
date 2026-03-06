@@ -5,6 +5,7 @@ import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 import Footer from '@/components/Footer.vue'
 import NavbarFaculty from '@/components/NavbarFaculty.vue'
+import NavbarCoordinator from '@/components/NavbarCoordinator.vue'
 import CompleteProfileForm from '@/components/CompleteProfileForm.vue'
 import {
   completeProfile,
@@ -16,6 +17,9 @@ const router = useRouter()
 const toast = useToast()
 
 const user = ref(getStoredUser())
+const isFaculty = computed(
+  () => String(user.value?.roleName || '').trim().toLowerCase() === 'faculty',
+)
 const isSubmitting = ref(false)
 const errorMessage = ref('')
 
@@ -29,7 +33,7 @@ const submitProfile = async (payload) => {
       lastName: payload.lastName,
       middleName: payload.middleName || null,
     })
-    router.push('/faculty-coordinator/home')
+    router.push(isFaculty.value ? '/faculty/home' : '/coordinator/home')
   } catch (error) {
     const message = error?.response?.data?.message || 'Unable to complete profile. Please try again.'
     errorMessage.value = message
@@ -46,7 +50,7 @@ const submitProfile = async (payload) => {
 
 onMounted(() => {
   if (!needsProfileCompletion(user.value)) {
-    router.push('/faculty-coordinator/home')
+    router.push(isFaculty.value ? '/faculty/home' : '/coordinator/home')
   }
 })
 </script>
@@ -55,7 +59,8 @@ onMounted(() => {
   <div class="min-h-screen flex flex-col bg-linear-to-b from-[#eaf4ee] to-[#f8fbf9] font-Karla">
     <Toast />
     <header>
-      <NavbarFaculty />
+      <NavbarFaculty v-if="isFaculty" />
+      <NavbarCoordinator v-else />
     </header>
 
     <main class="flex-1 flex items-center justify-center px-4 py-6 pt-24 sm:px-6 sm:py-8 sm:pt-28 lg:pt-32">

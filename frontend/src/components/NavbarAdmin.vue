@@ -1,10 +1,10 @@
 <template>
   <nav class="navbar-glass text-white font-Karla absolute w-full z-50">
     <div class="container mx-auto px-6">
-      <div class="grid grid-cols-3 items-center py-4">
+      <div class="grid grid-cols-[auto_1fr_auto] items-center gap-4 py-4">
 
         <div class="flex items-center space-x-4">
-          <router-link to="/faculty/home" class="flex items-center space-x-3">
+          <router-link to="/admin/dashboard" class="flex items-center space-x-3">
             <img
               src="@/assets/CCS-logo.png"
               alt="Green Archive"
@@ -17,12 +17,14 @@
           </router-link>
         </div>
 
-        <div class="flex justify-center">
-          <div class="flex items-center space-x-6 text-base font-semibold whitespace-nowrap">
-            <router-link to="/faculty/home" class="nav-link">Home</router-link>
-            <router-link to="/faculty/my-advisees" class="nav-link">My Advisees</router-link>
-            <router-link to="/faculty/review-queue" class="nav-link">Review Queue</router-link>
-            <router-link to="/faculty/repository" class="nav-link">Repository</router-link>
+        <div class="flex min-w-0 justify-center">
+          <div class="flex min-w-0 items-center gap-4 overflow-x-auto whitespace-nowrap px-2 text-base font-semibold">
+            <router-link to="/admin/dashboard" class="nav-link">Dashboard</router-link>
+            <router-link to="/admin/users" class="nav-link">User Management</router-link>
+            <router-link to="/admin/programs" class="nav-link">Program Management</router-link>
+            <router-link to="/admin/submissions" class="nav-link">Submissions</router-link>
+            <router-link to="/admin/repository" class="nav-link">Repository</router-link>
+            <router-link to="/admin/audit-logs" class="nav-link">Audit Logs</router-link>
           </div>
         </div>
 
@@ -56,7 +58,6 @@ const logout = async () => {
 
   router.push('/login')
 }
-
 </script>
 
 <style scoped>

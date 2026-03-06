@@ -11,8 +11,8 @@ import NavbarFaculty from '@/components/NavbarFaculty.vue'
 
     <main class="flex-1 flex items-center justify-center px-4 pt-24 sm:px-6 sm:pt-28 lg:pt-32">
       <section class="w-full max-w-3xl rounded-2xl border border-[#cfe0d6] bg-white p-8 text-center shadow-sm">
-        <h1 class="text-3xl font-extrabold text-[#17362b]">Submission Monitoring</h1>
-        <p class="mt-3 text-[#355347]">This is a placeholder view. Submission monitoring tools will be added here.</p>
+        <h1 class="text-3xl font-extrabold text-[#17362b]">Review Queue</h1>
+        <p class="mt-3 text-[#355347]">This is a placeholder view for faculty review queue.</p>
       </section>
     </main>
 

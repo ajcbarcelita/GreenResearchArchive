@@ -20,6 +20,7 @@ import {
 
 const ROLE_NAMES = {
   ADMIN: "Admin",
+  COORDINATOR: "Coordinator",
   FACULTY: "Faculty",
   STUDENT: "Student",
 };
@@ -90,6 +91,10 @@ const resolveRoleFromEmail = (email) => {
 
   if (rule === "admin-whitelist") {
     return ROLE_NAMES.ADMIN;
+  }
+
+  if (rule === "coordinator-whitelist") {
+    return ROLE_NAMES.COORDINATOR;
   }
 
   if (rule === "faculty-whitelist") {

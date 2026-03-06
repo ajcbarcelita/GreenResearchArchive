@@ -1,12 +1,21 @@
 <script setup>
+import { computed, ref } from 'vue'
 import Footer from '@/components/Footer.vue'
 import NavbarFaculty from '@/components/NavbarFaculty.vue'
+import NavbarCoordinator from '@/components/NavbarCoordinator.vue'
+import { getStoredUser } from '../../services/authService'
+
+const user = ref(getStoredUser())
+const isFaculty = computed(
+  () => String(user.value?.roleName || '').trim().toLowerCase() === 'faculty',
+)
 </script>
 
 <template>
   <div class="min-h-screen flex flex-col bg-linear-to-b from-[#eaf4ee] to-[#f8fbf9] font-Karla">
     <header>
-      <NavbarFaculty />
+      <NavbarFaculty v-if="isFaculty" />
+      <NavbarCoordinator v-else />
     </header>
 
     <main class="flex-1 flex items-center justify-center px-4 pt-24 sm:px-6 sm:pt-28 lg:pt-32">

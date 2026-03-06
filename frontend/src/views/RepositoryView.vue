@@ -10,14 +10,20 @@ import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import Navbar from '@/components/Navbar.vue'
 import NavbarFaculty from '@/components/NavbarFaculty.vue'
+import NavbarCoordinator from '@/components/NavbarCoordinator.vue'
 import Footer from '@/components/Footer.vue'
 import { getDegreePrograms, getStoredUser } from '../services/authService'
 
 const user = ref(getStoredUser())
 
+const useCoordinatorNavbar = computed(() => {
+  const normalizedRoleName = String(user.value?.roleName || '').trim().toLowerCase()
+  return normalizedRoleName === 'coordinator'
+})
+
 const useFacultyNavbar = computed(() => {
   const normalizedRoleName = String(user.value?.roleName || '').trim().toLowerCase()
-  return normalizedRoleName === 'faculty' || normalizedRoleName === 'coordinator'
+  return normalizedRoleName === 'faculty'
 })
 
 const searchValue = ref('')
@@ -159,6 +165,7 @@ const onPageChange = (event) => {
   <div class="repository-page min-h-screen flex flex-col font-Karla">
     <header>
       <NavbarFaculty v-if="useFacultyNavbar" />
+      <NavbarCoordinator v-else-if="useCoordinatorNavbar" />
       <Navbar v-else />
     </header>
 

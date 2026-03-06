@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import authRoutes from "./routes/authRoutes.js";
 import advisoryRoutes from "./routes/advisoryRoutes.js";
+import auditLogRoutes from "./routes/auditLogRoutes.js";
+import adminProgramRoutes from "./routes/adminProgramRoutes.js";
+import adminUserRoutes from "./routes/adminUserRoutes.js";
 import repositoryRoutes from "./routes/repositoryRoutes.js";
 
 dotenv.config();
@@ -23,6 +26,9 @@ app.use((req, res, next) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/advisory", advisoryRoutes);
+app.use("/api/audit-logs", auditLogRoutes);
+app.use("/api/admin/programs", adminProgramRoutes);
+app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/repository", repositoryRoutes);
 
 export default app;

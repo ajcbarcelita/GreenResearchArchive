@@ -123,3 +123,113 @@ export const findUserById = async (db, userId) => {
 
   return result.rows[0] || null;
 };
+
+export const findUserProfileById = async (db, userId) => {
+  const result = await db.query(
+    `
+      SELECT
+        u.user_id,
+        u.email,
+        u.university_id,
+        u.fname,
+        u.lname,
+        u.mname,
+        u.program_id,
+        u.role_id,
+        u.is_active,
+        u.last_login,
+        rr.role_name,
+        rp.program_code,
+        rp.program_name
+      FROM users u
+      LEFT JOIN ref_roles rr ON rr.role_id = u.role_id
+      LEFT JOIN ref_degree_programs rp ON rp.program_id = u.program_id
+      WHERE u.user_id = $1
+      LIMIT 1
+    `,
+    [userId],
+  );
+
+  return result.rows[0] || null;
+};
+
+export const listUsersForAdmin = async (
+  db,
+  { q, roleId, programId, isActive } = {},
+) => {
+  const params = [];
+  const whereClauses = [];
+
+  if (q) {
+    params.push(`%${q}%`);
+    whereClauses.push(
+      `(u.email ILIKE $${params.length}
+        OR u.university_id ILIKE $${params.length}
+        OR u.fname ILIKE $${params.length}
+        OR u.lname ILIKE $${params.length}
+        OR (u.fname || ' ' || COALESCE(u.mname || ' ', '') || u.lname) ILIKE $${params.length})`,
+    );
+  }
+
+  if (roleId) {
+    params.push(roleId);
+    whereClauses.push(`u.role_id = $${params.length}`);
+  }
+
+  if (programId) {
+    params.push(programId);
+    whereClauses.push(`u.program_id = $${params.length}`);
+  }
+
+  if (isActive !== null && isActive !== undefined) {
+    params.push(isActive);
+    whereClauses.push(`u.is_active = $${params.length}`);
+  }
+
+  const where = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+  const result = await db.query(
+    `
+      SELECT
+        u.user_id,
+        u.email,
+        u.university_id,
+        u.fname,
+        u.lname,
+        u.mname,
+        u.program_id,
+        u.role_id,
+        u.is_active,
+        u.created_at,
+        u.last_login,
+        rr.role_name,
+        rp.program_code,
+        rp.program_name
+      FROM users u
+      LEFT JOIN ref_roles rr ON rr.role_id = u.role_id
+      LEFT JOIN ref_degree_programs rp ON rp.program_id = u.program_id
+      ${where}
+      ORDER BY u.created_at DESC, u.user_id DESC
+    `,
+    params,
+  );
+
+  return result.rows;
+};
+
+export const updateAdminManagedUser = async (
+  db,
+  { userId, roleId, programId, isActive },
+) => {
+  const result = await db.query(
+    `
+      UPDATE users
+      SET role_id = $1, program_id = $2, is_active = $3
+      WHERE user_id = $4
+      RETURNING user_id, role_id, program_id, is_active
+    `,
+    [roleId, programId, isActive, userId],
+  );
+
+  return result.rows[0] || null;
+};

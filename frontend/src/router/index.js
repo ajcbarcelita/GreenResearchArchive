@@ -5,10 +5,19 @@ import CapstoneDetailsView from '../views/CapstoneDetails.vue'
 import SubmissionView from '../views/Student/SubmissionView.vue'
 import RepositoryView from '../views/RepositoryView.vue'
 import StudentCompleteProfileView from '../views/Student/CompleteProfileView.vue'
-import FacultyCoordinatorCompleteProfileView from '../views/Faculty & Coordinator/CompleteProfileView.vue'
-import FacultyCoordinatorHomeView from '../views/Faculty & Coordinator/HomeView.vue'
-import FacultyCoordinatorAdvisoryView from '../views/Faculty & Coordinator/AdvisoryView.vue'
-import FacultyCoordinatorSubmissionView from '../views/Faculty & Coordinator/SubmissionMonitoringView.vue'
+import FacultyCoordinatorCompleteProfileView from '../views/Coordinator/CompleteProfileView.vue'
+import FacultyCoordinatorHomeView from '../views/Coordinator/HomeView.vue'
+import FacultyCoordinatorAdvisoryView from '../views/Coordinator/AdvisoryView.vue'
+import FacultyCoordinatorSubmissionView from '../views/Coordinator/SubmissionMonitoringView.vue'
+import FacultyHomeView from '../views/Faculty/HomeView.vue'
+import FacultyMyAdviseesView from '../views/Faculty/MyAdviseesView.vue'
+import FacultyReviewQueueView from '../views/Faculty/ReviewQueueView.vue'
+import AdminDashboardView from '../views/Admin/DashboardView.vue'
+import AdminUsersView from '../views/Admin/UserManagementView.vue'
+import AdminProgramsView from '../views/Admin/ProgramManagementView.vue'
+import AdminSubmissionsView from '../views/Admin/SubmissionsView.vue'
+import AdminRepositoryView from '../views/Admin/RepositoryView.vue'
+import AdminAuditLogsView from '../views/Admin/AuditLogsView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import {
   getStoredUser,
@@ -18,8 +27,8 @@ import {
 
 const resolveCompleteProfilePath = (user) => {
   const roleName = String(user?.roleName || '').trim().toLowerCase()
-  if (roleName === 'faculty' || roleName === 'coordinator') {
-    return '/complete-profile/faculty-coordinator'
+  if (roleName === 'faculty' || roleName === 'coordinator' || roleName === 'admin') {
+    return '/complete-profile/coordinator'
   }
 
   return '/complete-profile/student'
@@ -27,8 +36,16 @@ const resolveCompleteProfilePath = (user) => {
 
 const resolveHomePath = (user) => {
   const roleName = String(user?.roleName || '').trim().toLowerCase()
-  if (roleName === 'faculty' || roleName === 'coordinator') {
-    return '/faculty-coordinator/home'
+  if (roleName === 'admin') {
+    return '/admin/dashboard'
+  }
+
+  if (roleName === 'faculty') {
+    return '/faculty/home'
+  }
+
+  if (roleName === 'coordinator') {
+    return '/coordinator/home'
   }
 
   return '/dashboard'
@@ -63,9 +80,13 @@ const router = createRouter({
       component: StudentCompleteProfileView,
     },
     {
-      path: '/complete-profile/faculty-coordinator',
-      name: 'complete-profile-faculty-coordinator',
+      path: '/complete-profile/coordinator',
+      name: 'complete-profile-coordinator',
       component: FacultyCoordinatorCompleteProfileView,
+    },
+    {
+      path: '/complete-profile/faculty-coordinator',
+      redirect: '/complete-profile/coordinator',
     },
     {
       path: '/profile',
@@ -98,27 +119,98 @@ const router = createRouter({
     // Student Routes
 
 
+    // Admin Routes
+    {
+      path: '/admin/dashboard',
+      name: 'admin-dashboard',
+      component: AdminDashboardView,
+    },
+    {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: AdminUsersView,
+    },
+    {
+      path: '/admin/programs',
+      name: 'admin-programs',
+      component: AdminProgramsView,
+    },
+    {
+      path: '/admin/submissions',
+      name: 'admin-submissions',
+      component: AdminSubmissionsView,
+    },
+    {
+      path: '/admin/repository',
+      name: 'admin-repository',
+      component: AdminRepositoryView,
+    },
+    {
+      path: '/admin/audit-logs',
+      name: 'admin-audit-logs',
+      component: AdminAuditLogsView,
+    },
+
+
+    // Faculty Routes
+    {
+      path: '/faculty/home',
+      name: 'faculty-home',
+      component: FacultyHomeView,
+    },
+    {
+      path: '/faculty/my-advisees',
+      name: 'faculty-my-advisees',
+      component: FacultyMyAdviseesView,
+    },
+    {
+      path: '/faculty/review-queue',
+      name: 'faculty-review-queue',
+      component: FacultyReviewQueueView,
+    },
+    {
+      path: '/faculty/repository',
+      name: 'faculty-repository',
+      component: RepositoryView,
+    },
+
 
     // Faculty / Coordinator Routes
     {
-      path: '/faculty-coordinator/home',
-      name: 'faculty-coordinator-home',
+      path: '/coordinator/home',
+      name: 'coordinator-home',
       component: FacultyCoordinatorHomeView,
     },
     {
-      path: '/faculty-coordinator/advisory',
-      name: 'faculty-coordinator-advisory',
+      path: '/coordinator/advisory',
+      name: 'coordinator-advisory',
       component: FacultyCoordinatorAdvisoryView,
     },
     {
-      path: '/faculty-coordinator/submissions',
-      name: 'faculty-coordinator-submissions',
+      path: '/coordinator/submissions',
+      name: 'coordinator-submissions',
       component: FacultyCoordinatorSubmissionView,
     },
     {
-      path: '/faculty-coordinator/repository',
-      name: 'faculty-coordinator-repository',
+      path: '/coordinator/repository',
+      name: 'coordinator-repository',
       component: RepositoryView,
+    },
+    {
+      path: '/faculty-coordinator/home',
+      redirect: '/coordinator/home',
+    },
+    {
+      path: '/faculty-coordinator/advisory',
+      redirect: '/coordinator/advisory',
+    },
+    {
+      path: '/faculty-coordinator/submissions',
+      redirect: '/coordinator/submissions',
+    },
+    {
+      path: '/faculty-coordinator/repository',
+      redirect: '/coordinator/repository',
     },
 
 

@@ -7,9 +7,11 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import { useToast } from 'primevue/usetoast'
 import Navbar from '@/components/Navbar.vue'
+import NavbarAdmin from '@/components/NavbarAdmin.vue'
 import NavbarFaculty from '@/components/NavbarFaculty.vue'
+import NavbarCoordinator from '@/components/NavbarCoordinator.vue'
 import Footer from '@/components/Footer.vue'
-import { getDegreePrograms, getStoredUser } from '../services/authService'
+import { getDegreePrograms, getMyProfile, getStoredUser } from '../services/authService'
 
 const toast = useToast()
 const user = ref(getStoredUser())
@@ -33,9 +35,17 @@ const fullName = computed(() => {
 
 const accountStatus = computed(() => (user.value?.isActive ? 'Active' : 'Inactive'))
 const roleName = computed(() => user.value?.roleName || 'User')
+const useAdminNavbar = computed(() => {
+  const normalizedRoleName = String(user.value?.roleName || '').trim().toLowerCase()
+  return normalizedRoleName === 'admin'
+})
+const useCoordinatorNavbar = computed(() => {
+  const normalizedRoleName = String(user.value?.roleName || '').trim().toLowerCase()
+  return normalizedRoleName === 'coordinator'
+})
 const useFacultyNavbar = computed(() => {
   const normalizedRoleName = String(user.value?.roleName || '').trim().toLowerCase()
-  return normalizedRoleName === 'faculty' || normalizedRoleName === 'coordinator'
+  return normalizedRoleName === 'faculty'
 })
 
 const beginEdit = () => {
@@ -114,16 +124,28 @@ const resolveProgramName = () => {
 }
 
 onMounted(async () => {
-  resolveProgramName()
-
   try {
     loadingPrograms.value = true
-    const response = await getDegreePrograms()
-    programs.value = Array.isArray(response?.programs)
-      ? response.programs
-      : Array.isArray(response)
-        ? response
+    const [profileResponse, programsResponse] = await Promise.all([
+      getMyProfile(),
+      getDegreePrograms(),
+    ])
+
+    const profileFromDb = profileResponse?.user || null
+    if (profileFromDb) {
+      user.value = {
+        ...user.value,
+        ...profileFromDb,
+      }
+      localStorage.setItem('gra_user', JSON.stringify(user.value))
+    }
+
+    programs.value = Array.isArray(programsResponse?.programs)
+      ? programsResponse.programs
+      : Array.isArray(programsResponse)
+        ? programsResponse
         : []
+
     resolveProgramName()
   } catch {
     resolveProgramName()
@@ -137,7 +159,9 @@ onMounted(async () => {
   <div class="profile-page min-h-screen font-Karla">
     <Toast />
     <header>
-      <NavbarFaculty v-if="useFacultyNavbar" />
+      <NavbarAdmin v-if="useAdminNavbar" />
+      <NavbarFaculty v-else-if="useFacultyNavbar" />
+      <NavbarCoordinator v-else-if="useCoordinatorNavbar" />
       <Navbar v-else />
     </header>
 

@@ -8,8 +8,15 @@ import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import NavbarFaculty from '@/components/NavbarFaculty.vue'
+import NavbarCoordinator from '@/components/NavbarCoordinator.vue'
 import Footer from '@/components/Footer.vue'
 import { getAdvisoryLoad } from '@/services/advisoryService'
+import { getStoredUser } from '../../services/authService'
+
+const user = ref(getStoredUser())
+const isFaculty = computed(
+  () => String(user.value?.roleName || '').trim().toLowerCase() === 'faculty',
+)
 
 const loading = ref(false)
 const rows = ref([])
@@ -106,7 +113,8 @@ onMounted(() => loadData({ includeFilterOptions: true }))
 <template>
   <div class="advisory-page min-h-screen flex flex-col font-Karla">
     <header>
-      <NavbarFaculty />
+      <NavbarFaculty v-if="isFaculty" />
+      <NavbarCoordinator v-else />
     </header>
 
     <main class="mx-auto w-full max-w-7xl flex-1 px-4 pb-8 pt-24 sm:px-6 sm:pt-28 lg:pt-32">

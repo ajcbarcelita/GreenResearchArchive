@@ -4,7 +4,7 @@
       <div class="grid grid-cols-3 items-center py-4">
 
         <div class="flex items-center space-x-4">
-          <router-link to="/faculty/home" class="flex items-center space-x-3">
+          <router-link to="/coordinator/home" class="flex items-center space-x-3">
             <img
               src="@/assets/CCS-logo.png"
               alt="Green Archive"
@@ -19,10 +19,10 @@
 
         <div class="flex justify-center">
           <div class="flex items-center space-x-6 text-base font-semibold whitespace-nowrap">
-            <router-link to="/faculty/home" class="nav-link">Home</router-link>
-            <router-link to="/faculty/my-advisees" class="nav-link">My Advisees</router-link>
-            <router-link to="/faculty/review-queue" class="nav-link">Review Queue</router-link>
-            <router-link to="/faculty/repository" class="nav-link">Repository</router-link>
+            <router-link to="/coordinator/home" class="nav-link">Home</router-link>
+            <router-link to="/coordinator/advisory" class="nav-link">Advisory Load</router-link>
+            <router-link to="/coordinator/submissions" class="nav-link">Submission Monitoring</router-link>
+            <router-link to="/coordinator/repository" class="nav-link">Repository</router-link>
           </div>
         </div>
 
