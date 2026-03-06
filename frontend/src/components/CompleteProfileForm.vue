@@ -29,6 +29,10 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
+  requiresProgram: {
+    type: Boolean,
+    default: true,
+  },
 })
 
 const emit = defineEmits(['submit-profile'])
@@ -76,7 +80,7 @@ const submit = () => {
     return
   }
 
-  if (!selectedProgramId.value) {
+  if (props.requiresProgram && !selectedProgramId.value) {
     const message = 'Degree program is required.'
     localValidationMessage.value = message
     showInvalidToast(message)
@@ -96,7 +100,7 @@ const submit = () => {
     firstName: firstName.value.trim(),
     lastName: lastName.value.trim(),
     middleName: middleName.value.trim(),
-    programId: selectedProgramId.value,
+    programId: props.requiresProgram ? selectedProgramId.value : null,
   })
 }
 
@@ -132,7 +136,7 @@ watch(universityId, (value) => {
         Confirm your profile details before you can continue to the repository.
       </p>
 
-      <div v-if="loadingPrograms" class="loading-block">
+      <div v-if="requiresProgram && loadingPrograms" class="loading-block">
         <ProgressSpinner style="width: 36px; height: 36px" strokeWidth="6" />
         <span>Loading degree programs...</span>
       </div>
@@ -168,18 +172,18 @@ watch(universityId, (value) => {
           <InputText id="middle-name" v-model="middleName" class="w-full" :disabled="submitting" />
         </div>
 
-        <div class="field-group">
-        <label for="program-select" class="field-label">Degree Program</label>
-        <Dropdown
-          id="program-select"
-          v-model="selectedProgramId"
-          :options="dropdownOptions"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="Select your degree program"
-          class="w-full"
-          :disabled="submitting"
-        />
+        <div v-if="requiresProgram" class="field-group">
+          <label for="program-select" class="field-label">Degree Program</label>
+          <Dropdown
+            id="program-select"
+            v-model="selectedProgramId"
+            :options="dropdownOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Select your degree program"
+            class="w-full"
+            :disabled="submitting"
+          />
         </div>
       </div>
 
@@ -196,7 +200,7 @@ watch(universityId, (value) => {
         label="Save and Continue"
         class="w-full"
         :loading="submitting"
-        :disabled="loadingPrograms || submitting"
+        :disabled="(requiresProgram && loadingPrograms) || submitting"
         @click="submit"
       />
     </template>

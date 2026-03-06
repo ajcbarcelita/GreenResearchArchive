@@ -9,8 +9,16 @@ import Paginator from 'primevue/paginator'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import Navbar from '@/components/Navbar.vue'
+import NavbarFaculty from '@/components/NavbarFaculty.vue'
 import Footer from '@/components/Footer.vue'
-import { useRouter } from 'vue-router'
+import { getDegreePrograms, getStoredUser } from '../services/authService'
+
+const user = ref(getStoredUser())
+
+const useFacultyNavbar = computed(() => {
+  const normalizedRoleName = String(user.value?.roleName || '').trim().toLowerCase()
+  return normalizedRoleName === 'faculty' || normalizedRoleName === 'coordinator'
+})
 
 const searchValue = ref('')
 const selectedProgram = ref('All')
@@ -19,12 +27,7 @@ const selectedDate = ref(null)
 const pageStart = ref(0)
 const pageSize = ref(6)
 
-const programOptions = [
-  'All',
-  'BSIT',
-  'BSCS',
-  'BSIS',
-]
+const programOptions = ref(['All'])
 
 const sortOptions = [
   { label: 'Newest Submitted', value: 'submitted_desc' },
@@ -41,11 +44,44 @@ const loading = ref(false)
 onMounted(async () => {
   loading.value = true
   try {
-    const data = await listRepository()
+    const [repositoryData, programsResponse] = await Promise.all([
+      listRepository(),
+      getDegreePrograms(),
+    ])
+
+    const databaseProgramCodes = (programsResponse?.programs || [])
+      .map((program) => String(program?.program_code || '').trim())
+      .filter(Boolean)
+
+    const uniqueCodes = Array.from(new Set(databaseProgramCodes)).sort((a, b) =>
+      a.localeCompare(b),
+    )
+
+    programOptions.value = ['All', ...uniqueCodes]
+
+    const data = Array.isArray(repositoryData) ? repositoryData : []
     repositoryItems.value = data
+
+    // Fallback: if programs endpoint is empty, derive options from loaded repository rows.
+    if (uniqueCodes.length === 0) {
+      const repositoryCodes = Array.from(
+        new Set(
+          data
+            .map((item) => String(item?.programCode || '').trim())
+            .filter(Boolean),
+        ),
+      ).sort((a, b) => a.localeCompare(b))
+
+      programOptions.value = ['All', ...repositoryCodes]
+    }
+
+    if (!programOptions.value.includes(selectedProgram.value)) {
+      selectedProgram.value = 'All'
+    }
   } catch (e) {
     console.error('Failed to load repository items', e)
     repositoryItems.value = []
+    programOptions.value = ['All']
   } finally {
     loading.value = false
   }
@@ -117,17 +153,13 @@ const onPageChange = (event) => {
   pageSize.value = event.rows
 }
 
-const router = useRouter()
-
-const viewDetails = (id) => {
-  router.push({ name: 'capstone-details', params: { id } })
-}
 </script>
 
 <template>
   <div class="repository-page min-h-screen flex flex-col font-Karla">
     <header>
-      <Navbar />
+      <NavbarFaculty v-if="useFacultyNavbar" />
+      <Navbar v-else />
     </header>
 
     <main class="mx-auto w-full max-w-7xl flex-1 px-4 pb-8 pt-24 sm:px-6 sm:pt-28 lg:pt-32">
@@ -274,8 +306,8 @@ const viewDetails = (id) => {
 :deep(.filter-card.p-card),
 :deep(.catalog-card.p-card),
 :deep(.empty-card.p-card) {
-  border: 2px solid #d1d5db; 
-  border-radius: 0.75rem; 
+  border: 2px solid #d1d5db;
+  border-radius: 0.75rem;
   box-shadow: 0 10px 15px rgba(2, 6, 23, 0.06);
   transition: border-color 200ms ease, box-shadow 200ms ease;
 }
@@ -440,6 +472,6 @@ const viewDetails = (id) => {
 :deep(.filter-card.p-card):hover,
 :deep(.catalog-card.p-card):hover,
 :deep(.empty-card.p-card):hover {
-  border-color: #0e662e; 
+  border-color: #0e662e;
 }
 </style>

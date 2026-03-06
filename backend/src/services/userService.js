@@ -8,6 +8,7 @@ import {
   findRoleByNameLike,
   findRoleNameById,
 } from "../models/roleModel.js";
+import { getRbacEmailDecision } from "./rbacService.js";
 import {
   completeUserFirstLoginProfile,
   existsUserByGoogleIdOrEmail,
@@ -75,19 +76,6 @@ const splitName = (profile = {}) => {
   };
 };
 
-const parseEmailList = (value = "") =>
-  value
-    .split(",")
-    .map((entry) => entry.trim().toLowerCase())
-    .filter(Boolean);
-
-const buildRbacConfig = () => ({
-  adminWhitelist: parseEmailList(process.env.RBAC_ADMIN_EMAILS || ""),
-  facultyWhitelist: parseEmailList(process.env.RBAC_FACULTY_EMAILS || ""),
-  studentWhitelist: parseEmailList(process.env.RBAC_STUDENT_EMAILS || ""),
-  blacklist: parseEmailList(process.env.RBAC_BLACKLIST_EMAILS || ""),
-});
-
 const ensureDb = (db) => {
   if (!db) {
     const error = new Error("Database client is not initialized");
@@ -97,23 +85,22 @@ const ensureDb = (db) => {
 };
 
 const resolveRoleFromEmail = (email) => {
-  const normalizedEmail = email.toLowerCase();
+  const { normalizedEmail, rule } = getRbacEmailDecision(email);
   const localPart = normalizedEmail.split("@")[0] || "";
-  const config = buildRbacConfig();
 
-  if (config.adminWhitelist.includes(normalizedEmail)) {
+  if (rule === "admin-whitelist") {
     return ROLE_NAMES.ADMIN;
   }
 
-  if (config.facultyWhitelist.includes(normalizedEmail)) {
+  if (rule === "faculty-whitelist") {
     return ROLE_NAMES.FACULTY;
   }
 
-  if (config.studentWhitelist.includes(normalizedEmail)) {
+  if (rule === "student-whitelist") {
     return ROLE_NAMES.STUDENT;
   }
 
-  if (config.blacklist.includes(normalizedEmail)) {
+  if (rule === "blacklist") {
     const error = new Error(
       "Access denied. This email is blocked from sign in.",
     );
@@ -239,13 +226,22 @@ export const createUserFromOnboarding = async (
   ensureDb(db);
 
   const roleName = resolveRoleFromEmail(email);
+  const requiresProgram = roleName === ROLE_NAMES.STUDENT;
   const role = await resolveRoleIdByName(db, roleName);
 
-  const programExists = await findDegreeProgramById(db, programId);
-  if (!programExists) {
-    const error = new Error("Selected degree program does not exist.");
-    error.statusCode = 400;
-    throw error;
+  if (requiresProgram) {
+    if (!programId) {
+      const error = new Error("Degree program is required for Student accounts.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const programExists = await findDegreeProgramById(db, programId);
+    if (!programExists) {
+      const error = new Error("Selected degree program does not exist.");
+      error.statusCode = 400;
+      throw error;
+    }
   }
 
   const userExists = await existsUserByGoogleIdOrEmail(db, { googleId, email });
@@ -263,7 +259,7 @@ export const createUserFromOnboarding = async (
       firstName,
       lastName,
       middleName,
-      programId,
+      programId: requiresProgram ? programId : null,
       roleId: role.role_id,
     });
 
@@ -283,15 +279,24 @@ export const getDegreePrograms = async (db) => {
 
 export const completeFirstLoginProfile = async (
   db,
-  { userId, firstName, lastName, middleName, programId, universityId },
+  { userId, firstName, lastName, middleName, programId, universityId, roleName },
 ) => {
   ensureDb(db);
+  const requiresProgram = String(roleName || "").trim().toLowerCase() === "student";
 
-  const programExists = await findDegreeProgramById(db, programId);
-  if (!programExists) {
-    const error = new Error("Selected degree program does not exist.");
-    error.statusCode = 400;
-    throw error;
+  if (requiresProgram) {
+    if (!programId) {
+      const error = new Error("Degree program is required for Student accounts.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const programExists = await findDegreeProgramById(db, programId);
+    if (!programExists) {
+      const error = new Error("Selected degree program does not exist.");
+      error.statusCode = 400;
+      throw error;
+    }
   }
 
   let updatedUser;
@@ -302,7 +307,7 @@ export const completeFirstLoginProfile = async (
       firstName,
       lastName,
       middleName,
-      programId,
+      programId: requiresProgram ? programId : null,
     });
   } catch (error) {
     rethrowUniqueConstraint(error);

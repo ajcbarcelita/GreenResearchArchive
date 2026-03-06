@@ -14,8 +14,11 @@ const completeProfileSchema = Joi.object({
   firstName: Joi.string().trim().max(100).required(),
   lastName: Joi.string().trim().max(100).required(),
   middleName: Joi.string().trim().max(100).allow("", null),
-  programId: Joi.number().integer().positive().required(),
+  programId: Joi.number().integer().positive().allow(null),
 });
+
+const isStudentRole = (roleName = "") =>
+  String(roleName).trim().toLowerCase() === "student";
 
 export const listDegreePrograms = async (req, res, next) => {
   try {
@@ -46,6 +49,14 @@ export const completeProfile = async (req, res, next) => {
     }
 
     const dbClient = req.app?.locals?.db;
+    const requiresProgram = isStudentRole(req.auth?.roleName);
+
+    if (requiresProgram && !value.programId) {
+      return res.status(400).json({
+        message: "Degree program is required for Student accounts.",
+      });
+    }
+
     let updatedUser;
 
     if (req.auth?.onboardingRequired) {
@@ -62,7 +73,7 @@ export const completeProfile = async (req, res, next) => {
         firstName: value.firstName,
         lastName: value.lastName,
         middleName: value.middleName || null,
-        programId: value.programId,
+        programId: value.programId || null,
       });
     } else {
       const userId = Number(req.auth?.sub);
@@ -78,7 +89,8 @@ export const completeProfile = async (req, res, next) => {
         firstName: value.firstName,
         lastName: value.lastName,
         middleName: value.middleName || null,
-        programId: value.programId,
+        programId: value.programId || null,
+        roleName: req.auth?.roleName,
       });
     }
 

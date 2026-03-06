@@ -11,7 +11,7 @@ import {
   getDegreePrograms,
   getStoredUser,
   needsProfileCompletion,
-} from '../services/authService'
+} from '../../services/authService'
 
 const router = useRouter()
 const toast = useToast()
@@ -79,7 +79,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-gradient-to-b from-[#eaf4ee] to-[#f8fbf9] font-Karla">
+  <div class="min-h-screen flex flex-col bg-linear-to-b from-[#eaf4ee] to-[#f8fbf9] font-Karla">
     <Toast />
     <header>
       <Navbar />
@@ -92,6 +92,7 @@ onMounted(async () => {
         :submitting="isSubmitting"
         :error-message="errorMessage"
         :initial-profile="user"
+        :requires-program="true"
         @submit-profile="submitProfile"
       />
     </main>

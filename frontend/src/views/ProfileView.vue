@@ -7,6 +7,7 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import { useToast } from 'primevue/usetoast'
 import Navbar from '@/components/Navbar.vue'
+import NavbarFaculty from '@/components/NavbarFaculty.vue'
 import Footer from '@/components/Footer.vue'
 import { getDegreePrograms, getStoredUser } from '../services/authService'
 
@@ -32,6 +33,10 @@ const fullName = computed(() => {
 
 const accountStatus = computed(() => (user.value?.isActive ? 'Active' : 'Inactive'))
 const roleName = computed(() => user.value?.roleName || 'User')
+const useFacultyNavbar = computed(() => {
+  const normalizedRoleName = String(user.value?.roleName || '').trim().toLowerCase()
+  return normalizedRoleName === 'faculty' || normalizedRoleName === 'coordinator'
+})
 
 const beginEdit = () => {
   draftFirstName.value = user.value?.firstName || ''
@@ -132,7 +137,8 @@ onMounted(async () => {
   <div class="profile-page min-h-screen font-Karla">
     <Toast />
     <header>
-      <Navbar />
+      <NavbarFaculty v-if="useFacultyNavbar" />
+      <Navbar v-else />
     </header>
 
     <main class="content-wrap mx-auto w-full max-w-6xl px-4 pb-8 pt-24 sm:px-6 sm:pb-10 sm:pt-28 lg:pt-32">
@@ -344,7 +350,7 @@ footer {
 }
 
 :deep(.profile-card):hover {
-  border-color: #0e662e; 
+  border-color: #0e662e;
 }
 
 </style>

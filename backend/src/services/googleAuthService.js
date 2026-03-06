@@ -1,4 +1,5 @@
 import { OAuth2Client } from "google-auth-library";
+import { getRbacEmailDecision } from "./rbacService.js";
 
 const googleClient = new OAuth2Client();
 
@@ -52,7 +53,16 @@ export const verifyGoogleIdToken = async (idToken) => {
       throw error;
     }
 
-    if (!DLSU_EMAIL_REGEX.test(payload.email)) {
+    const rbacDecision = getRbacEmailDecision(payload.email);
+
+    if (rbacDecision.rule === "blacklist") {
+      const error = new Error("Access denied. This email is blocked from sign in.");
+      error.statusCode = 403;
+      throw error;
+    }
+
+    // For testing scenarios, explicit whitelist entries bypass domain fallback checks.
+    if (rbacDecision.rule === "none" && !DLSU_EMAIL_REGEX.test(rbacDecision.normalizedEmail)) {
       const error = new Error(
         "Access denied. Only emails ending with @dlsu.edu.ph are allowed.",
       );
@@ -62,7 +72,7 @@ export const verifyGoogleIdToken = async (idToken) => {
 
     return {
       id: payload.sub,
-      email: payload.email,
+      email: rbacDecision.normalizedEmail,
       name: payload.name,
       givenName: payload.given_name,
       familyName: payload.family_name,

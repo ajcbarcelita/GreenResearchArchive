@@ -35,6 +35,7 @@ export const signOnboardingToken = (profile) => {
     onboardingRequired: true,
     googleId: profile.googleId,
     email: profile.email,
+    roleName: profile.roleName,
     name: profile.name,
     givenName: profile.givenName,
     familyName: profile.familyName,
