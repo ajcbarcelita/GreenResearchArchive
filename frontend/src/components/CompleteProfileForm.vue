@@ -126,7 +126,7 @@ watch(universityId, (value) => {
 </script>
 
 <template>
-  <Card class="complete-profile-card">
+  <Card class="complete-profile-card bg-hover-green">
     <template #title>
       Complete Your Profile
     </template>

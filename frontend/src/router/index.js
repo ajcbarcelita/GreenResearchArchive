@@ -4,8 +4,7 @@ import StudentHomeView from '../views/Student/StudentHomeView.vue'
 import CapstoneDetailsView from '../views/CapstoneDetails.vue'
 import SubmissionView from '../views/Student/SubmissionView.vue'
 import RepositoryView from '../views/RepositoryView.vue'
-import StudentCompleteProfileView from '../views/Student/CompleteProfileView.vue'
-import FacultyCoordinatorCompleteProfileView from '../views/Coordinator/CompleteProfileView.vue'
+import CompleteProfileWrapper from '../views/CompleteProfie.vue'
 import FacultyCoordinatorHomeView from '../views/Coordinator/HomeView.vue'
 import FacultyCoordinatorAdvisoryView from '../views/Coordinator/AdvisoryView.vue'
 import FacultyCoordinatorSubmissionView from '../views/Coordinator/SubmissionMonitoringView.vue'
@@ -27,9 +26,9 @@ import {
 
 const resolveCompleteProfilePath = (user) => {
   const roleName = String(user?.roleName || '').trim().toLowerCase()
-  if (roleName === 'faculty' || roleName === 'coordinator' || roleName === 'admin') {
-    return '/complete-profile/coordinator'
-  }
+  if (roleName === 'admin') return '/complete-profile/admin'
+  if (roleName === 'faculty') return '/complete-profile/faculty'
+  if (roleName === 'coordinator') return '/complete-profile/coordinator'
 
   return '/complete-profile/student'
 }
@@ -77,12 +76,32 @@ const router = createRouter({
     {
       path: '/complete-profile/student',
       name: 'complete-profile-student',
-      component: StudentCompleteProfileView,
+      component: CompleteProfileWrapper,
+      props: { role: 'student' },
+    },
+    {
+      path: '/complete-profile/faculty',
+      name: 'complete-profile-faculty',
+      component: CompleteProfileWrapper,
+      props: { role: 'faculty' },
     },
     {
       path: '/complete-profile/coordinator',
       name: 'complete-profile-coordinator',
-      component: FacultyCoordinatorCompleteProfileView,
+      component: CompleteProfileWrapper,
+      props: { role: 'coordinator' },
+    },
+    {
+      path: '/complete-profile/admin',
+      name: 'complete-profile-admin',
+      component: CompleteProfileWrapper,
+      props: { role: 'admin' },
+    },
+    {
+      path: '/complete-profile/:role',
+      name: 'complete-profile-role',
+      component: CompleteProfileWrapper,
+      props: true,
     },
     {
       path: '/complete-profile/faculty-coordinator',
