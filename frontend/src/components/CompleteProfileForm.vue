@@ -126,7 +126,7 @@ watch(universityId, (value) => {
 </script>
 
 <template>
-  <Card class="complete-profile-card bg-hover-green">
+  <Card class="complete-profile-card">
     <template #title>
       Complete Your Profile
     </template>
@@ -167,7 +167,7 @@ watch(universityId, (value) => {
           <InputText id="last-name" v-model="lastName" class="w-full" :disabled="submitting" />
         </div>
 
-        <div class="field-group">
+        <div class="field-group middle-name-field">
           <label for="middle-name" class="field-label">Middle Name (Optional)</label>
           <InputText id="middle-name" v-model="middleName" class="w-full" :disabled="submitting" />
         </div>
@@ -234,15 +234,15 @@ watch(universityId, (value) => {
   max-width: 42rem;
 }
 
-:deep(.complete-profile-card.p-card:hover) {
-  border-color: #0e662e;
-}
-
 :deep(.complete-profile-card.p-card) {
   background-color: #ffffff;
   border: 1px solid #d1d5db;
   box-shadow: none;
   color: #111827;
+}
+
+:deep(.complete-profile-card.p-card:hover) {
+  border-color: #0e662e;
 }
 
 :deep(.complete-profile-card .p-card-title),
@@ -267,5 +267,9 @@ watch(universityId, (value) => {
 .field-group {
   display: grid;
   gap: 0.45rem;
+}
+
+.middle-name-field {
+  margin-bottom: 1.25rem;
 }
 </style>

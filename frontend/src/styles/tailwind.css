@@ -16,3 +16,10 @@
 .font-Karla {
   font-family: var(--font-sans);
 }
+
+.p-card {
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+.p-card:hover {
+  border-color: #0e662e;
+}
