@@ -109,16 +109,32 @@ onMounted(reloadGoogleSignIn)
 <template>
   <main class="login-page">
     <section class="left-panel">
-      <div class="content-wrapper">
-        <h1 class="hero-title">THE GREEN ARCHIVE</h1>
-        <p class="hero-subtitle">Repository and Knowledge Management System · Department of IT, DLSU</p>
-        <div style="margin-top: 24px;">
-          <div id="google-signin-button"></div>
-          <div style="margin-top: 16px; font-size: 0.95rem; color: #555;">Only @dlsu.edu.ph accounts are allowed.</div>
+      <div class="card-glass">
+        <div class="brand-row">
+          <router-link to="/" class="brand-link">
+            <img src="@/assets/DLSU-logo.png" alt="logo" class="brand-logo" />
+            <div class="brand-text">
+              <div class="brand-title">Green Archive</div>
+              <div class="brand-sub">College of Computer Studies</div>
+            </div>
+          </router-link>
+        </div>
+
+        <h2 class="welcome">Welcome back!</h2>
+        <p class="lead">Sign in with your DLSU account to continue to the repository.</p>
+
+        <div class="signin-area">
+          <div id="google-signin-button" class="signin-button" />
+          <div class="note">Only <strong>@dlsu.edu.ph</strong> accounts are allowed.</div>
         </div>
       </div>
     </section>
-    <section class="right-panel" :style="heroBackgroundStyle" />
+
+    <section class="right-panel" :style="heroBackgroundStyle">
+      <div class="green-overlay" aria-hidden="true" />
+      <div class="image-blur" aria-hidden="true" />
+    </section>
+
     <Dialog
       v-model:visible="showErrorModal"
       modal
@@ -137,101 +153,107 @@ onMounted(reloadGoogleSignIn)
 .login-page {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1.4fr;
   overflow: hidden;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
 }
 
 .left-panel {
-  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
-  overflow-y: auto;
+  padding: 48px;
+  background: linear-gradient(180deg, rgba(250,251,250,1), rgba(247,249,247,1));
 }
 
-.content-wrapper {
+.card-glass {
   width: 100%;
-  max-width: 32rem;
+  max-width: 520px;
+  background: rgba(255,255,255,0.92);
+  border-radius: 16px;
+  padding: 36px;
+  box-shadow: 0 12px 36px rgba(6, 45, 24, 0.10);
+  backdrop-filter: blur(6px) saturate(120%);
+  border: 1px solid rgba(15, 82, 46, 0.06);
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo {
+  height: 64px;
+  width: 64px;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.brand-text .brand-title {
+  font-weight: 800;
+  color: #063b25;
+  font-size: 1.25rem;
+}
+
+.brand-text .brand-sub {
+  font-size: 0.9rem;
+  color: #406a57;
+}
+
+.welcome {
+  margin: 20px 0 8px;
+  font-size: 2.1rem;
+  color: #0f3f2b;
+}
+
+.lead {
+  margin: 0 0 20px;
+  color: #47685a;
+  font-size: 1.15rem;
+}
+
+.signin-area {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.signin-button {
+  width: 100%;
+  max-width: 360px;
+}
+
+.note {
+  color: #567568;
+  font-size: 1rem;
 }
 
 .right-panel {
+  position: relative;
   background-size: cover;
   background-position: center;
-  filter: hue-rotate(80deg) saturate(1.3) brightness(0.95);
 }
 
-.hero-title {
-  margin: 0;
-  font-size: clamp(2rem, 5vw, 3.2rem);
-  line-height: 1.1;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  color: #0a0a0a;
+.green-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6,86,37,0.28), rgba(6,86,37,0.48));
+  mix-blend-mode: multiply;
 }
 
-.hero-subtitle {
-  margin-top: 12px;
-  font-size: 0.95rem;
-  color: #555555;
-  line-height: 1.5;
+.image-blur {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(6px) saturate(1.2);
 }
 
-.get-started-btn {
-  margin-top: 24px;
-  background: #1f6b3a;
-  border-color: #1f6b3a;
-  color: #ffffff;
-  border-radius: 999px;
-  padding: 16px 28px;
-  font-weight: 700;
-  font-size: 1.1rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.get-started-btn:hover {
-  background: #165a32;
-}
-
-.btn-text {
-  letter-spacing: 0.02em;
-}
-
-.modal-message {
-  margin: 0;
-  color: #333333;
-}
+.modal-message { color: #062b1d }
 
 @media (max-width: 1024px) {
-  .login-page {
-    grid-template-columns: 1fr;
-  }
-
-  .right-panel {
-    display: none;
-  }
-
-  .left-panel {
-    padding: 24px;
-  }
-}
-
-@media (max-width: 768px) {
-  .left-panel {
-    padding: 20px;
-  }
-
-  .hero-title {
-    font-size: 2rem;
-  }
-
-  .get-started-btn {
-    font-size: 1rem;
-    padding: 12px 20px;
-  }
+  .login-page { grid-template-columns: 1fr }
+  .right-panel { display: none }
+  .left-panel { padding: 28px }
+  .card-glass { padding: 24px; max-width: 520px }
 }
 </style>
