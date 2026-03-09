@@ -59,3 +59,16 @@ export const updateCapstoneGroup = async (db, { groupId, groupName, programId, g
 
   return result.rows[0] || null
 }
+
+export const deleteCapstoneGroup = async (db, groupId) => {
+  const result = await db.query(
+    `
+      DELETE FROM capstone_groups
+      WHERE group_id = $1
+      RETURNING group_id
+    `,
+    [groupId],
+  )
+
+  return result.rows[0] || null
+}
