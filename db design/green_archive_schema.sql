@@ -28,7 +28,7 @@ COMMENT ON TABLE ref_degree_programs IS
 
 CREATE TABLE users(
   user_id serial NOT NULL,
-  google_id varchar(255) NOT NULL,
+  google_id varchar(255),
   email varchar(255) NOT NULL,
   university_id varchar(8) NOT NULL,
   fname varchar(100) NOT NULL,
@@ -92,6 +92,7 @@ CREATE INDEX group_members_group_id_idx ON group_members(group_id);
 
 CREATE TABLE submissions(
   submission_id bigserial NOT NULL,
+  task_id integer NOT NULL,
   group_id integer NOT NULL,
   title text NOT NULL,
   abstract text NOT NULL,
@@ -150,6 +151,55 @@ CREATE TABLE submission_audit_logs(
 CREATE INDEX submission_audit_logs_submission_id_changed_at_idx ON
   submission_audit_logs(submission_id, changed_at DESC)
 ;
+
+
+CREATE TABLE tasks(
+  task_id serial NOT NULL,
+  task_name varchar(100) NOT NULL,
+  description text,
+  due_date timestamp with time zone,
+  term_id integer NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT tasks_pkey PRIMARY KEY(task_id)
+);
+
+
+CREATE TABLE academic_terms(
+  term_id serial NOT NULL,
+  academic_year varchar(9) NOT NULL,
+  term_no integer NOT NULL,
+  start_date date NOT NULL,
+  end_date date NOT NULL,
+  CONSTRAINT academic_terms_pkey PRIMARY KEY(term_id)
+);
+
+
+CREATE UNIQUE INDEX unique_term_and_sy ON academic_terms(academic_year, term_id);
+
+
+CREATE TABLE user_sessions(
+  session_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id integer NOT NULL,
+  refresh_token_hash text NOT NULL,
+  user_agent text,
+  ip_address text,
+  created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at timestamp with time zone NOT NULL,
+  is_revoked boolean NOT NULL DEFAULT false,
+  CONSTRAINT user_sessions_pkey PRIMARY KEY(session_id)
+);
+
+
+CREATE TABLE ref_research_fields(
+field_id serial NOT NULL, field_name varchar(50) NOT NULL,
+  CONSTRAINT ref_research_fields_pkey PRIMARY KEY(field_id)
+);
+
+
+CREATE TABLE paper_fields(
+submission_id bigint NOT NULL, field_id integer NOT NULL,
+  CONSTRAINT paper_fields_pkey PRIMARY KEY(submission_id, field_id)
+);
 
 
 ALTER TABLE users
@@ -219,3 +269,32 @@ ALTER TABLE submission_audit_logs
     FOREIGN KEY (changed_by) REFERENCES users (user_id) ON DELETE Restrict
 ;
 
+
+ALTER TABLE submissions
+  ADD CONSTRAINT submissions_task_id_fkey
+    FOREIGN KEY (task_id) REFERENCES tasks (task_id) ON DELETE Restrict
+;
+
+
+ALTER TABLE paper_fields
+  ADD CONSTRAINT paper_fields_submission_id_fkey
+    FOREIGN KEY (submission_id) REFERENCES submissions (submission_id)
+;
+
+
+ALTER TABLE paper_fields
+  ADD CONSTRAINT paper_fields_field_id_fkey
+    FOREIGN KEY (field_id) REFERENCES ref_research_fields (field_id)
+;
+
+
+ALTER TABLE tasks
+  ADD CONSTRAINT tasks_term_id_fkey
+    FOREIGN KEY (term_id) REFERENCES academic_terms (term_id)
+;
+
+
+ALTER TABLE user_sessions
+  ADD CONSTRAINT user_sessions_user_id_fkey
+    FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE Cascade
+;
