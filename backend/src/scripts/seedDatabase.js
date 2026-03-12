@@ -3,13 +3,6 @@ import path from 'path'
 import logger from '../utils/logger.js'
 import { initDB, closeDB } from '../db/db.js'
 
-const scriptPath = path.resolve(
-  process.cwd(),
-  'src',
-  'scripts',
-  'green_archive_inserts.sql'
-)
-
 async function runSeed() {
   let db
   try {
