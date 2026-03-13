@@ -142,7 +142,7 @@ CREATE TABLE submission_audit_logs(
   changed_by integer NOT NULL,
   old_status submission_status,
   new_status submission_status,
-  remarks text NOT NULL,
+  remarks text,
   changed_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT submission_audit_logs_pkey PRIMARY KEY(log_id)
 );
