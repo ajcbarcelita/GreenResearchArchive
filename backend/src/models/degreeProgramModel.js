@@ -40,7 +40,9 @@ export const listDegreeProgramsForAdmin = async (db, { q, level } = {}) => {
     whereClauses.push(`p.program_level::text = $${params.length}`);
   }
 
-  const where = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
+  const where = whereClauses.length
+    ? `WHERE ${whereClauses.join(" AND ")}`
+    : "";
 
   const result = await db.query(
     `
@@ -71,7 +73,10 @@ export const listDegreeProgramsForAdmin = async (db, { q, level } = {}) => {
   return result.rows;
 };
 
-export const findDegreeProgramByCode = async (db, { code, excludeProgramId = null }) => {
+export const findDegreeProgramByCode = async (
+  db,
+  { code, excludeProgramId = null },
+) => {
   const params = [code];
   let where = "LOWER(program_code) = LOWER($1)";
 
@@ -93,7 +98,10 @@ export const findDegreeProgramByCode = async (db, { code, excludeProgramId = nul
   return result.rows[0] || null;
 };
 
-export const insertDegreeProgram = async (db, { programCode, programName, programLevel }) => {
+export const insertDegreeProgram = async (
+  db,
+  { programCode, programName, programLevel },
+) => {
   const result = await db.query(
     `
       INSERT INTO ref_degree_programs (program_code, program_name, program_level)

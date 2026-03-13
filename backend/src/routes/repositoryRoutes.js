@@ -1,12 +1,15 @@
-import express from 'express'
-import { listRepository, getRepositoryById } from '../controllers/repositoryController.js'
+import express from "express";
+import {
+  listRepository,
+  getRepositoryById,
+} from "../controllers/repositoryController.js";
 
-const router = express.Router()
+const router = express.Router();
 
 // GET /api/repository  -> list
-router.get('/', listRepository)
+router.get("/", listRepository);
 
 // GET /api/repository/:id -> details
-router.get('/:id', getRepositoryById)
+router.get("/:id", getRepositoryById);
 
-export default router
+export default router;

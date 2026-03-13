@@ -186,7 +186,9 @@ export const listUsersForAdmin = async (
     whereClauses.push(`u.is_active = $${params.length}`);
   }
 
-  const where = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
+  const where = whereClauses.length
+    ? `WHERE ${whereClauses.join(" AND ")}`
+    : "";
 
   const result = await db.query(
     `

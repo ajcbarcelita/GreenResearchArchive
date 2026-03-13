@@ -7,17 +7,17 @@ export const findCapstoneGroupById = async (db, groupId) => {
       LIMIT 1
     `,
     [groupId],
-  )
+  );
 
-  return result.rows[0] || null
-}
+  return result.rows[0] || null;
+};
 
 export const listCapstoneGroups = async (db, { programId } = {}) => {
-  const params = []
-  let where = ''
+  const params = [];
+  let where = "";
   if (programId) {
-    params.push(programId)
-    where = `WHERE program_id = $${params.length}`
+    params.push(programId);
+    where = `WHERE program_id = $${params.length}`;
   }
 
   const result = await db.query(
@@ -28,12 +28,15 @@ export const listCapstoneGroups = async (db, { programId } = {}) => {
       ORDER BY group_name ASC
     `,
     params,
-  )
+  );
 
-  return result.rows
-}
+  return result.rows;
+};
 
-export const insertCapstoneGroup = async (db, { groupName, programId, groupAdviser }) => {
+export const insertCapstoneGroup = async (
+  db,
+  { groupName, programId, groupAdviser },
+) => {
   const result = await db.query(
     `
       INSERT INTO capstone_groups (group_name, program_id, group_adviser, is_active, created_at)
@@ -41,12 +44,15 @@ export const insertCapstoneGroup = async (db, { groupName, programId, groupAdvis
       RETURNING group_id, group_name, program_id, group_adviser, is_active, created_at
     `,
     [groupName, programId, groupAdviser],
-  )
+  );
 
-  return result.rows[0]
-}
+  return result.rows[0];
+};
 
-export const updateCapstoneGroup = async (db, { groupId, groupName, programId, groupAdviser, isActive }) => {
+export const updateCapstoneGroup = async (
+  db,
+  { groupId, groupName, programId, groupAdviser, isActive },
+) => {
   const result = await db.query(
     `
       UPDATE capstone_groups
@@ -55,10 +61,10 @@ export const updateCapstoneGroup = async (db, { groupId, groupName, programId, g
       RETURNING group_id, group_name, program_id, group_adviser, is_active, created_at
     `,
     [groupName, programId, groupAdviser, isActive, groupId],
-  )
+  );
 
-  return result.rows[0] || null
-}
+  return result.rows[0] || null;
+};
 
 export const deleteCapstoneGroup = async (db, groupId) => {
   const result = await db.query(
@@ -68,7 +74,7 @@ export const deleteCapstoneGroup = async (db, groupId) => {
       RETURNING group_id
     `,
     [groupId],
-  )
+  );
 
-  return result.rows[0] || null
-}
+  return result.rows[0] || null;
+};

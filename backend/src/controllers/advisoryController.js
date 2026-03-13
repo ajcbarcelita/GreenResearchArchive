@@ -6,7 +6,11 @@ import {
   existsGroupMember,
 } from "../models/groupMembersModel.js";
 
-import { findCapstoneGroupById, insertCapstoneGroup, deleteCapstoneGroup } from "../models/capstoneGroupModel.js";
+import {
+  findCapstoneGroupById,
+  insertCapstoneGroup,
+  deleteCapstoneGroup,
+} from "../models/capstoneGroupModel.js";
 import { findUserProfileById } from "../models/userModel.js";
 
 const toInt = (value) => Number.parseInt(String(value), 10);
@@ -35,13 +39,17 @@ const mapAdvisoryRow = (row) => ({
 
 const buildSummary = (rows) => {
   const adviserIds = new Set(rows.map((row) => row.adviserId));
-  const statusesNeedingAttention = new Set(["Revision Requested", "Under Review"]);
+  const statusesNeedingAttention = new Set([
+    "Revision Requested",
+    "Under Review",
+  ]);
 
   return {
     totalAdvisers: adviserIds.size,
     totalGroups: rows.length,
     activeGroups: rows.filter((row) => row.groupIsActive).length,
-    groupsWithoutSubmission: rows.filter((row) => !row.latestSubmissionStatus).length,
+    groupsWithoutSubmission: rows.filter((row) => !row.latestSubmissionStatus)
+      .length,
     groupsNeedingAttention: rows.filter((row) =>
       statusesNeedingAttention.has(row.latestSubmissionStatus),
     ).length,
@@ -79,7 +87,9 @@ export const getAdvisoryLoad = async (req, res) => {
       ).sort((a, b) => a.localeCompare(b)),
       statuses: Array.from(
         new Set(
-          filterData.map((row) => row.latestSubmissionStatus || "No Submission"),
+          filterData.map(
+            (row) => row.latestSubmissionStatus || "No Submission",
+          ),
         ),
       ).sort((a, b) => a.localeCompare(b)),
       advisers: Array.from(
@@ -146,7 +156,9 @@ export const addGroupMember = async (req, res) => {
     const group = await findCapstoneGroupById(db, Number(groupId));
     if (!group) return res.status(404).json({ error: "Group not found" });
     if (Number(group.group_adviser) !== Number(userId)) {
-      return res.status(403).json({ error: "Not authorized to modify this group" });
+      return res
+        .status(403)
+        .json({ error: "Not authorized to modify this group" });
     }
 
     let student = null;
@@ -168,10 +180,19 @@ export const addGroupMember = async (req, res) => {
 
     const targetStudentId = Number(student.user_id || student.user_id);
 
-    const already = await existsGroupMember(db, { groupId: Number(groupId), studentId: targetStudentId });
-    if (already) return res.status(409).json({ error: "Student is already a member of the group" });
+    const already = await existsGroupMember(db, {
+      groupId: Number(groupId),
+      studentId: targetStudentId,
+    });
+    if (already)
+      return res
+        .status(409)
+        .json({ error: "Student is already a member of the group" });
 
-    const inserted = await addGroupMemberModel(db, { groupId: Number(groupId), studentId: targetStudentId });
+    const inserted = await addGroupMemberModel(db, {
+      groupId: Number(groupId),
+      studentId: targetStudentId,
+    });
     return res.status(201).json({ data: inserted });
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -189,11 +210,17 @@ export const removeGroupMember = async (req, res) => {
     const group = await findCapstoneGroupById(db, Number(groupId));
     if (!group) return res.status(404).json({ error: "Group not found" });
     if (Number(group.group_adviser) !== Number(userId)) {
-      return res.status(403).json({ error: "Not authorized to modify this group" });
+      return res
+        .status(403)
+        .json({ error: "Not authorized to modify this group" });
     }
 
-    const removed = await removeGroupMemberModel(db, { groupId: Number(groupId), studentId: Number(studentId) });
-    if (!removed) return res.status(404).json({ error: "Member not found in group" });
+    const removed = await removeGroupMemberModel(db, {
+      groupId: Number(groupId),
+      studentId: Number(studentId),
+    });
+    if (!removed)
+      return res.status(404).json({ error: "Member not found in group" });
 
     return res.json({ data: removed });
   } catch (error) {
@@ -210,13 +237,16 @@ export const searchStudents = async (req, res) => {
     if (!qRaw) return res.json({ data: [] });
 
     // find student role id
-    const roleRes = await db.query(`SELECT role_id FROM ref_roles WHERE LOWER(role_name) = LOWER($1) LIMIT 1`, ["Student"]);
+    const roleRes = await db.query(
+      `SELECT role_id FROM ref_roles WHERE LOWER(role_name) = LOWER($1) LIMIT 1`,
+      ["Student"],
+    );
     const studentRole = roleRes.rows[0];
     const studentRoleId = studentRole ? studentRole.role_id : null;
 
     const q = `%${qRaw}%`;
     const params = [q, q, q, 20];
-    let roleClause = '';
+    let roleClause = "";
     if (studentRoleId) {
       roleClause = `AND u.role_id = ${studentRoleId}`;
     }
@@ -249,10 +279,12 @@ export const createGroup = async (req, res) => {
     if (!db) return res.status(500).json({ error: "Database not initialized" });
 
     const userId = Number(req.auth?.sub);
-    if (!Number.isInteger(userId) || userId <= 0) return res.status(401).json({ error: "Invalid authenticated user" });
+    if (!Number.isInteger(userId) || userId <= 0)
+      return res.status(401).json({ error: "Invalid authenticated user" });
 
     const { groupName, programId, studentIds } = req.body || {};
-    if (!groupName || !String(groupName).trim()) return res.status(400).json({ error: "groupName is required" });
+    if (!groupName || !String(groupName).trim())
+      return res.status(400).json({ error: "groupName is required" });
 
     // create group with current user as adviser
     const created = await insertCapstoneGroup(db, {
@@ -267,9 +299,15 @@ export const createGroup = async (req, res) => {
       for (const sidRaw of studentIds) {
         const sid = Number(sidRaw);
         if (!Number.isInteger(sid) || sid <= 0) continue;
-        const exists = await existsGroupMember(db, { groupId: created.group_id || created.groupId || created.group_id, studentId: sid });
+        const exists = await existsGroupMember(db, {
+          groupId: created.group_id || created.groupId || created.group_id,
+          studentId: sid,
+        });
         if (exists) continue;
-        const inserted = await addGroupMemberModel(db, { groupId: created.group_id || created.groupId || created.group_id, studentId: sid });
+        const inserted = await addGroupMemberModel(db, {
+          groupId: created.group_id || created.groupId || created.group_id,
+          studentId: sid,
+        });
         if (inserted) added.push(inserted);
       }
     }
@@ -302,7 +340,9 @@ export const deleteGroup = async (req, res) => {
     const group = await findCapstoneGroupById(db, Number(groupId));
     if (!group) return res.status(404).json({ error: "Group not found" });
     if (Number(group.group_adviser) !== userId) {
-      return res.status(403).json({ error: "Not authorized to delete this group" });
+      return res
+        .status(403)
+        .json({ error: "Not authorized to delete this group" });
     }
 
     const deleted = await deleteCapstoneGroup(db, Number(groupId));

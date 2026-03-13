@@ -3,7 +3,16 @@ import logger from "../utils/logger.js";
 
 const upsertUser = async (
   db,
-  { googleId, email, universityId, fname, lname, mname, roleName, programCode = null },
+  {
+    googleId,
+    email,
+    universityId,
+    fname,
+    lname,
+    mname,
+    roleName,
+    programCode = null,
+  },
 ) => {
   const result = await db.query(
     `
@@ -75,7 +84,10 @@ const upsertGroupMember = async (db, { groupId, studentId }) => {
   );
 };
 
-const insertSubmission = async (db, { groupId, title, abstract, keywords, status, versionNo, isLocked }) => {
+const insertSubmission = async (
+  db,
+  { groupId, title, abstract, keywords, status, versionNo, isLocked },
+) => {
   await db.query(
     `
       INSERT INTO submissions (group_id, title, abstract, keywords, status, version_no, is_locked, submitted_at)

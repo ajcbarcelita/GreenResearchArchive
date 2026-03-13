@@ -14,31 +14,35 @@ export const findSubmissionById = async (db, submissionId) => {
       LIMIT 1
     `,
     [submissionId],
-  )
+  );
 
-  return result.rows[0] || null
-}
+  return result.rows[0] || null;
+};
 
 export const listSubmissions = async (db, { status, programId, q } = {}) => {
-  const params = []
-  const whereClauses = []
+  const params = [];
+  const whereClauses = [];
 
   if (status) {
-    params.push(status)
-    whereClauses.push(`s.status = $${params.length}`)
+    params.push(status);
+    whereClauses.push(`s.status = $${params.length}`);
   }
 
   if (programId) {
-    params.push(programId)
-    whereClauses.push(`cg.program_id = $${params.length}`)
+    params.push(programId);
+    whereClauses.push(`cg.program_id = $${params.length}`);
   }
 
   if (q) {
-    params.push(`%${q}%`)
-    whereClauses.push(`(s.title ILIKE $${params.length} OR s.abstract ILIKE $${params.length} OR s.keywords::text ILIKE $${params.length})`)
+    params.push(`%${q}%`);
+    whereClauses.push(
+      `(s.title ILIKE $${params.length} OR s.abstract ILIKE $${params.length} OR s.keywords::text ILIKE $${params.length})`,
+    );
   }
 
-  const where = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : ''
+  const where = whereClauses.length
+    ? `WHERE ${whereClauses.join(" AND ")}`
+    : "";
 
   const sql = `
     SELECT s.submission_id, s.group_id, s.title, s.abstract, s.keywords, s.version_no, s.status, s.is_locked, s.created_at, s.submitted_at,
@@ -58,13 +62,24 @@ export const listSubmissions = async (db, { status, programId, q } = {}) => {
     LEFT JOIN users adv ON adv.user_id = cg.group_adviser
     ${where}
     ORDER BY s.submitted_at DESC NULLS LAST, s.created_at DESC
-  `
+  `;
 
-  const result = await db.query(sql, params)
-  return result.rows
-}
+  const result = await db.query(sql, params);
+  return result.rows;
+};
 
-export const insertSubmission = async (db, { groupId, title, abstract, keywords, versionNo, status = 'Draft', isLocked = false }) => {
+export const insertSubmission = async (
+  db,
+  {
+    groupId,
+    title,
+    abstract,
+    keywords,
+    versionNo,
+    status = "Draft",
+    isLocked = false,
+  },
+) => {
   const result = await db.query(
     `
       INSERT INTO submissions (group_id, title, abstract, keywords, version_no, status, is_locked, created_at)
@@ -72,10 +87,10 @@ export const insertSubmission = async (db, { groupId, title, abstract, keywords,
       RETURNING submission_id, group_id, title, abstract, keywords, version_no, status, is_locked, created_at
     `,
     [groupId, title, abstract, keywords, versionNo, status, isLocked],
-  )
+  );
 
-  return result.rows[0]
-}
+  return result.rows[0];
+};
 
 export const updateSubmissionStatus = async (db, { submissionId, status }) => {
   const result = await db.query(
@@ -86,12 +101,15 @@ export const updateSubmissionStatus = async (db, { submissionId, status }) => {
       RETURNING submission_id, status, submitted_at
     `,
     [status, submissionId],
-  )
+  );
 
-  return result.rows[0] || null
-}
+  return result.rows[0] || null;
+};
 
-export const updateSubmission = async (db, { submissionId, title, abstract, keywords, versionNo, isLocked }) => {
+export const updateSubmission = async (
+  db,
+  { submissionId, title, abstract, keywords, versionNo, isLocked },
+) => {
   const result = await db.query(
     `
       UPDATE submissions
@@ -100,10 +118,10 @@ export const updateSubmission = async (db, { submissionId, title, abstract, keyw
       RETURNING submission_id, group_id, title, abstract, keywords, version_no, status, is_locked, created_at, submitted_at
     `,
     [title, abstract, keywords, versionNo, isLocked, submissionId],
-  )
+  );
 
-  return result.rows[0] || null
-}
+  return result.rows[0] || null;
+};
 
 export const listSubmissionsByGroupId = async (db, groupId) => {
   const result = await db.query(
@@ -114,7 +132,7 @@ export const listSubmissionsByGroupId = async (db, groupId) => {
       ORDER BY version_no DESC, created_at DESC
     `,
     [groupId],
-  )
+  );
 
-  return result.rows
-}
+  return result.rows;
+};

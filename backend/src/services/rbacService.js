@@ -4,11 +4,14 @@ const parseEmailList = (value = "") =>
     .map((entry) => entry.trim().toLowerCase())
     .filter(Boolean);
 
-export const normalizeEmail = (email = "") => String(email).trim().toLowerCase();
+export const normalizeEmail = (email = "") =>
+  String(email).trim().toLowerCase();
 
 export const buildRbacConfig = () => ({
   adminWhitelist: parseEmailList(process.env.RBAC_ADMIN_EMAILS || ""),
-  coordinatorWhitelist: parseEmailList(process.env.RBAC_COORDINATOR_EMAILS || ""),
+  coordinatorWhitelist: parseEmailList(
+    process.env.RBAC_COORDINATOR_EMAILS || "",
+  ),
   facultyWhitelist: parseEmailList(process.env.RBAC_FACULTY_EMAILS || ""),
   studentWhitelist: parseEmailList(process.env.RBAC_STUDENT_EMAILS || ""),
   blacklist: parseEmailList(process.env.RBAC_BLACKLIST_EMAILS || ""),

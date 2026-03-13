@@ -1,6 +1,10 @@
 import Joi from "joi";
 import { listDegreePrograms } from "../models/degreeProgramModel.js";
-import { findUserById, listUsersForAdmin, updateAdminManagedUser } from "../models/userModel.js";
+import {
+  findUserById,
+  listUsersForAdmin,
+  updateAdminManagedUser,
+} from "../models/userModel.js";
 import { findRoleByNameExact } from "../models/roleModel.js";
 
 const querySchema = Joi.object({
@@ -17,7 +21,9 @@ const updateSchema = Joi.object({
 });
 
 const ensureAdmin = (req, res) => {
-  const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+  const roleName = String(req.auth?.roleName || "")
+    .trim()
+    .toLowerCase();
   if (roleName !== "admin") {
     res.status(403).json({ message: "Only Admin accounts can manage users." });
     return false;
@@ -160,7 +166,10 @@ export const updateAdminUser = async (req, res, next) => {
       return res.status(400).json({ message: "Selected role does not exist." });
     }
 
-    const isStudent = String(selectedRole.role_name || "").trim().toLowerCase() === "student";
+    const isStudent =
+      String(selectedRole.role_name || "")
+        .trim()
+        .toLowerCase() === "student";
     if (isStudent && !value.programId) {
       return res.status(400).json({
         message: "Program is required for Student role.",

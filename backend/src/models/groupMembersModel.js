@@ -9,10 +9,10 @@ export const listGroupMembers = async (db, groupId) => {
       ORDER BY u.lname ASC NULLS LAST, u.fname ASC
     `,
     [groupId],
-  )
+  );
 
-  return result.rows
-}
+  return result.rows;
+};
 
 export const addGroupMember = async (db, { groupId, studentId }) => {
   const result = await db.query(
@@ -22,10 +22,10 @@ export const addGroupMember = async (db, { groupId, studentId }) => {
       RETURNING group_id, student_id
     `,
     [groupId, studentId],
-  )
+  );
 
-  return result.rows[0]
-}
+  return result.rows[0];
+};
 
 export const removeGroupMember = async (db, { groupId, studentId }) => {
   const result = await db.query(
@@ -35,10 +35,10 @@ export const removeGroupMember = async (db, { groupId, studentId }) => {
       RETURNING group_id, student_id
     `,
     [groupId, studentId],
-  )
+  );
 
-  return result.rows[0] || null
-}
+  return result.rows[0] || null;
+};
 
 export const findGroupsForStudent = async (db, studentId) => {
   const result = await db.query(
@@ -49,10 +49,10 @@ export const findGroupsForStudent = async (db, studentId) => {
       WHERE gm.student_id = $1
     `,
     [studentId],
-  )
+  );
 
-  return result.rows
-}
+  return result.rows;
+};
 
 export const existsGroupMember = async (db, { groupId, studentId }) => {
   const result = await db.query(
@@ -62,7 +62,7 @@ export const existsGroupMember = async (db, { groupId, studentId }) => {
       LIMIT 1
     `,
     [groupId, studentId],
-  )
+  );
 
-  return result.rowCount > 0
-}
+  return result.rowCount > 0;
+};

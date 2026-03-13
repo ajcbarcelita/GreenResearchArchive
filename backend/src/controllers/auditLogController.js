@@ -1,10 +1,13 @@
-import { getAuditLogFilterOptions, listAuditLogs } from '../models/auditLogModel.js'
+import {
+  getAuditLogFilterOptions,
+  listAuditLogs,
+} from "../models/auditLogModel.js";
 
 const toInt = (value) => {
-  if (value === undefined || value === null || value === '') return null
-  const parsed = Number.parseInt(String(value), 10)
-  return Number.isInteger(parsed) ? parsed : null
-}
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = Number.parseInt(String(value), 10);
+  return Number.isInteger(parsed) ? parsed : null;
+};
 
 const mapAuditLogRow = (row) => ({
   logId: row.log_id,
@@ -21,30 +24,36 @@ const mapAuditLogRow = (row) => ({
   versionNo: row.version_no,
   submissionTitle: row.submission_title,
   changedBy: row.changed_by,
-  actorName: [row.actor_fname, row.actor_mname, row.actor_lname].filter(Boolean).join(' '),
+  actorName: [row.actor_fname, row.actor_mname, row.actor_lname]
+    .filter(Boolean)
+    .join(" "),
   actorEmail: row.actor_email,
   actorRole: row.actor_role,
-})
+});
 
 const buildSummary = (rows) => {
-  const uniqueActors = new Set(rows.map((row) => row.changedBy))
-  const today = new Date()
-  const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const uniqueActors = new Set(rows.map((row) => row.changedBy));
+  const today = new Date();
+  const dayStart = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
 
-  const transitionCounts = new Map()
+  const transitionCounts = new Map();
   rows.forEach((row) => {
-    const key = `${row.oldStatus || 'None'} -> ${row.newStatus || 'None'}`
-    transitionCounts.set(key, (transitionCounts.get(key) || 0) + 1)
-  })
+    const key = `${row.oldStatus || "None"} -> ${row.newStatus || "None"}`;
+    transitionCounts.set(key, (transitionCounts.get(key) || 0) + 1);
+  });
 
-  let mostCommonTransition = null
-  let mostCommonTransitionCount = 0
+  let mostCommonTransition = null;
+  let mostCommonTransitionCount = 0;
   transitionCounts.forEach((count, transition) => {
     if (count > mostCommonTransitionCount) {
-      mostCommonTransitionCount = count
-      mostCommonTransition = transition
+      mostCommonTransitionCount = count;
+      mostCommonTransition = transition;
     }
-  })
+  });
 
   return {
     totalLogs: rows.length,
@@ -52,14 +61,14 @@ const buildSummary = (rows) => {
     uniqueActors: uniqueActors.size,
     mostCommonTransition,
     mostCommonTransitionCount,
-  }
-}
+  };
+};
 
 export const getAuditLogs = async (req, res) => {
   try {
-    const db = req.app?.locals?.db
+    const db = req.app?.locals?.db;
     if (!db) {
-      return res.status(500).json({ error: 'Database not initialized' })
+      return res.status(500).json({ error: "Database not initialized" });
     }
 
     const filters = {
@@ -71,19 +80,19 @@ export const getAuditLogs = async (req, res) => {
       newStatus: req.query.newStatus || null,
       dateFrom: req.query.dateFrom || null,
       dateTo: req.query.dateTo || null,
-    }
+    };
 
-    const rows = await listAuditLogs(db, filters)
-    const data = rows.map(mapAuditLogRow)
-    const summary = buildSummary(data)
-    const filterOptions = await getAuditLogFilterOptions(db)
+    const rows = await listAuditLogs(db, filters);
+    const data = rows.map(mapAuditLogRow);
+    const summary = buildSummary(data);
+    const filterOptions = await getAuditLogFilterOptions(db);
 
     return res.json({
       data,
       summary,
       filters: filterOptions,
-    })
+    });
   } catch (error) {
-    return res.status(500).json({ error: error.message })
+    return res.status(500).json({ error: error.message });
   }
-}
+};

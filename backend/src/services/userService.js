@@ -236,7 +236,9 @@ export const createUserFromOnboarding = async (
 
   if (requiresProgram) {
     if (!programId) {
-      const error = new Error("Degree program is required for Student accounts.");
+      const error = new Error(
+        "Degree program is required for Student accounts.",
+      );
       error.statusCode = 400;
       throw error;
     }
@@ -284,14 +286,27 @@ export const getDegreePrograms = async (db) => {
 
 export const completeFirstLoginProfile = async (
   db,
-  { userId, firstName, lastName, middleName, programId, universityId, roleName },
+  {
+    userId,
+    firstName,
+    lastName,
+    middleName,
+    programId,
+    universityId,
+    roleName,
+  },
 ) => {
   ensureDb(db);
-  const requiresProgram = String(roleName || "").trim().toLowerCase() === "student";
+  const requiresProgram =
+    String(roleName || "")
+      .trim()
+      .toLowerCase() === "student";
 
   if (requiresProgram) {
     if (!programId) {
-      const error = new Error("Degree program is required for Student accounts.");
+      const error = new Error(
+        "Degree program is required for Student accounts.",
+      );
       error.statusCode = 400;
       throw error;
     }

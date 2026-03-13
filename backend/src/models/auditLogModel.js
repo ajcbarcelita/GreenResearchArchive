@@ -1,56 +1,69 @@
 export const listAuditLogs = async (
   db,
-  { q, submissionId, changedBy, programCode, oldStatus, newStatus, dateFrom, dateTo } = {},
+  {
+    q,
+    submissionId,
+    changedBy,
+    programCode,
+    oldStatus,
+    newStatus,
+    dateFrom,
+    dateTo,
+  } = {},
 ) => {
-  const params = []
-  const whereClauses = []
+  const params = [];
+  const whereClauses = [];
 
   if (q) {
-    params.push(`%${q}%`)
+    params.push(`%${q}%`);
     whereClauses.push(
       `(sal.remarks ILIKE $${params.length}
         OR cg.group_name ILIKE $${params.length}
         OR u.email ILIKE $${params.length}
         OR (u.fname || ' ' || COALESCE(u.mname || ' ', '') || u.lname) ILIKE $${params.length})`,
-    )
+    );
   }
 
   if (submissionId) {
-    params.push(submissionId)
-    whereClauses.push(`sal.submission_id = $${params.length}`)
+    params.push(submissionId);
+    whereClauses.push(`sal.submission_id = $${params.length}`);
   }
 
   if (changedBy) {
-    params.push(changedBy)
-    whereClauses.push(`sal.changed_by = $${params.length}`)
+    params.push(changedBy);
+    whereClauses.push(`sal.changed_by = $${params.length}`);
   }
 
   if (programCode) {
-    params.push(programCode)
-    whereClauses.push(`rp.program_code = $${params.length}`)
+    params.push(programCode);
+    whereClauses.push(`rp.program_code = $${params.length}`);
   }
 
   if (oldStatus) {
-    params.push(oldStatus)
-    whereClauses.push(`sal.old_status::text = $${params.length}`)
+    params.push(oldStatus);
+    whereClauses.push(`sal.old_status::text = $${params.length}`);
   }
 
   if (newStatus) {
-    params.push(newStatus)
-    whereClauses.push(`sal.new_status::text = $${params.length}`)
+    params.push(newStatus);
+    whereClauses.push(`sal.new_status::text = $${params.length}`);
   }
 
   if (dateFrom) {
-    params.push(dateFrom)
-    whereClauses.push(`sal.changed_at >= $${params.length}`)
+    params.push(dateFrom);
+    whereClauses.push(`sal.changed_at >= $${params.length}`);
   }
 
   if (dateTo) {
-    params.push(dateTo)
-    whereClauses.push(`sal.changed_at < $${params.length}::timestamptz + interval '1 day'`)
+    params.push(dateTo);
+    whereClauses.push(
+      `sal.changed_at < $${params.length}::timestamptz + interval '1 day'`,
+    );
   }
 
-  const where = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : ''
+  const where = whereClauses.length
+    ? `WHERE ${whereClauses.join(" AND ")}`
+    : "";
 
   const result = await db.query(
     `
@@ -84,15 +97,16 @@ export const listAuditLogs = async (
       ORDER BY sal.changed_at DESC, sal.log_id DESC
     `,
     params,
-  )
+  );
 
-  return result.rows
-}
+  return result.rows;
+};
 
 export const getAuditLogFilterOptions = async (db) => {
-  const [programsResult, actorsResult, oldStatusesResult, newStatusesResult] = await Promise.all([
-    db.query(
-      `
+  const [programsResult, actorsResult, oldStatusesResult, newStatusesResult] =
+    await Promise.all([
+      db.query(
+        `
         SELECT DISTINCT rp.program_code
         FROM submission_audit_logs sal
         JOIN submissions s ON s.submission_id = sal.submission_id
@@ -101,9 +115,9 @@ export const getAuditLogFilterOptions = async (db) => {
         WHERE rp.program_code IS NOT NULL
         ORDER BY rp.program_code ASC
       `,
-    ),
-    db.query(
-      `
+      ),
+      db.query(
+        `
         SELECT DISTINCT
           u.user_id AS actor_id,
           u.fname,
@@ -114,33 +128,33 @@ export const getAuditLogFilterOptions = async (db) => {
         JOIN users u ON u.user_id = sal.changed_by
         ORDER BY u.lname ASC, u.fname ASC
       `,
-    ),
-    db.query(
-      `
+      ),
+      db.query(
+        `
         SELECT DISTINCT sal.old_status::text AS status
         FROM submission_audit_logs sal
         WHERE sal.old_status IS NOT NULL
         ORDER BY status ASC
       `,
-    ),
-    db.query(
-      `
+      ),
+      db.query(
+        `
         SELECT DISTINCT sal.new_status::text AS status
         FROM submission_audit_logs sal
         WHERE sal.new_status IS NOT NULL
         ORDER BY status ASC
       `,
-    ),
-  ])
+      ),
+    ]);
 
   return {
     programs: programsResult.rows.map((row) => row.program_code),
     actors: actorsResult.rows.map((row) => ({
       actorId: row.actor_id,
-      actorName: [row.fname, row.mname, row.lname].filter(Boolean).join(' '),
+      actorName: [row.fname, row.mname, row.lname].filter(Boolean).join(" "),
       actorEmail: row.email,
     })),
     oldStatuses: oldStatusesResult.rows.map((row) => row.status),
     newStatuses: newStatusesResult.rows.map((row) => row.status),
-  }
-}
+  };
+};

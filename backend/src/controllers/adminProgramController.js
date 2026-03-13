@@ -27,10 +27,15 @@ const upsertProgramSchema = Joi.object({
     .required(),
 });
 
-const normalizeCode = (value) => String(value || "").trim().toUpperCase();
+const normalizeCode = (value) =>
+  String(value || "")
+    .trim()
+    .toUpperCase();
 
 const ensureAdmin = (req, res) => {
-  const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+  const roleName = String(req.auth?.roleName || "")
+    .trim()
+    .toLowerCase();
   if (roleName !== "admin") {
     res.status(403).json({
       message: "Only Admin accounts can manage programs.",

@@ -1,9 +1,9 @@
-import express from 'express'
-import { getAuditLogs } from '../controllers/auditLogController.js'
+import express from "express";
+import { getAuditLogs } from "../controllers/auditLogController.js";
 
-const router = express.Router()
+const router = express.Router();
 
 // GET /api/audit-logs -> list audit logs + summary + filter options
-router.get('/', getAuditLogs)
+router.get("/", getAuditLogs);
 
-export default router
+export default router;

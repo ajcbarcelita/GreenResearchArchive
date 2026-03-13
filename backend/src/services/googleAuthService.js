@@ -56,13 +56,18 @@ export const verifyGoogleIdToken = async (idToken) => {
     const rbacDecision = getRbacEmailDecision(payload.email);
 
     if (rbacDecision.rule === "blacklist") {
-      const error = new Error("Access denied. This email is blocked from sign in.");
+      const error = new Error(
+        "Access denied. This email is blocked from sign in.",
+      );
       error.statusCode = 403;
       throw error;
     }
 
     // For testing scenarios, explicit whitelist entries bypass domain fallback checks.
-    if (rbacDecision.rule === "none" && !DLSU_EMAIL_REGEX.test(rbacDecision.normalizedEmail)) {
+    if (
+      rbacDecision.rule === "none" &&
+      !DLSU_EMAIL_REGEX.test(rbacDecision.normalizedEmail)
+    ) {
       const error = new Error(
         "Access denied. Only emails ending with @dlsu.edu.ph are allowed.",
       );
