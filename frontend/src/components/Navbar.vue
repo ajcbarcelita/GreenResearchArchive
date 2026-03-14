@@ -6,7 +6,7 @@
         <div class="flex items-center space-x-4">
           <router-link to="/" class="flex items-center space-x-3">
             <img
-              src="@/assets/DLSU-logo.png"
+              src="@/assets/DLSU-Logo.png"
               alt="Green Archive"
               class="logo-img h-12 w-auto"
             />

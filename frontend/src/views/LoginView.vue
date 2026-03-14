@@ -112,7 +112,7 @@ onMounted(reloadGoogleSignIn)
       <div class="card-glass">
         <div class="brand-row">
           <router-link to="/" class="brand-link">
-            <img src="@/assets/DLSU-logo.png" alt="logo" class="brand-logo" />
+            <img src="@/assets/DLSU-Logo.png" alt="logo" class="brand-logo" />
             <div class="brand-text">
               <div class="brand-title">Green Archive</div>
               <div class="brand-sub">College of Computer Studies</div>
