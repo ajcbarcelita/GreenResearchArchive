@@ -301,7 +301,8 @@ footer {
 .badge-wrap {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.7rem;
+  padding: 0.25rem;
 }
 
 .grid-wrap {

@@ -1,6 +1,10 @@
 import { findUserProfileById } from "../models/userModel.js";
 import { revokeSession, getSessionById } from "../models/userSessionModel.js";
-import { verifyRefreshToken, signAccessToken, verifyTokenHash } from "../services/tokenService.js";
+import {
+  verifyRefreshToken,
+  signAccessToken,
+  verifyTokenHash,
+} from "../services/tokenService.js";
 
 export const getAuthenticatedUser = async (req, res) => {
   const userId = Number(req.auth?.sub);

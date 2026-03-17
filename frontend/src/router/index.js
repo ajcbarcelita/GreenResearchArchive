@@ -7,7 +7,7 @@ import SubmissionView from '../views/Student/SubmissionView.vue'
 import RepositoryView from '../views/RepositoryView.vue'
 import CompleteProfileWrapper from '../views/CompleteProfie.vue'
 import FacultyCoordinatorHomeView from '../views/Coordinator/HomeView.vue'
-import FacultyCoordinatorAdvisoryView from '../views/Coordinator/AdvisoryView.vue'
+import AdvisoryView from '../views/Coordinator/AdvisoryView.vue'
 import FacultyCoordinatorSubmissionView from '../views/Coordinator/SubmissionMonitoringView.vue'
 import FacultyHomeView from '../views/Faculty/HomeView.vue'
 import FacultyMyAdviseesView from '../views/Faculty/MyAdviseesView.vue'
@@ -210,7 +210,7 @@ const router = createRouter({
     {
       path: '/coordinator/advisory',
       name: 'coordinator-advisory',
-      component: FacultyCoordinatorAdvisoryView,
+      component: AdvisoryView,
     },
     {
       path: '/coordinator/submissions',
