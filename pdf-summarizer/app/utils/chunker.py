@@ -1,6 +1,6 @@
 from langchain_text_splitters import MarkdownTextSplitter
 
-CHUNK_SIZE = 1500
+CHUNK_SIZE = 4000
 CHUNK_OVERLAP = 200
 
 def chunk_markdown(markdown: str) -> list[str]:
