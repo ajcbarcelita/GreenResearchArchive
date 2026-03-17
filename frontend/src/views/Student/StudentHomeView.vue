@@ -1,5 +1,6 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import Avatar from 'primevue/avatar'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
@@ -8,8 +9,10 @@ import Tag from 'primevue/tag'
 import Navbar from '@/components/Navbar.vue'
 import Footer from '@/components/Footer.vue'
 import { getStoredUser } from '../../services/authService'
+import { getLatestStudentSubmission } from '@/services/studentSubmissionService'
 
 const user = getStoredUser()
+const router = useRouter()
 
 const fullName = computed(() => {
   const first = user?.firstName || ''
@@ -18,28 +21,21 @@ const fullName = computed(() => {
   return [first, middle, last].filter(Boolean).join(' ') || 'Student User'
 })
 
-const groupSnapshot = {
-  groupId: 4,
-  groupName: 'GROUP-4',
-  programCode: 'BSIT',
-  adviserName: 'Prof. Maria Santos',
-}
+const loading = ref(false)
+const groupSnapshot = ref({
+  groupId: null,
+  groupName: 'No Group',
+  programCode: 'N/A',
+  adviserName: 'Not assigned',
+})
 
-const currentSubmission = {
-  submissionId: 1024,
-  title: 'Automated Barangay Complaint Management with NLP Routing',
-  versionNo: 3,
-  status: 'Revision Requested',
-  isLocked: false,
-  submittedAt: '2026-03-03 21:24',
-  archivedAt: null,
-}
+const currentSubmission = ref(null)
 
-const submissionFiles = {
-  capstonePaperCount: 1,
-  datasetCount: 1,
-  latestUploadAt: '2026-03-03 21:24',
-}
+const submissionFiles = ref({
+  capstonePaperCount: 0,
+  datasetCount: 0,
+  latestUploadAt: 'N/A',
+})
 
 const pendingActions = [
   'Upload updated Capstone Paper file.',
@@ -98,11 +94,73 @@ const activityFeed = [
   },
 ]
 
+const formatDateTime = (value) => {
+  if (!value) return 'N/A'
+  return new Date(value).toLocaleString('en-PH', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 const submissionSeverity = computed(() => {
-  if (currentSubmission.status === 'Approved') return 'success'
-  if (currentSubmission.status === 'Revision Requested') return 'warn'
+  const status = currentSubmission.value?.status
+  if (status === 'Approved') return 'success'
+  if (status === 'Revision Requested') return 'warn'
   return 'info'
 })
+
+const loadLatestSubmission = async () => {
+  loading.value = true
+  try {
+    const data = await getLatestStudentSubmission()
+    const group = data?.group || null
+    const reviewer = data?.reviewer || null
+    const submission = data?.submission || null
+    const task = data?.task || null
+    const fileStats = data?.fileStats || null
+
+    groupSnapshot.value = {
+      groupId: group?.groupId || null,
+      groupName: group?.groupName || 'No Group',
+      programCode: task?.academicYear || 'N/A',
+      adviserName: reviewer?.reviewerName || 'Not assigned',
+    }
+
+    currentSubmission.value = submission
+      ? {
+          ...submission,
+          taskId: task?.taskId || submission.taskId || null,
+          title: submission.title || task?.taskName || 'Untitled Submission',
+          submittedAt: formatDateTime(submission.submittedAt || submission.createdAt),
+          archivedAt: submission.archivedAt ? formatDateTime(submission.archivedAt) : null,
+        }
+      : null
+
+    submissionFiles.value = {
+      capstonePaperCount: Number(fileStats?.capstonePaperCount || 0),
+      datasetCount: Number(fileStats?.datasetCount || 0),
+      latestUploadAt: formatDateTime(fileStats?.latestUploadAt),
+    }
+  } catch (error) {
+    console.error('Failed to load latest submission', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const openSubmission = () => {
+  if (!currentSubmission.value?.taskId) {
+    router.push('/student/tasks')
+    return
+  }
+
+  router.push({ name: 'submission-view', query: { taskId: currentSubmission.value.taskId } })
+}
+
+onMounted(loadLatestSubmission)
 </script>
 
 <template>
@@ -134,11 +192,11 @@ const submissionSeverity = computed(() => {
         <Card class="panel-card panel-card-accent md:col-span-4">
           <template #content>
             <p class="kicker">Submission Record</p>
-            <h2 class="record-id">#{{ currentSubmission.submissionId }}</h2>
-            <p class="record-meta">Submitted: {{ currentSubmission.submittedAt }}</p>
+            <h2 class="record-id">{{ currentSubmission ? `#${currentSubmission.submissionId}` : 'No Submission Yet' }}</h2>
+            <p class="record-meta">Submitted: {{ currentSubmission?.submittedAt || 'N/A' }}</p>
             <div class="mt-3 flex flex-wrap gap-2">
-              <Tag :value="currentSubmission.status" :severity="submissionSeverity" rounded />
-              <Tag :value="currentSubmission.isLocked ? 'Locked' : 'Unlocked'" :severity="currentSubmission.isLocked ? 'danger' : 'success'" rounded />
+              <Tag :value="currentSubmission?.status || 'Draft'" :severity="submissionSeverity" rounded />
+              <Tag :value="currentSubmission?.isLocked ? 'Locked' : 'Unlocked'" :severity="currentSubmission?.isLocked ? 'danger' : 'success'" rounded />
             </div>
           </template>
         </Card>
@@ -149,23 +207,22 @@ const submissionSeverity = computed(() => {
           <template #title>
             <div class="flex items-center justify-between gap-3">
               <span>Current Submission</span>
-              <Tag :value="currentSubmission.status" :severity="submissionSeverity" rounded />
+              <Tag :value="currentSubmission?.status || 'Draft'" :severity="submissionSeverity" rounded />
             </div>
           </template>
           <template #content>
-            <h3 class="submission-title">{{ currentSubmission.title }}</h3>
+            <h3 class="submission-title">{{ currentSubmission?.title || 'No submission found for your group yet.' }}</h3>
             <div class="mt-2 flex flex-wrap gap-2 text-sm">
-              <Chip :label="`Version: ${currentSubmission.versionNo}`" />
-              <Chip :label="`Submitted: ${currentSubmission.submittedAt}`" />
-              <Chip :label="`Archived: ${currentSubmission.archivedAt || 'No'}`" />
+              <Chip :label="`Version: ${currentSubmission?.versionNo || 'N/A'}`" />
+              <Chip :label="`Submitted: ${currentSubmission?.submittedAt || 'N/A'}`" />
+              <Chip :label="`Archived: ${currentSubmission?.archivedAt || 'No'}`" />
             </div>
             <p class="schema-note">
               Files: Capstone Paper ({{ submissionFiles.capstonePaperCount }}), Dataset ({{ submissionFiles.datasetCount }}).
               Latest upload: {{ submissionFiles.latestUploadAt }}.
             </p>
             <div class="mt-4 flex flex-wrap gap-2">
-              <Button label="Open Submission" />
-              <Button label="Open Files" severity="secondary" outlined />
+              <Button :label="currentSubmission ? 'Open Submission' : 'Choose Task'" @click="openSubmission" />
             </div>
           </template>
         </Card>

@@ -21,7 +21,6 @@
           <div class="nav-links text-sm md:text-base font-semibold">
             <router-link to="/" class="nav-link">Home</router-link>
             <router-link to="/student/tasks" class="nav-link">Student Tasks</router-link>
-            <router-link to="/submission" class="nav-link">Capstone Submission</router-link>
             <router-link to="/repository" class="nav-link">Repository</router-link>
           </div>
         </div>

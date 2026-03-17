@@ -96,7 +96,8 @@ export const insertSubmission = async (
 export const findCurrentTask = async (db) => {
   const result = await db.query(
     `
-      SELECT t.task_id, t.task_name, t.description, t.due_date, t.term_id
+      SELECT t.task_id, t.task_name, t.description, t.due_date, t.term_id,
+             at.academic_year, at.term_no, at.start_date, at.end_date
       FROM tasks t
       JOIN academic_terms at ON at.term_id = t.term_id
       WHERE CURRENT_DATE BETWEEN at.start_date AND at.end_date
@@ -109,17 +110,41 @@ export const findCurrentTask = async (db) => {
 
   // Fallback: most recently created task if no active term matches
   const fallback = await db.query(
-    `SELECT task_id, task_name, description, due_date, term_id
-     FROM tasks ORDER BY created_at DESC LIMIT 1`,
+    `SELECT t.task_id, t.task_name, t.description, t.due_date, t.term_id,
+            at.academic_year, at.term_no, at.start_date, at.end_date
+     FROM tasks t
+     JOIN academic_terms at ON at.term_id = t.term_id
+     ORDER BY t.created_at DESC LIMIT 1`,
   );
   return fallback.rows[0] || null;
+};
+
+export const findTaskById = async (db, taskId) => {
+  const result = await db.query(
+    `
+      SELECT t.task_id, t.task_name, t.description, t.due_date, t.term_id,
+             at.academic_year, at.term_no, at.start_date, at.end_date
+      FROM tasks t
+      JOIN academic_terms at ON at.term_id = t.term_id
+      WHERE t.task_id = $1
+      LIMIT 1
+    `,
+    [taskId],
+  );
+
+  return result.rows[0] || null;
 };
 
 export const updateSubmissionStatus = async (db, { submissionId, status }) => {
   const result = await db.query(
     `
       UPDATE submissions
-      SET status = $1, submitted_at = CASE WHEN $1 = 'Submitted' THEN CURRENT_TIMESTAMP ELSE submitted_at END
+      SET status = $1::submission_status,
+          submitted_at = CASE
+            WHEN $1::submission_status = 'Submitted'::submission_status
+            THEN CURRENT_TIMESTAMP
+            ELSE submitted_at
+          END
       WHERE submission_id = $2
       RETURNING submission_id, status, submitted_at
     `,
@@ -172,6 +197,49 @@ export const findSubmissionByGroupAndTask = async (db, groupId, taskId) => {
     [groupId, taskId],
   );
   return result.rows[0] || null;
+};
+
+export const findLatestModifiedSubmissionByGroupId = async (db, groupId) => {
+  const result = await db.query(
+    `
+      SELECT submission_id, task_id, group_id, title, abstract, keywords, version_no, status, is_locked, created_at, submitted_at, archived_at
+      FROM submissions
+      WHERE group_id = $1
+      ORDER BY COALESCE(submitted_at, created_at) DESC, created_at DESC, version_no DESC
+      LIMIT 1
+    `,
+    [groupId],
+  );
+
+  return result.rows[0] || null;
+};
+
+export const existsSubmissionVersionForGroupTask = async (
+  db,
+  { groupId, taskId, versionNo, excludeSubmissionId = null },
+) => {
+  const params = [groupId, taskId, versionNo];
+  let whereExclude = "";
+
+  if (excludeSubmissionId) {
+    params.push(excludeSubmissionId);
+    whereExclude = `AND submission_id <> $${params.length}`;
+  }
+
+  const result = await db.query(
+    `
+      SELECT 1
+      FROM submissions
+      WHERE group_id = $1
+        AND task_id = $2
+        AND version_no = $3
+        ${whereExclude}
+      LIMIT 1
+    `,
+    params,
+  );
+
+  return result.rowCount > 0;
 };
 
 export const listTasksWithSubmissionStatus = async (db, groupId) => {

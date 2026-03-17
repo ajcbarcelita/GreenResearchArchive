@@ -54,3 +54,23 @@ export const deleteSubmissionFileById = async (db, fileId) => {
 
   return result.rows[0] || null;
 };
+
+export const getSubmissionFileStatsBySubmissionId = async (db, submissionId) => {
+  const result = await db.query(
+    `
+      SELECT
+        COUNT(*) FILTER (WHERE file_type = 'Capstone Paper')::int AS capstone_paper_count,
+        COUNT(*) FILTER (WHERE file_type = 'Dataset')::int AS dataset_count,
+        MAX(uploaded_at) AS latest_upload_at
+      FROM submission_files
+      WHERE submission_id = $1
+    `,
+    [submissionId],
+  );
+
+  return result.rows[0] || {
+    capstone_paper_count: 0,
+    dataset_count: 0,
+    latest_upload_at: null,
+  };
+};

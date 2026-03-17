@@ -41,6 +41,11 @@ export const getCurrentSubmission = async (taskId = null) => {
   return response?.data || {}
 }
 
+export const getLatestStudentSubmission = async () => {
+  const response = await api.get('/api/submissions/student/latest', getAuthConfig())
+  return response?.data || {}
+}
+
 export const saveCurrentSubmission = async (payload) => {
   const response = await api.put('/api/submissions/student/current', payload, getAuthConfig())
   return response?.data || {}
@@ -52,11 +57,12 @@ export const submitCurrentSubmission = async (taskId = null) => {
   return response?.data || {}
 }
 
-export const uploadCurrentSubmissionFile = async ({ file, versionNo }) => {
+export const uploadCurrentSubmissionFile = async ({ file, versionNo, taskId = null }) => {
   const contentBase64 = await fileToBase64(file)
   const response = await api.post(
     '/api/submissions/student/current/files',
     {
+      ...(taskId ? { taskId } : {}),
       fileName: file.name,
       contentType: file.type || 'application/octet-stream',
       contentBase64,
@@ -68,13 +74,15 @@ export const uploadCurrentSubmissionFile = async ({ file, versionNo }) => {
   return response?.data || {}
 }
 
-export const deleteCurrentSubmissionFile = async (fileId) => {
-  const response = await api.delete(`/api/submissions/student/current/files/${fileId}`, getAuthConfig())
+export const deleteCurrentSubmissionFile = async (fileId, taskId = null) => {
+  const params = taskId ? { params: { taskId } } : {}
+  const response = await api.delete(`/api/submissions/student/current/files/${fileId}`, { ...getAuthConfig(), ...params })
   return response?.data || {}
 }
 
 export default {
   getStudentTasks,
+  getLatestStudentSubmission,
   getCurrentSubmission,
   saveCurrentSubmission,
   submitCurrentSubmission,

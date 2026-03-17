@@ -97,8 +97,7 @@ onMounted(loadTasks)
               <p class="kicker">Student Portal</p>
               <h1 class="headline">Submission Tasks</h1>
               <p class="support-text">
-                Select a milestone task below to open the submission form for
-                <strong>{{ groupName }}</strong>.
+                Select a milestone task below to open the corresponding submission form.
               </p>
             </div>
             <Tag value="Student" severity="success" rounded />

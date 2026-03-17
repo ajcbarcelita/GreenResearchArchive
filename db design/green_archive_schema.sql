@@ -115,6 +115,11 @@ CREATE INDEX submissions_status_archived_at_idx ON submissions
 CREATE INDEX submissions_group_id_idx ON submissions(group_id);
 
 
+CREATE UNIQUE INDEX submissions_group_task_version_unique_idx ON submissions
+  (group_id, task_id, version_no)
+;
+
+
 CREATE INDEX submissions_keywords_idx ON submissions USING GIN(keywords);
 
 

@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   deleteCurrentStudentSubmissionFile,
   getCurrentStudentSubmission,
+  getLatestStudentSubmission,
   getStudentTasks,
   saveCurrentStudentSubmission,
   submitCurrentStudentSubmission,
@@ -19,6 +20,12 @@ router.get(
   requireAuth,
   requireRegisteredUser,
   getCurrentStudentSubmission,
+);
+router.get(
+  "/student/latest",
+  requireAuth,
+  requireRegisteredUser,
+  getLatestStudentSubmission,
 );
 router.get("/student/tasks", requireAuth, requireRegisteredUser, getStudentTasks);
 router.put(

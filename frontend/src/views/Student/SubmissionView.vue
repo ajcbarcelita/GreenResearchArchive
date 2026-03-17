@@ -8,12 +8,12 @@ import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import FileUpload from 'primevue/fileupload'
 import InputText from 'primevue/inputtext'
-import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
 import Toast from 'primevue/toast'
 import Navbar from '@/components/Navbar.vue'
 import Footer from '@/components/Footer.vue'
+import { getStoredUser } from '@/services/authService'
 import {
   deleteCurrentSubmissionFile,
   getCurrentSubmission,
@@ -30,6 +30,10 @@ const currentTaskId = computed(() => {
   return val ? Number(val) : null
 })
 const currentTaskName = ref('')
+const currentAcademicYear = ref('')
+const currentTermNo = ref(null)
+const currentReviewerName = ref('Not assigned')
+const currentSubmitterName = ref('Unknown User')
 const loading = ref(false)
 const saving = ref(false)
 const submitting = ref(false)
@@ -40,30 +44,43 @@ const currentGroupName = ref('No Group')
 
 const status = ref('Draft')
 
-const milestoneOptions = [
-  { label: 'Proposal', value: 'proposal' },
-  { label: 'Chapter 1-3', value: 'chapter_1_3' },
-  { label: 'Final Manuscript', value: 'final_manuscript' },
-  { label: 'Poster', value: 'poster' },
-  { label: 'Source Code', value: 'source_code' },
-]
+const termLabel = (termNo) => {
+  if (termNo === 1) return '1st Semester'
+  if (termNo === 2) return '2nd Semester'
+  if (termNo === 3) return '3rd Semester'
+  return termNo ? `Term ${termNo}` : ''
+}
 
-const selectedMilestone = ref(milestoneOptions[2])
+const academicYearLabel = computed(() => {
+  return currentAcademicYear.value ? `A.Y. ${currentAcademicYear.value}` : 'Academic Year TBD'
+})
+
+const submissionHeadline = computed(() => {
+  return currentTaskName.value || 'Submission Task'
+})
+
+const submissionSupportText = computed(() => {
+  const pieces = []
+
+  if (currentAcademicYear.value && currentTermNo.value) {
+    pieces.push(`${academicYearLabel.value} • ${termLabel(currentTermNo.value)}`)
+  } else if (currentAcademicYear.value) {
+    pieces.push(academicYearLabel.value)
+  }
+
+  pieces.push('Complete the required files and metadata before finalizing your submission.')
+  return pieces.join(' • ')
+})
 
 const form = ref({
   version: 'v1.0',
   title: '',
+  keywords: '',
+  researchFields: '',
   abstract: '',
-  repositoryLink: 'https://github.com/org/green-archive',
-  demoLink: 'https://green-archive-demo.example.com',
+  repositoryLink: '',
+  demoLink: '',
 })
-
-const requiredChecklist = ref([
-  { id: 1, label: 'Final Manuscript (PDF)', done: true },
-  { id: 2, label: 'Source Code Archive (.zip)', done: false },
-  { id: 3, label: 'Presentation Deck (PPT/PDF)', done: false },
-  { id: 4, label: 'Deployment/Run Guide', done: true },
-])
 
 const submissionHistory = ref([])
 
@@ -73,36 +90,72 @@ const parseVersionNo = () => {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1
 }
 
+const formatFileSizeMb = (value) => {
+  const bytes = Number(value)
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0.00 MB'
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+}
+
+const normalizeOptionalInput = (value) => {
+  const trimmed = String(value || '').trim()
+  return trimmed ? trimmed : null
+}
+
+const parseCsvValues = (value) => {
+  return String(value || '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+}
+
+const requiresKeywordAndResearchField = computed(() => {
+  const taskName = String(currentTaskName.value || '').toLowerCase()
+  return taskName.includes('manuscript') || taskName.includes('chapter')
+})
+
+const formatStoredUserName = (user) => {
+  if (!user) return 'Unknown User'
+
+  return [user.firstName, user.middleName, user.lastName]
+    .filter(Boolean)
+    .join(' ') || user.email || 'Unknown User'
+}
+
 const loadSubmission = async () => {
   loading.value = true
   try {
+    currentSubmitterName.value = formatStoredUserName(getStoredUser())
     const response = await getCurrentSubmission(currentTaskId.value)
     const submission = response?.submission
     const files = response?.files || []
     const history = response?.history || []
     const group = response?.group || null
+    const reviewer = response?.reviewer || null
 
     currentSubmissionId.value = submission?.submissionId || null
     status.value = submission?.status || 'Draft'
     currentGroupName.value = group?.groupName || 'No Group'
+    currentReviewerName.value = reviewer?.reviewerName || 'Not assigned'
 
     form.value.version = submission?.versionNo ? `v${submission.versionNo}` : 'v1.0'
     form.value.title = submission?.title || ''
+    form.value.keywords = Array.isArray(submission?.keywords) ? submission.keywords.join(', ') : ''
+    form.value.researchFields = ''
     form.value.abstract = submission?.abstract || ''
+    form.value.repositoryLink = submission?.repositoryLink || ''
+    form.value.demoLink = submission?.demoLink || ''
 
     submissionFiles.value = files
-    if (response?.task) currentTaskName.value = response.task.taskName || ''
+    currentTaskName.value = response?.task?.taskName || ''
+    currentAcademicYear.value = response?.task?.academicYear || ''
+    currentTermNo.value = response?.task?.termNo || null
     submissionHistory.value = history.map((item) => ({
       version: `v${item.versionNo}`,
       submittedAt: item.submittedAt || item.createdAt || 'N/A',
-      submittedBy: 'Group Member',
+      submittedBy: currentSubmitterName.value,
+      reviewerName: currentReviewerName.value,
       status: item.status,
       reviewerComment: item.status === 'Submitted' ? 'Pending review.' : 'Saved as draft.',
-    }))
-
-    requiredChecklist.value = requiredChecklist.value.map((item) => ({
-      ...item,
-      done: files.length > 0 ? item.done || true : item.done,
     }))
   } catch (error) {
     console.error('Failed to load submission', error)
@@ -117,16 +170,14 @@ const loadSubmission = async () => {
   }
 }
 
-const completionCount = computed(
-  () => requiredChecklist.value.filter((item) => item.done).length,
-)
-
 const canSubmit = computed(
   () =>
     Boolean(form.value.version.trim()) &&
     Boolean(form.value.title.trim()) &&
     Boolean(form.value.abstract.trim()) &&
-    requiredChecklist.value.every((item) => item.done),
+    (!requiresKeywordAndResearchField.value ||
+      (parseCsvValues(form.value.keywords).length > 0 &&
+        parseCsvValues(form.value.researchFields).length > 0)),
 )
 
 const statusSeverity = computed(() => {
@@ -156,6 +207,7 @@ async function handleUpload(event) {
       await uploadCurrentSubmissionFile({
         file,
         versionNo: parseVersionNo(),
+        taskId: currentTaskId.value,
       })
     }
 
@@ -187,7 +239,9 @@ async function saveDraft() {
       title: form.value.title,
       abstract: form.value.abstract,
       versionNo: parseVersionNo(),
-      keywords: [],
+      keywords: parseCsvValues(form.value.keywords),
+      repositoryLink: normalizeOptionalInput(form.value.repositoryLink),
+      demoLink: normalizeOptionalInput(form.value.demoLink),
     })
 
     toast.add({
@@ -214,8 +268,10 @@ async function submitFinal() {
   if (!canSubmit.value) {
     toast.add({
       severity: 'warn',
-      summary: 'Incomplete requirements',
-      detail: 'Complete all required fields and files before submitting.',
+      summary: 'Incomplete submission',
+      detail: requiresKeywordAndResearchField.value
+        ? 'Complete all required fields, including Keywords and Research Field.'
+        : 'Complete all required fields before submitting.',
       life: 3500,
     })
     return
@@ -246,7 +302,7 @@ async function submitFinal() {
 
 async function removeFile(fileId) {
   try {
-    await deleteCurrentSubmissionFile(fileId)
+    await deleteCurrentSubmissionFile(fileId, currentTaskId.value)
     toast.add({
       severity: 'success',
       summary: 'File removed',
@@ -283,9 +339,9 @@ onMounted(() => {
         <Card class="panel-card md:col-span-8">
           <template #content>
             <p class="kicker">Capstone Submission</p>
-            <h1 class="headline">Final Manuscript Milestone</h1>
+            <h1 class="headline">{{ submissionHeadline }}</h1>
             <p class="support-text">
-              Complete the required files and metadata before finalizing your submission.
+              {{ submissionSupportText }}
             </p>
           </template>
         </Card>
@@ -296,31 +352,21 @@ onMounted(() => {
             <h2 class="record-id">{{ currentGroupName }}</h2>
             <div class="mt-2 flex flex-wrap gap-2">
               <Tag :value="status" :severity="statusSeverity" rounded />
-              <Tag value="A.Y. 2025-2026" severity="secondary" rounded />
+              <Tag :value="academicYearLabel" severity="secondary" rounded />
+              <Tag v-if="currentTermNo" :value="termLabel(currentTermNo)" severity="contrast" rounded />
             </div>
             <p class="support-text mt-3">
-              {{ completionCount }}/{{ requiredChecklist.length }} required items complete.
+              Reviewer: {{ currentReviewerName }}
             </p>
           </template>
         </Card>
       </section>
 
       <section class="mt-4 grid gap-4 md:grid-cols-12">
-        <Card class="panel-card md:col-span-8">
+        <Card class="panel-card md:col-span-12">
           <template #title>Submission Details</template>
           <template #content>
             <div class="grid gap-4 sm:grid-cols-2">
-              <div class="field-wrap">
-                <label class="field-label">Milestone</label>
-                <Select
-                  v-model="selectedMilestone"
-                  :options="milestoneOptions"
-                  optionLabel="label"
-                  placeholder="Select milestone"
-                  class="w-full"
-                />
-              </div>
-
               <div class="field-wrap">
                 <label class="field-label">Version <span class="req">*</span></label>
                 <InputText v-model="form.version" class="w-full" placeholder="e.g., v1.0" />
@@ -330,6 +376,27 @@ onMounted(() => {
             <div class="mt-4 field-wrap">
               <label class="field-label">Submission Title <span class="req">*</span></label>
               <InputText v-model="form.title" class="w-full" placeholder="Enter title" />
+            </div>
+
+            <div v-if="requiresKeywordAndResearchField" class="mt-4 grid gap-4 sm:grid-cols-2">
+              <div class="field-wrap">
+                <label class="field-label">Keywords <span class="req">*</span></label>
+                <InputText
+                  v-model="form.keywords"
+                  class="w-full"
+                  placeholder="e.g., machine learning, NLP, recommendation"
+                />
+                <small class="support-text">Separate entries with commas.</small>
+              </div>
+              <div class="field-wrap">
+                <label class="field-label">Research Field <span class="req">*</span></label>
+                <InputText
+                  v-model="form.researchFields"
+                  class="w-full"
+                  placeholder="e.g., Artificial Intelligence, Data Science"
+                />
+                <small class="support-text">Separate entries with commas.</small>
+              </div>
             </div>
 
             <div class="mt-4 field-wrap">
@@ -346,33 +413,25 @@ onMounted(() => {
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
               <div class="field-wrap">
                 <label class="field-label">Repository Link</label>
-                <InputText v-model="form.repositoryLink" class="w-full" placeholder="https://" />
+                <InputText
+                  v-model="form.repositoryLink"
+                  class="w-full"
+                  placeholder="https://github.com/your-org/your-repository"
+                />
               </div>
               <div class="field-wrap">
                 <label class="field-label">Demo Link</label>
-                <InputText v-model="form.demoLink" class="w-full" placeholder="https://" />
+                <InputText
+                  v-model="form.demoLink"
+                  class="w-full"
+                  placeholder="https://your-demo-url.example.com"
+                />
               </div>
             </div>
 
             <div class="mt-5 flex flex-wrap gap-2">
               <Button label="Save Draft" severity="secondary" outlined :loading="saving" @click="saveDraft" />
               <Button label="Submit" :disabled="!canSubmit || loading" :loading="submitting" @click="submitFinal" />
-            </div>
-          </template>
-        </Card>
-
-        <Card class="panel-card md:col-span-4">
-          <template #title>Requirements Checklist</template>
-          <template #content>
-            <div class="space-y-2">
-              <label
-                v-for="item in requiredChecklist"
-                :key="item.id"
-                class="check-item"
-              >
-                <input v-model="item.done" type="checkbox" class="h-4 w-4 accent-[#1d9f58]" />
-                <span>{{ item.label }}</span>
-              </label>
             </div>
           </template>
         </Card>
@@ -406,8 +465,24 @@ onMounted(() => {
                   :disabled="uploading || !currentSubmissionId"
                   @uploader="handleUpload"
                 >
-                  <template #empty>
-                    <p class="support-text">Drag and drop files here.</p>
+                  <template #content="{ files, removeFileCallback }">
+                    <div v-if="files?.length" class="queued-files">
+                      <div
+                        v-for="(file, index) in files"
+                        :key="`${file.name}-${file.size}-${index}`"
+                        class="queued-file-row"
+                      >
+                        <span class="queued-file-name">{{ file.name }}</span>
+                        <button
+                          type="button"
+                          class="queued-file-remove"
+                          @click="removeFileCallback(index)"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                    <p v-else class="support-text">Drag and drop files here.</p>
                   </template>
                 </FileUpload>
               </div>
@@ -428,7 +503,11 @@ onMounted(() => {
                 >
                   <Column field="fileName" header="File" />
                   <Column field="fileType" header="Type" />
-                  <Column field="fileSize" header="Size (bytes)" />
+                  <Column header="Size (MB)">
+                    <template #body="slotProps">
+                      {{ formatFileSizeMb(slotProps.data.fileSize) }}
+                    </template>
+                  </Column>
                   <Column field="uploadedAt" header="Uploaded At" />
                   <Column header="Actions">
                     <template #body="slotProps">
@@ -457,6 +536,7 @@ onMounted(() => {
               <Column field="version" header="Version" />
               <Column field="submittedAt" header="Submitted At" />
               <Column field="submittedBy" header="Submitted By" />
+              <Column field="reviewerName" header="Reviewer" />
               <Column field="status" header="Status">
                 <template #body="slotProps">
                   <Tag :value="slotProps.data.status" :severity="slotProps.data.status === 'Submitted' ? 'info' : 'warn'" rounded />
@@ -520,16 +600,6 @@ onMounted(() => {
   color: #d22020;
 }
 
-.check-item {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  border: 1px solid #d5e2db;
-  border-radius: 0.65rem;
-  background: #f9fcfa;
-  padding: 0.55rem 0.7rem;
-}
-
 .upload-layout {
   display: grid;
   grid-template-columns: 1fr;
@@ -578,6 +648,48 @@ onMounted(() => {
 .files-table {
   border-top: 1px dashed #d5e2db;
   padding-top: 0.5rem;
+}
+
+.queued-files {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  border-top: 1px dashed #d5e2db;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+}
+
+.queued-file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.queued-file-name {
+  color: #19392d;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.queued-file-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #dc2626;
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+  border-radius: 0.5rem;
+  flex: 0 0 auto;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.queued-file-remove:hover {
+  background: rgba(220, 38, 38, 0.08);
 }
 
 .panel-card:hover,
