@@ -1,0 +1,9 @@
+fastapi==0.100.0
+uvicorn[standard]==0.22.0
+python-multipart>=0.0.6
+boto3
+httpx>=0.24.0                  # Async HTTP 
+python-dotenv>=1.0.0           # For loading .env API keys locally
+docling>=2.8.0
+google-generativeai
+langchain-text-splitters
