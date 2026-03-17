@@ -1,4 +1,5 @@
 import { verifyAccessToken } from "../services/tokenService.js";
+import { getSessionById } from "../models/userSessionModel.js";
 
 const extractBearerToken = (authorizationHeader = "") => {
   const [scheme, token] = authorizationHeader.split(" ");
@@ -7,7 +8,7 @@ const extractBearerToken = (authorizationHeader = "") => {
   return token.trim();
 };
 
-export const requireAuth = (req, res, next) => {
+export const requireAuth = async (req, res, next) => {
   try {
     const rawAuthHeader = req.headers.authorization || "";
     const token = extractBearerToken(rawAuthHeader);
@@ -19,6 +20,22 @@ export const requireAuth = (req, res, next) => {
     }
 
     const claims = verifyAccessToken(token);
+
+    // Optional: Check if session has been revoked in database
+    // This adds a DB query to every request but provides stricter revocation
+    // For 15m access tokens, signature expiration is usually sufficient
+    if (claims.sessionId) {
+      const db = req.app?.locals?.db;
+      if (db) {
+        const session = await getSessionById(db, claims.sessionId);
+        if (!session || session.is_revoked) {
+          return res.status(401).json({
+            message: "Session has been revoked.",
+          });
+        }
+      }
+    }
+
     req.auth = claims;
     return next();
   } catch (error) {

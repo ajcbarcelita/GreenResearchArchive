@@ -8,7 +8,6 @@ import {
   findRoleByNameLike,
   findRoleNameById,
 } from "../models/roleModel.js";
-import { getRbacEmailDecision } from "./rbacService.js";
 import {
   completeUserFirstLoginProfile,
   existsUserByGoogleIdOrEmail,
@@ -86,41 +85,20 @@ const ensureDb = (db) => {
 };
 
 const resolveRoleFromEmail = (email) => {
-  const { normalizedEmail, rule } = getRbacEmailDecision(email);
+  const normalizedEmail = email.trim().toLowerCase();
   const localPart = normalizedEmail.split("@")[0] || "";
 
-  if (rule === "admin-whitelist") {
-    return ROLE_NAMES.ADMIN;
-  }
-
-  if (rule === "coordinator-whitelist") {
-    return ROLE_NAMES.COORDINATOR;
-  }
-
-  if (rule === "faculty-whitelist") {
-    return ROLE_NAMES.FACULTY;
-  }
-
-  if (rule === "student-whitelist") {
-    return ROLE_NAMES.STUDENT;
-  }
-
-  if (rule === "blacklist") {
-    const error = new Error(
-      "Access denied. This email is blocked from sign in.",
-    );
-    error.statusCode = 403;
-    throw error;
-  }
-
+  // Student: contains underscore (e.g., john_doe@dlsu.edu.ph)
   if (EMAIL_PATTERNS.STUDENT.test(localPart)) {
     return ROLE_NAMES.STUDENT;
   }
 
+  // Faculty: contains dot (e.g., john.doe@dlsu.edu.ph)
   if (EMAIL_PATTERNS.FACULTY.test(localPart)) {
     return ROLE_NAMES.FACULTY;
   }
 
+  // Default to student if pattern doesn't match
   return ROLE_NAMES.STUDENT;
 };
 
@@ -192,8 +170,19 @@ export const updateGoogleUserLogin = async (db, profile) => {
   if (!existingUser) return null;
 
   const { fname, lname, mname } = splitName(profile);
-  const roleName = resolveRoleFromEmail(email);
-  const role = await resolveRoleIdByName(db, roleName);
+
+  // Preserve existing role for returning users; only resolve a role when none exists
+  let roleId = existingUser.role_id;
+  let roleName = null;
+
+  if (!roleId) {
+    const resolvedRoleName = resolveRoleFromEmail(email);
+    const role = await resolveRoleIdByName(db, resolvedRoleName);
+    roleId = role.role_id;
+    roleName = role.role_name;
+  } else {
+    roleName = await findRoleNameById(db, roleId);
+  }
 
   const updatedUser = await updateUserLoginWithGoogle(db, {
     googleId,
@@ -201,13 +190,13 @@ export const updateGoogleUserLogin = async (db, profile) => {
     fname,
     lname,
     mname,
-    roleId: role.role_id,
+    roleId,
     userId: existingUser.user_id,
   });
 
   return {
     ...updatedUser,
-    role_name: role.role_name,
+    role_name: roleName,
   };
 };
 

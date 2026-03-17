@@ -198,7 +198,10 @@ export const objectExists = async ({ key }) => {
     );
     return true;
   } catch (error) {
-    if (error?.$metadata?.httpStatusCode === 404 || error?.name === "NotFound") {
+    if (
+      error?.$metadata?.httpStatusCode === 404 ||
+      error?.name === "NotFound"
+    ) {
       return false;
     }
     throw error;
