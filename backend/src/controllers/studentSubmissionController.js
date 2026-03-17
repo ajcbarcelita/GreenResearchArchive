@@ -31,7 +31,8 @@ const uploadFileSchema = Joi.object({
 
 const getCurrentSubmissionContext = async (db, userId) => {
   const groups = await findGroupsForStudent(db, userId);
-  const activeGroup = (groups || []).find((group) => group.is_active) || groups[0] || null;
+  const activeGroup =
+    (groups || []).find((group) => group.is_active) || groups[0] || null;
 
   if (!activeGroup) {
     const error = new Error("No capstone group found for this student.");
@@ -85,15 +86,20 @@ export const getCurrentStudentSubmission = async (req, res, next) => {
   try {
     const db = req.app?.locals?.db;
     if (!db) {
-      return res.status(500).json({ message: "Database client is not initialized." });
+      return res
+        .status(500)
+        .json({ message: "Database client is not initialized." });
     }
 
     const userId = Number(req.auth?.sub);
     if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(401).json({ message: "Invalid authenticated user context." });
+      return res
+        .status(401)
+        .json({ message: "Invalid authenticated user context." });
     }
 
-    const { group, currentSubmission, history } = await getCurrentSubmissionContext(db, userId);
+    const { group, currentSubmission, history } =
+      await getCurrentSubmissionContext(db, userId);
 
     if (!currentSubmission) {
       return res.status(200).json({
@@ -108,7 +114,10 @@ export const getCurrentStudentSubmission = async (req, res, next) => {
       });
     }
 
-    const files = await listSubmissionFilesBySubmissionId(db, currentSubmission.submission_id);
+    const files = await listSubmissionFilesBySubmissionId(
+      db,
+      currentSubmission.submission_id,
+    );
 
     return res.status(200).json({
       message: "Current submission fetched.",
@@ -132,12 +141,16 @@ export const saveCurrentStudentSubmission = async (req, res, next) => {
   try {
     const db = req.app?.locals?.db;
     if (!db) {
-      return res.status(500).json({ message: "Database client is not initialized." });
+      return res
+        .status(500)
+        .json({ message: "Database client is not initialized." });
     }
 
     const userId = Number(req.auth?.sub);
     if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(401).json({ message: "Invalid authenticated user context." });
+      return res
+        .status(401)
+        .json({ message: "Invalid authenticated user context." });
     }
 
     const { error, value } = saveSubmissionSchema.validate(req.body, {
@@ -152,14 +165,18 @@ export const saveCurrentStudentSubmission = async (req, res, next) => {
       });
     }
 
-    const { group, currentSubmission } = await getCurrentSubmissionContext(db, userId);
+    const { group, currentSubmission } = await getCurrentSubmissionContext(
+      db,
+      userId,
+    );
 
     let submission;
     if (!currentSubmission) {
       const currentTask = await findCurrentTask(db);
       if (!currentTask) {
         return res.status(500).json({
-          message: "No active task found. Ask your coordinator to set up the current term tasks.",
+          message:
+            "No active task found. Ask your coordinator to set up the current term tasks.",
         });
       }
       submission = await insertSubmission(db, {
@@ -199,12 +216,16 @@ export const submitCurrentStudentSubmission = async (req, res, next) => {
   try {
     const db = req.app?.locals?.db;
     if (!db) {
-      return res.status(500).json({ message: "Database client is not initialized." });
+      return res
+        .status(500)
+        .json({ message: "Database client is not initialized." });
     }
 
     const userId = Number(req.auth?.sub);
     if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(401).json({ message: "Invalid authenticated user context." });
+      return res
+        .status(401)
+        .json({ message: "Invalid authenticated user context." });
     }
 
     const { currentSubmission } = await getCurrentSubmissionContext(db, userId);
@@ -235,12 +256,16 @@ export const uploadCurrentStudentSubmissionFile = async (req, res, next) => {
   try {
     const db = req.app?.locals?.db;
     if (!db) {
-      return res.status(500).json({ message: "Database client is not initialized." });
+      return res
+        .status(500)
+        .json({ message: "Database client is not initialized." });
     }
 
     const userId = Number(req.auth?.sub);
     if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(401).json({ message: "Invalid authenticated user context." });
+      return res
+        .status(401)
+        .json({ message: "Invalid authenticated user context." });
     }
 
     const { error, value } = uploadFileSchema.validate(req.body, {
@@ -255,10 +280,14 @@ export const uploadCurrentStudentSubmissionFile = async (req, res, next) => {
       });
     }
 
-    const { group, currentSubmission } = await getCurrentSubmissionContext(db, userId);
+    const { group, currentSubmission } = await getCurrentSubmissionContext(
+      db,
+      userId,
+    );
     if (!currentSubmission) {
       return res.status(400).json({
-        message: "No draft submission found. Save the submission first before uploading files.",
+        message:
+          "No draft submission found. Save the submission first before uploading files.",
       });
     }
 
@@ -302,12 +331,16 @@ export const deleteCurrentStudentSubmissionFile = async (req, res, next) => {
   try {
     const db = req.app?.locals?.db;
     if (!db) {
-      return res.status(500).json({ message: "Database client is not initialized." });
+      return res
+        .status(500)
+        .json({ message: "Database client is not initialized." });
     }
 
     const userId = Number(req.auth?.sub);
     if (!Number.isInteger(userId) || userId <= 0) {
-      return res.status(401).json({ message: "Invalid authenticated user context." });
+      return res
+        .status(401)
+        .json({ message: "Invalid authenticated user context." });
     }
 
     const fileId = Number(req.params.fileId);
@@ -321,8 +354,13 @@ export const deleteCurrentStudentSubmissionFile = async (req, res, next) => {
     }
 
     const { currentSubmission } = await getCurrentSubmissionContext(db, userId);
-    if (!currentSubmission || Number(currentSubmission.submission_id) !== Number(file.submission_id)) {
-      return res.status(403).json({ message: "You are not allowed to delete this file." });
+    if (
+      !currentSubmission ||
+      Number(currentSubmission.submission_id) !== Number(file.submission_id)
+    ) {
+      return res
+        .status(403)
+        .json({ message: "You are not allowed to delete this file." });
     }
 
     await deleteObject({ key: file.s3_key });

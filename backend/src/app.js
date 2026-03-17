@@ -1,4 +1,5 @@
 import express from "express";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
 import helmet from "helmet";
@@ -13,9 +14,15 @@ import studentSubmissionRoutes from "./routes/studentSubmissionRoutes.js";
 dotenv.config();
 const app = express();
 
+const corsOptions = {
+  origin: process.env.FRONTEND_ORIGIN || "http://localhost:5173",
+  credentials: true,
+};
+
 // Set middleware
 app.use(helmet());
-app.use(cors());
+app.use(cors(corsOptions));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
