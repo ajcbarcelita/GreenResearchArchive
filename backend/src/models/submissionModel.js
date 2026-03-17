@@ -71,6 +71,7 @@ export const listSubmissions = async (db, { status, programId, q } = {}) => {
 export const insertSubmission = async (
   db,
   {
+    taskId,
     groupId,
     title,
     abstract,
@@ -82,14 +83,36 @@ export const insertSubmission = async (
 ) => {
   const result = await db.query(
     `
-      INSERT INTO submissions (group_id, title, abstract, keywords, version_no, status, is_locked, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+      INSERT INTO submissions (task_id, group_id, title, abstract, keywords, version_no, status, is_locked, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
       RETURNING submission_id, group_id, title, abstract, keywords, version_no, status, is_locked, created_at
     `,
-    [groupId, title, abstract, keywords, versionNo, status, isLocked],
+    [taskId, groupId, title, abstract, keywords, versionNo, status, isLocked],
   );
 
   return result.rows[0];
+};
+
+export const findCurrentTask = async (db) => {
+  const result = await db.query(
+    `
+      SELECT t.task_id, t.task_name, t.description, t.due_date, t.term_id
+      FROM tasks t
+      JOIN academic_terms at ON at.term_id = t.term_id
+      WHERE CURRENT_DATE BETWEEN at.start_date AND at.end_date
+      ORDER BY t.due_date ASC NULLS LAST
+      LIMIT 1
+    `,
+  );
+
+  if (result.rows[0]) return result.rows[0];
+
+  // Fallback: most recently created task if no active term matches
+  const fallback = await db.query(
+    `SELECT task_id, task_name, description, due_date, term_id
+     FROM tasks ORDER BY created_at DESC LIMIT 1`,
+  );
+  return fallback.rows[0] || null;
 };
 
 export const updateSubmissionStatus = async (db, { submissionId, status }) => {

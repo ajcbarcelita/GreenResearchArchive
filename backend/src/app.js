@@ -8,6 +8,7 @@ import auditLogRoutes from "./routes/auditLogRoutes.js";
 import adminProgramRoutes from "./routes/adminProgramRoutes.js";
 import adminUserRoutes from "./routes/adminUserRoutes.js";
 import repositoryRoutes from "./routes/repositoryRoutes.js";
+import studentSubmissionRoutes from "./routes/studentSubmissionRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -30,5 +31,6 @@ app.use("/api/audit-logs", auditLogRoutes);
 app.use("/api/admin/programs", adminProgramRoutes);
 app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/repository", repositoryRoutes);
+app.use("/api/submissions", studentSubmissionRoutes);
 
 export default app;

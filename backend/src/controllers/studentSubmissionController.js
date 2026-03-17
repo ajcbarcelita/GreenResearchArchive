@@ -1,0 +1,341 @@
+import Joi from "joi";
+import { findGroupsForStudent } from "../models/groupMembersModel.js";
+import {
+  findCurrentTask,
+  insertSubmission,
+  listSubmissionsByGroupId,
+  updateSubmission,
+  updateSubmissionStatus,
+} from "../models/submissionModel.js";
+import {
+  deleteSubmissionFileById,
+  findSubmissionFileById,
+  insertSubmissionFile,
+  listSubmissionFilesBySubmissionId,
+} from "../models/submissionFileModel.js";
+import { createObject, deleteObject } from "../services/s3CrudService.js";
+
+const saveSubmissionSchema = Joi.object({
+  title: Joi.string().trim().max(300).required(),
+  abstract: Joi.string().trim().required(),
+  versionNo: Joi.number().integer().positive().required(),
+  keywords: Joi.array().items(Joi.string().trim().max(100)).default([]),
+});
+
+const uploadFileSchema = Joi.object({
+  fileName: Joi.string().trim().max(255).required(),
+  contentType: Joi.string().trim().max(100).required(),
+  contentBase64: Joi.string().trim().required(),
+  versionNo: Joi.number().integer().positive().required(),
+});
+
+const getCurrentSubmissionContext = async (db, userId) => {
+  const groups = await findGroupsForStudent(db, userId);
+  const activeGroup = (groups || []).find((group) => group.is_active) || groups[0] || null;
+
+  if (!activeGroup) {
+    const error = new Error("No capstone group found for this student.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const submissions = await listSubmissionsByGroupId(db, activeGroup.group_id);
+  const currentSubmission = submissions[0] || null;
+
+  return {
+    group: activeGroup,
+    currentSubmission,
+    history: submissions,
+  };
+};
+
+const inferFileType = (fileName = "", contentType = "") => {
+  const lowerName = String(fileName).toLowerCase();
+  const lowerType = String(contentType).toLowerCase();
+  if (lowerName.endsWith(".pdf") || lowerType.includes("pdf")) {
+    return "Capstone Paper";
+  }
+
+  return "Dataset";
+};
+
+const mapSubmission = (submission) => ({
+  submissionId: submission.submission_id,
+  groupId: submission.group_id,
+  title: submission.title,
+  abstract: submission.abstract,
+  versionNo: submission.version_no,
+  status: submission.status,
+  isLocked: submission.is_locked,
+  createdAt: submission.created_at,
+  submittedAt: submission.submitted_at,
+});
+
+const mapSubmissionFile = (file) => ({
+  fileId: file.file_id,
+  submissionId: file.submission_id,
+  fileName: file.file_name,
+  fileType: file.file_type,
+  fileSize: file.file_size,
+  uploadedAt: file.uploaded_at,
+  versionNo: file.version_no,
+});
+
+export const getCurrentStudentSubmission = async (req, res, next) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) {
+      return res.status(500).json({ message: "Database client is not initialized." });
+    }
+
+    const userId = Number(req.auth?.sub);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ message: "Invalid authenticated user context." });
+    }
+
+    const { group, currentSubmission, history } = await getCurrentSubmissionContext(db, userId);
+
+    if (!currentSubmission) {
+      return res.status(200).json({
+        message: "No submission found yet.",
+        group: {
+          groupId: group.group_id,
+          groupName: group.group_name,
+        },
+        submission: null,
+        files: [],
+        history: [],
+      });
+    }
+
+    const files = await listSubmissionFilesBySubmissionId(db, currentSubmission.submission_id);
+
+    return res.status(200).json({
+      message: "Current submission fetched.",
+      group: {
+        groupId: group.group_id,
+        groupName: group.group_name,
+      },
+      submission: mapSubmission(currentSubmission),
+      files: files.map(mapSubmissionFile),
+      history: history.map(mapSubmission),
+    });
+  } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+    return next(error);
+  }
+};
+
+export const saveCurrentStudentSubmission = async (req, res, next) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) {
+      return res.status(500).json({ message: "Database client is not initialized." });
+    }
+
+    const userId = Number(req.auth?.sub);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ message: "Invalid authenticated user context." });
+    }
+
+    const { error, value } = saveSubmissionSchema.validate(req.body, {
+      abortEarly: false,
+      stripUnknown: true,
+    });
+
+    if (error) {
+      return res.status(400).json({
+        message: "Invalid request body",
+        details: error.details.map((item) => item.message),
+      });
+    }
+
+    const { group, currentSubmission } = await getCurrentSubmissionContext(db, userId);
+
+    let submission;
+    if (!currentSubmission) {
+      const currentTask = await findCurrentTask(db);
+      if (!currentTask) {
+        return res.status(500).json({
+          message: "No active task found. Ask your coordinator to set up the current term tasks.",
+        });
+      }
+      submission = await insertSubmission(db, {
+        taskId: currentTask.task_id,
+        groupId: group.group_id,
+        title: value.title,
+        abstract: value.abstract,
+        keywords: value.keywords || [],
+        versionNo: value.versionNo,
+        status: "Draft",
+        isLocked: false,
+      });
+    } else {
+      submission = await updateSubmission(db, {
+        submissionId: currentSubmission.submission_id,
+        title: value.title,
+        abstract: value.abstract,
+        keywords: value.keywords || [],
+        versionNo: value.versionNo,
+        isLocked: false,
+      });
+    }
+
+    return res.status(200).json({
+      message: "Submission draft saved.",
+      submission: mapSubmission(submission),
+    });
+  } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+    return next(error);
+  }
+};
+
+export const submitCurrentStudentSubmission = async (req, res, next) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) {
+      return res.status(500).json({ message: "Database client is not initialized." });
+    }
+
+    const userId = Number(req.auth?.sub);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ message: "Invalid authenticated user context." });
+    }
+
+    const { currentSubmission } = await getCurrentSubmissionContext(db, userId);
+    if (!currentSubmission) {
+      return res.status(400).json({
+        message: "No draft submission found. Save a draft first.",
+      });
+    }
+
+    const updated = await updateSubmissionStatus(db, {
+      submissionId: currentSubmission.submission_id,
+      status: "Submitted",
+    });
+
+    return res.status(200).json({
+      message: "Submission sent for review.",
+      submission: updated,
+    });
+  } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+    return next(error);
+  }
+};
+
+export const uploadCurrentStudentSubmissionFile = async (req, res, next) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) {
+      return res.status(500).json({ message: "Database client is not initialized." });
+    }
+
+    const userId = Number(req.auth?.sub);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ message: "Invalid authenticated user context." });
+    }
+
+    const { error, value } = uploadFileSchema.validate(req.body, {
+      abortEarly: false,
+      stripUnknown: true,
+    });
+
+    if (error) {
+      return res.status(400).json({
+        message: "Invalid request body",
+        details: error.details.map((item) => item.message),
+      });
+    }
+
+    const { group, currentSubmission } = await getCurrentSubmissionContext(db, userId);
+    if (!currentSubmission) {
+      return res.status(400).json({
+        message: "No draft submission found. Save the submission first before uploading files.",
+      });
+    }
+
+    const buffer = Buffer.from(value.contentBase64, "base64");
+    const safeFileName = value.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const s3Key = `submissions/group-${group.group_id}/submission-${currentSubmission.submission_id}/${Date.now()}-${safeFileName}`;
+
+    await createObject({
+      key: s3Key,
+      body: buffer,
+      contentType: value.contentType,
+      metadata: {
+        submissionid: String(currentSubmission.submission_id),
+        groupid: String(group.group_id),
+        uploadedby: String(userId),
+      },
+    });
+
+    const inserted = await insertSubmissionFile(db, {
+      submissionId: currentSubmission.submission_id,
+      fileName: value.fileName,
+      s3Key,
+      fileType: inferFileType(value.fileName, value.contentType),
+      fileSize: buffer.length,
+      versionNo: value.versionNo,
+    });
+
+    return res.status(201).json({
+      message: "File uploaded successfully.",
+      file: mapSubmissionFile(inserted),
+    });
+  } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+    return next(error);
+  }
+};
+
+export const deleteCurrentStudentSubmissionFile = async (req, res, next) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) {
+      return res.status(500).json({ message: "Database client is not initialized." });
+    }
+
+    const userId = Number(req.auth?.sub);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ message: "Invalid authenticated user context." });
+    }
+
+    const fileId = Number(req.params.fileId);
+    if (!Number.isInteger(fileId) || fileId <= 0) {
+      return res.status(400).json({ message: "Invalid file ID." });
+    }
+
+    const file = await findSubmissionFileById(db, fileId);
+    if (!file) {
+      return res.status(404).json({ message: "File not found." });
+    }
+
+    const { currentSubmission } = await getCurrentSubmissionContext(db, userId);
+    if (!currentSubmission || Number(currentSubmission.submission_id) !== Number(file.submission_id)) {
+      return res.status(403).json({ message: "You are not allowed to delete this file." });
+    }
+
+    await deleteObject({ key: file.s3_key });
+    const deleted = await deleteSubmissionFileById(db, fileId);
+
+    return res.status(200).json({
+      message: "File deleted.",
+      fileId: deleted?.file_id || fileId,
+    });
+  } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+    return next(error);
+  }
+};

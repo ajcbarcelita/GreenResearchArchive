@@ -73,15 +73,22 @@ VALUES
 
 
 --------------------------------------------------
+-- NOTE: Run SeedTasks.sql first (or ensure academic_terms
+-- and tasks rows already exist) before running this block.
+-- task_id 8 = "Final Manuscript" (AY 2025-2026 Term 2)
+--------------------------------------------------
+
+--------------------------------------------------
 -- SUBMISSIONS
 --------------------------------------------------
 TRUNCATE TABLE submissions CASCADE;
 
 INSERT INTO submissions
-(submission_id, group_id, title, abstract, keywords, status, submitted_at)
+(submission_id, task_id, group_id, title, abstract, keywords, status, submitted_at)
 VALUES
 (
 1,
+8,
 1,
 'AI Powered Healthcare Risk Prediction',
 'Machine learning system predicting patient health risks using hospital data.',
@@ -91,6 +98,7 @@ NOW()
 ),
 (
 2,
+8,
 2,
 'Real-Time Traffic Monitoring Using Computer Vision',
 'AI powered traffic congestion detection using CCTV feeds.',
@@ -100,6 +108,7 @@ NOW()
 ),
 (
 3,
+8,
 3,
 'Blockchain Based Secure Voting Platform',
 'Decentralized voting platform for secure university elections.',
