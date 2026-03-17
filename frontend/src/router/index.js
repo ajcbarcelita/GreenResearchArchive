@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import StudentHomeView from '../views/Student/StudentHomeView.vue'
+import StudentTasksView from '../views/Student/StudentTasksView.vue'
 import CapstoneDetailsView from '../views/CapstoneDetails.vue'
 import SubmissionView from '../views/Student/SubmissionView.vue'
 import RepositoryView from '../views/RepositoryView.vue'
@@ -136,6 +137,12 @@ const router = createRouter({
     },
 
     // Student Routes
+    // Student Routes
+    {
+      path: '/student/tasks',
+      name: 'student-tasks',
+      component: StudentTasksView,
+    },
 
 
     // Admin Routes

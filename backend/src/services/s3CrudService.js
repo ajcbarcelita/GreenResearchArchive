@@ -7,12 +7,12 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 
-const AWS_REGION = process.env.AWS_REGION || "us-east-1";
-const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
+const getAwsRegion = () => process.env.AWS_REGION || "us-east-1";
+const getS3BucketName = () => process.env.S3_BUCKET_NAME || "";
 
 const getS3Client = () =>
   new S3Client({
-    region: AWS_REGION,
+    region: getAwsRegion(),
     credentials: {
       accessKeyId: process.env.AWS_ACCESS_KEY_ID,
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -20,11 +20,13 @@ const getS3Client = () =>
   });
 
 const assertBucketConfigured = () => {
-  if (!S3_BUCKET_NAME) {
+  const bucketName = getS3BucketName();
+  if (!bucketName) {
     const error = new Error("S3_BUCKET_NAME is not configured.");
     error.statusCode = 500;
     throw error;
   }
+  return bucketName;
 };
 
 const streamToBuffer = async (stream) => {
@@ -41,7 +43,7 @@ export const createObject = async ({
   contentType = "application/octet-stream",
   metadata = {},
 }) => {
-  assertBucketConfigured();
+  const bucketName = assertBucketConfigured();
 
   if (!key || !String(key).trim()) {
     throw new Error("S3 object key is required.");
@@ -54,7 +56,7 @@ export const createObject = async ({
   const client = getS3Client();
   await client.send(
     new PutObjectCommand({
-      Bucket: S3_BUCKET_NAME,
+      Bucket: bucketName,
       Key: String(key).trim(),
       Body: body,
       ContentType: contentType,
@@ -63,13 +65,13 @@ export const createObject = async ({
   );
 
   return {
-    bucket: S3_BUCKET_NAME,
+    bucket: bucketName,
     key: String(key).trim(),
   };
 };
 
 export const readObject = async ({ key, as = "buffer" }) => {
-  assertBucketConfigured();
+  const bucketName = assertBucketConfigured();
 
   if (!key || !String(key).trim()) {
     throw new Error("S3 object key is required.");
@@ -78,7 +80,7 @@ export const readObject = async ({ key, as = "buffer" }) => {
   const client = getS3Client();
   const response = await client.send(
     new GetObjectCommand({
-      Bucket: S3_BUCKET_NAME,
+      Bucket: bucketName,
       Key: String(key).trim(),
     }),
   );
@@ -132,7 +134,7 @@ export const updateObject = async ({
 };
 
 export const deleteObject = async ({ key }) => {
-  assertBucketConfigured();
+  const bucketName = assertBucketConfigured();
 
   if (!key || !String(key).trim()) {
     throw new Error("S3 object key is required.");
@@ -141,32 +143,32 @@ export const deleteObject = async ({ key }) => {
   const client = getS3Client();
   await client.send(
     new DeleteObjectCommand({
-      Bucket: S3_BUCKET_NAME,
+      Bucket: bucketName,
       Key: String(key).trim(),
     }),
   );
 
   return {
-    bucket: S3_BUCKET_NAME,
+    bucket: bucketName,
     key: String(key).trim(),
     deleted: true,
   };
 };
 
 export const listObjects = async ({ prefix = "", maxKeys = 100 } = {}) => {
-  assertBucketConfigured();
+  const bucketName = assertBucketConfigured();
 
   const client = getS3Client();
   const response = await client.send(
     new ListObjectsV2Command({
-      Bucket: S3_BUCKET_NAME,
+      Bucket: bucketName,
       Prefix: prefix,
       MaxKeys: maxKeys,
     }),
   );
 
   return {
-    bucket: S3_BUCKET_NAME,
+    bucket: bucketName,
     prefix,
     keyCount: response.KeyCount || 0,
     contents: (response.Contents || []).map((item) => ({
@@ -179,7 +181,7 @@ export const listObjects = async ({ prefix = "", maxKeys = 100 } = {}) => {
 };
 
 export const objectExists = async ({ key }) => {
-  assertBucketConfigured();
+  const bucketName = assertBucketConfigured();
 
   if (!key || !String(key).trim()) {
     throw new Error("S3 object key is required.");
@@ -190,7 +192,7 @@ export const objectExists = async ({ key }) => {
   try {
     await client.send(
       new HeadObjectCommand({
-        Bucket: S3_BUCKET_NAME,
+        Bucket: bucketName,
         Key: String(key).trim(),
       }),
     );

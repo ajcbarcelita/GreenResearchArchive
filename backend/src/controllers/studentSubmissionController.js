@@ -2,8 +2,10 @@ import Joi from "joi";
 import { findGroupsForStudent } from "../models/groupMembersModel.js";
 import {
   findCurrentTask,
+  findSubmissionByGroupAndTask,
   insertSubmission,
   listSubmissionsByGroupId,
+  listTasksWithSubmissionStatus,
   updateSubmission,
   updateSubmissionStatus,
 } from "../models/submissionModel.js";
@@ -16,6 +18,7 @@ import {
 import { createObject, deleteObject } from "../services/s3CrudService.js";
 
 const saveSubmissionSchema = Joi.object({
+  taskId: Joi.number().integer().positive().optional(),
   title: Joi.string().trim().max(300).required(),
   abstract: Joi.string().trim().required(),
   versionNo: Joi.number().integer().positive().required(),
@@ -29,7 +32,7 @@ const uploadFileSchema = Joi.object({
   versionNo: Joi.number().integer().positive().required(),
 });
 
-const getCurrentSubmissionContext = async (db, userId) => {
+const getCurrentSubmissionContext = async (db, userId, taskId = null) => {
   const groups = await findGroupsForStudent(db, userId);
   const activeGroup = (groups || []).find((group) => group.is_active) || groups[0] || null;
 
@@ -40,13 +43,69 @@ const getCurrentSubmissionContext = async (db, userId) => {
   }
 
   const submissions = await listSubmissionsByGroupId(db, activeGroup.group_id);
-  const currentSubmission = submissions[0] || null;
+
+  let currentSubmission;
+  if (taskId) {
+    currentSubmission = await findSubmissionByGroupAndTask(db, activeGroup.group_id, taskId);
+  } else {
+    currentSubmission = submissions[0] || null;
+  }
 
   return {
     group: activeGroup,
     currentSubmission,
     history: submissions,
   };
+};
+
+export const getStudentTasks = async (req, res, next) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) {
+      return res.status(500).json({ message: "Database client is not initialized." });
+    }
+
+    const userId = Number(req.auth?.sub);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ message: "Invalid authenticated user context." });
+    }
+
+    const groups = await findGroupsForStudent(db, userId);
+    const activeGroup = (groups || []).find((g) => g.is_active) || groups[0] || null;
+
+    if (!activeGroup) {
+      return res.status(404).json({ message: "No capstone group found for this student." });
+    }
+
+    const rows = await listTasksWithSubmissionStatus(db, activeGroup.group_id);
+
+    const tasks = rows.map((r) => ({
+      taskId: r.task_id,
+      taskName: r.task_name,
+      description: r.description,
+      dueDate: r.due_date,
+      academicYear: r.academic_year,
+      termNo: r.term_no,
+      termStart: r.start_date,
+      termEnd: r.end_date,
+      isActiveTerm: r.is_active_term,
+      submission: r.submission_id
+        ? {
+            submissionId: r.submission_id,
+            status: r.submission_status,
+            versionNo: r.submission_version_no,
+            submittedAt: r.submitted_at,
+          }
+        : null,
+    }));
+
+    return res.status(200).json({
+      group: { groupId: activeGroup.group_id, groupName: activeGroup.group_name },
+      tasks,
+    });
+  } catch (error) {
+    return next(error);
+  }
 };
 
 const inferFileType = (fileName = "", contentType = "") => {
@@ -152,11 +211,12 @@ export const saveCurrentStudentSubmission = async (req, res, next) => {
       });
     }
 
-    const { group, currentSubmission } = await getCurrentSubmissionContext(db, userId);
+    const resolvedTaskId = value.taskId ? Number(value.taskId) : null;
+    const { group, currentSubmission } = await getCurrentSubmissionContext(db, userId, resolvedTaskId);
 
     let submission;
     if (!currentSubmission) {
-      const currentTask = await findCurrentTask(db);
+      const currentTask = resolvedTaskId ? { task_id: resolvedTaskId } : await findCurrentTask(db);
       if (!currentTask) {
         return res.status(500).json({
           message: "No active task found. Ask your coordinator to set up the current term tasks.",
@@ -255,7 +315,8 @@ export const uploadCurrentStudentSubmissionFile = async (req, res, next) => {
       });
     }
 
-    const { group, currentSubmission } = await getCurrentSubmissionContext(db, userId);
+    const queryTaskId = req.query.taskId ? Number(req.query.taskId) : null;
+    const { group, currentSubmission } = await getCurrentSubmissionContext(db, userId, queryTaskId);
     if (!currentSubmission) {
       return res.status(400).json({
         message: "No draft submission found. Save the submission first before uploading files.",
@@ -320,7 +381,8 @@ export const deleteCurrentStudentSubmissionFile = async (req, res, next) => {
       return res.status(404).json({ message: "File not found." });
     }
 
-    const { currentSubmission } = await getCurrentSubmissionContext(db, userId);
+    const queryTaskId = req.query.taskId ? Number(req.query.taskId) : null;
+    const { currentSubmission } = await getCurrentSubmissionContext(db, userId, queryTaskId);
     if (!currentSubmission || Number(currentSubmission.submission_id) !== Number(file.submission_id)) {
       return res.status(403).json({ message: "You are not allowed to delete this file." });
     }

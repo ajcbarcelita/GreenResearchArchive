@@ -149,7 +149,7 @@ export const updateSubmission = async (
 export const listSubmissionsByGroupId = async (db, groupId) => {
   const result = await db.query(
     `
-      SELECT submission_id, group_id, title, abstract, keywords, version_no, status, is_locked, created_at, submitted_at, archived_at
+      SELECT submission_id, task_id, group_id, title, abstract, keywords, version_no, status, is_locked, created_at, submitted_at, archived_at
       FROM submissions
       WHERE group_id = $1
       ORDER BY version_no DESC, created_at DESC
@@ -157,5 +157,49 @@ export const listSubmissionsByGroupId = async (db, groupId) => {
     [groupId],
   );
 
+  return result.rows;
+};
+
+export const findSubmissionByGroupAndTask = async (db, groupId, taskId) => {
+  const result = await db.query(
+    `
+      SELECT submission_id, task_id, group_id, title, abstract, keywords, version_no, status, is_locked, created_at, submitted_at, archived_at
+      FROM submissions
+      WHERE group_id = $1 AND task_id = $2
+      ORDER BY version_no DESC, created_at DESC
+      LIMIT 1
+    `,
+    [groupId, taskId],
+  );
+  return result.rows[0] || null;
+};
+
+export const listTasksWithSubmissionStatus = async (db, groupId) => {
+  const result = await db.query(
+    `
+      SELECT
+        t.task_id,
+        t.task_name,
+        t.description,
+        t.due_date,
+        at2.academic_year,
+        at2.term_no,
+        at2.start_date,
+        at2.end_date,
+        s.submission_id,
+        s.status     AS submission_status,
+        s.version_no AS submission_version_no,
+        s.submitted_at,
+        CASE
+          WHEN CURRENT_DATE BETWEEN at2.start_date AND at2.end_date THEN true
+          ELSE false
+        END AS is_active_term
+      FROM tasks t
+      JOIN academic_terms at2 ON at2.term_id = t.term_id
+      LEFT JOIN submissions s ON s.task_id = t.task_id AND s.group_id = $1
+      ORDER BY at2.start_date DESC, t.due_date ASC
+    `,
+    [groupId],
+  );
   return result.rows;
 };

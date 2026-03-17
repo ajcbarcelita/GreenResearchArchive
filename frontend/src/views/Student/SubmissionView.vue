@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
@@ -21,7 +22,14 @@ import {
   uploadCurrentSubmissionFile,
 } from '@/services/studentSubmissionService'
 
+const route = useRoute()
 const toast = useToast()
+
+const currentTaskId = computed(() => {
+  const val = route.query.taskId
+  return val ? Number(val) : null
+})
+const currentTaskName = ref('')
 const loading = ref(false)
 const saving = ref(false)
 const submitting = ref(false)
@@ -68,7 +76,7 @@ const parseVersionNo = () => {
 const loadSubmission = async () => {
   loading.value = true
   try {
-    const response = await getCurrentSubmission()
+    const response = await getCurrentSubmission(currentTaskId.value)
     const submission = response?.submission
     const files = response?.files || []
     const history = response?.history || []
@@ -83,6 +91,7 @@ const loadSubmission = async () => {
     form.value.abstract = submission?.abstract || ''
 
     submissionFiles.value = files
+    if (response?.task) currentTaskName.value = response.task.taskName || ''
     submissionHistory.value = history.map((item) => ({
       version: `v${item.versionNo}`,
       submittedAt: item.submittedAt || item.createdAt || 'N/A',
@@ -174,6 +183,7 @@ async function saveDraft() {
   saving.value = true
   try {
     await saveCurrentSubmission({
+      ...(currentTaskId.value ? { taskId: currentTaskId.value } : {}),
       title: form.value.title,
       abstract: form.value.abstract,
       versionNo: parseVersionNo(),
@@ -213,7 +223,7 @@ async function submitFinal() {
 
   submitting.value = true
   try {
-    await submitCurrentSubmission()
+    await submitCurrentSubmission(currentTaskId.value)
     toast.add({
       severity: 'success',
       summary: 'Submission sent',
@@ -482,24 +492,10 @@ onMounted(() => {
 }
 
 .kicker {
-  margin: 0;
-  font-size: 0.75rem;
-  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #4a6a5a;
-}
-
-.headline {
-  margin: 0.25rem 0 0;
-  color: #17362b;
-  font-size: clamp(1.25rem, 2.8vw, 2rem);
-  font-weight: 700;
-}
-
-.record-id {
-  margin-top: 0.3rem;
-  color: #17362b;
+  font-size: 0.78rem;
+  color: #4f695b;
   font-weight: 700;
 }
 

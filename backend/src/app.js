@@ -16,8 +16,9 @@ const app = express();
 // Set middleware
 app.use(helmet());
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Base64 file uploads are larger than raw files; raise limits to avoid 413.
+app.use(express.json({ limit: "30mb" }));
+app.use(express.urlencoded({ extended: true, limit: "30mb" }));
 
 // Allow Google Sign-In popup communication
 app.use((req, res, next) => {

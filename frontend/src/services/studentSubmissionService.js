@@ -30,8 +30,14 @@ const fileToBase64 = (file) =>
     reader.readAsDataURL(file)
   })
 
-export const getCurrentSubmission = async () => {
-  const response = await api.get('/api/submissions/student/current', getAuthConfig())
+export const getStudentTasks = async () => {
+  const response = await api.get('/api/submissions/student/tasks', getAuthConfig())
+  return response?.data || {}
+}
+
+export const getCurrentSubmission = async (taskId = null) => {
+  const params = taskId ? { params: { taskId } } : {}
+  const response = await api.get('/api/submissions/student/current', { ...getAuthConfig(), ...params })
   return response?.data || {}
 }
 
@@ -40,8 +46,9 @@ export const saveCurrentSubmission = async (payload) => {
   return response?.data || {}
 }
 
-export const submitCurrentSubmission = async () => {
-  const response = await api.post('/api/submissions/student/current/submit', {}, getAuthConfig())
+export const submitCurrentSubmission = async (taskId = null) => {
+  const params = taskId ? { params: { taskId } } : {}
+  const response = await api.post('/api/submissions/student/current/submit', {}, { ...getAuthConfig(), ...params })
   return response?.data || {}
 }
 
@@ -67,6 +74,7 @@ export const deleteCurrentSubmissionFile = async (fileId) => {
 }
 
 export default {
+  getStudentTasks,
   getCurrentSubmission,
   saveCurrentSubmission,
   submitCurrentSubmission,

@@ -18,8 +18,9 @@
         </div>
 
         <div class="flex justify-center">
-          <div class="space-x-8 text-base font-semibold">
+          <div class="nav-links text-sm md:text-base font-semibold">
             <router-link to="/" class="nav-link">Home</router-link>
+            <router-link to="/student/tasks" class="nav-link">Student Tasks</router-link>
             <router-link to="/submission" class="nav-link">Capstone Submission</router-link>
             <router-link to="/repository" class="nav-link">Repository</router-link>
           </div>
@@ -59,6 +60,19 @@ const logout = async () => {
 </script>
 
 <style scoped>
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+@media (min-width: 1024px) {
+  .nav-links {
+    gap: 0.85rem;
+  }
+}
+
 .nav-link {
   color: white;
   text-decoration: none;

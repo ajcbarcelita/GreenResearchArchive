@@ -1,0 +1,20 @@
+{
+    "sqltools.connections": [
+        {
+            "ssh": "Enabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "sshOptions": {
+                "port": 21015,
+                "host": "ccscloud.dlsu.edu.ph",
+                "username": "jkmendoza",
+                "password": "AnimoDLSU1234!"
+            },
+            "driver": "PostgreSQL",
+            "name": "green_research_archive",
+            "database": "green_research_archive",
+            "username": "postgres"
+        }
+    ]
+}
