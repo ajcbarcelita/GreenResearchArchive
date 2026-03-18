@@ -142,6 +142,14 @@ const inferFileType = (fileName = "", contentType = "") => {
   return "Dataset";
 };
 
+const toS3Slug = (value = "") => {
+  return String(value)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "na";
+};
+
 const mapSubmission = (submission) => ({
   submissionId: submission.submission_id,
   taskId: submission.task_id,
@@ -528,7 +536,16 @@ export const uploadCurrentStudentSubmissionFile = async (req, res, next) => {
 
     const buffer = Buffer.from(value.contentBase64, "base64");
     const safeFileName = value.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const s3Key = `submissions/group-${group.group_id}/submission-${currentSubmission.submission_id}/${Date.now()}-${safeFileName}`;
+    const task = await findTaskById(db, currentSubmission.task_id);
+    const termLabel =
+      task?.academic_year && task?.term_no
+        ? `${task.academic_year}-term-${task.term_no}`
+        : "unknown-term";
+    const termSegment = task?.term_id
+      ? `academic-term-${task.term_id}-${toS3Slug(termLabel)}`
+      : `academic-term-unknown-${toS3Slug(termLabel)}`;
+    const taskSegment = `task-${currentSubmission.task_id}-${toS3Slug(task?.task_name || "untitled-task")}`;
+    const s3Key = `${termSegment}/${taskSegment}/group-${group.group_id}/submission-${currentSubmission.submission_id}/${Date.now()}-${safeFileName}`;
 
     await createObject({
       key: s3Key,
