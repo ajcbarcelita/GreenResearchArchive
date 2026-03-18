@@ -68,11 +68,7 @@ const getCurrentSubmissionContext = async (db, userId, taskId = null) => {
 
   let currentSubmission;
   if (taskId) {
-    currentSubmission = await findSubmissionByGroupAndTask(
-      db,
-      activeGroup.group_id,
-      taskId,
-    );
+    currentSubmission = await findSubmissionByGroupAndTask(db, activeGroup.group_id, taskId);
   } else {
     currentSubmission = submissions[0] || null;
   }
@@ -88,26 +84,19 @@ export const getStudentTasks = async (req, res, next) => {
   try {
     const db = req.app?.locals?.db;
     if (!db) {
-      return res
-        .status(500)
-        .json({ message: "Database client is not initialized." });
+      return res.status(500).json({ message: "Database client is not initialized." });
     }
 
     const userId = Number(req.auth?.sub);
     if (!Number.isInteger(userId) || userId <= 0) {
-      return res
-        .status(401)
-        .json({ message: "Invalid authenticated user context." });
+      return res.status(401).json({ message: "Invalid authenticated user context." });
     }
 
     const groups = await findGroupsForStudent(db, userId);
-    const activeGroup =
-      (groups || []).find((g) => g.is_active) || groups[0] || null;
+    const activeGroup = (groups || []).find((g) => g.is_active) || groups[0] || null;
 
     if (!activeGroup) {
-      return res
-        .status(404)
-        .json({ message: "No capstone group found for this student." });
+      return res.status(404).json({ message: "No capstone group found for this student." });
     }
 
     const rows = await listTasksWithSubmissionStatus(db, activeGroup.group_id);
@@ -133,10 +122,7 @@ export const getStudentTasks = async (req, res, next) => {
     }));
 
     return res.status(200).json({
-      group: {
-        groupId: activeGroup.group_id,
-        groupName: activeGroup.group_name,
-      },
+      group: { groupId: activeGroup.group_id, groupName: activeGroup.group_name },
       tasks,
     });
   } catch (error) {
@@ -375,8 +361,7 @@ export const saveCurrentStudentSubmission = async (req, res, next) => {
     const resolvedTaskId = value.taskId ? Number(value.taskId) : null;
     const { group, currentSubmission } = await getCurrentSubmissionContext(
       db,
-      userId,
-      resolvedTaskId,
+      userId, resolvedTaskId,
     );
 
     const effectiveTaskId =
@@ -403,9 +388,7 @@ export const saveCurrentStudentSubmission = async (req, res, next) => {
 
     let submission;
     if (!currentSubmission) {
-      const currentTask = resolvedTaskId
-        ? { task_id: resolvedTaskId }
-        : await findCurrentTask(db);
+      const currentTask = { task_id: effectiveTaskId };
       if (!currentTask) {
         return res.status(500).json({
           message:
@@ -514,10 +497,8 @@ export const uploadCurrentStudentSubmissionFile = async (req, res, next) => {
       });
     }
 
-    const { group, currentSubmission } = await getCurrentSubmissionContext(
-      db,
-      userId,
-    );
+    const resolvedTaskId = value.taskId ? Number(value.taskId) : null;
+    const { group, currentSubmission } = await getCurrentSubmissionContext(db, userId, resolvedTaskId);
     if (!currentSubmission) {
       return res.status(400).json({
         message:
@@ -587,14 +568,10 @@ export const deleteCurrentStudentSubmissionFile = async (req, res, next) => {
       return res.status(404).json({ message: "File not found." });
     }
 
-    const { currentSubmission } = await getCurrentSubmissionContext(db, userId);
-    if (
-      !currentSubmission ||
-      Number(currentSubmission.submission_id) !== Number(file.submission_id)
-    ) {
-      return res
-        .status(403)
-        .json({ message: "You are not allowed to delete this file." });
+    const taskId = parseOptionalTaskId(req.query.taskId);
+    const { currentSubmission } = await getCurrentSubmissionContext(db, userId, taskId);
+    if (!currentSubmission || Number(currentSubmission.submission_id) !== Number(file.submission_id)) {
+      return res.status(403).json({ message: "You are not allowed to delete this file." });
     }
 
     await deleteObject({ key: file.s3_key });

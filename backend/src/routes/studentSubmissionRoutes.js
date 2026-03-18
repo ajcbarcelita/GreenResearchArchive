@@ -22,11 +22,12 @@ router.get(
   getCurrentStudentSubmission,
 );
 router.get(
-  "/student/tasks",
+  "/student/latest",
   requireAuth,
   requireRegisteredUser,
-  getStudentTasks,
+  getLatestStudentSubmission,
 );
+router.get("/student/tasks", requireAuth, requireRegisteredUser, getStudentTasks);
 router.put(
   "/student/current",
   requireAuth,
