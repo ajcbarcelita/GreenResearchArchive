@@ -480,6 +480,20 @@ export const submitCurrentStudentSubmission = async (req, res, next) => {
       });
     }
 
+    const fileStats = await getSubmissionFileStatsBySubmissionId(
+      db,
+      currentSubmission.submission_id,
+    );
+    const totalFiles =
+      Number(fileStats?.capstone_paper_count || 0) +
+      Number(fileStats?.dataset_count || 0);
+
+    if (totalFiles < 1) {
+      return res.status(400).json({
+        message: "Upload at least one file before submitting.",
+      });
+    }
+
     const updated = await updateSubmissionStatus(db, {
       submissionId: currentSubmission.submission_id,
       status: "Submitted",
