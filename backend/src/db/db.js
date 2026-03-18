@@ -13,6 +13,7 @@ let localPort;
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 3000; // ms
+const FORWARD_RETRIES = 2;
 
 async function findFreePort() {
   return new Promise((resolve, reject) => {
@@ -36,62 +37,68 @@ async function initDB(retries = MAX_RETRIES) {
       await new Promise((resolve, reject) => {
         sshConnection
           .on("ready", () => {
-            logger.info("[INFO] SSH ready, setting up local tunnel...");
+            logger.info("[INFO] SSH ready, starting local server...");
 
-            // Detect unexpected SSH death
-            sshConnection.on("close", () => {
+            // Close local server if SSH dies
+            const cleanup = () => {
               logger.error("[ERROR] SSH connection closed unexpectedly.");
-            });
+              if (localServer) localServer.close();
+            };
+            sshConnection.on("close", cleanup);
+            sshConnection.on("end", cleanup);
 
-            sshConnection.on("end", () => {
-              logger.error("[ERROR] SSH connection ended.");
-            });
-
+            // Local server
             localServer = net.createServer((socket) => {
-              sshConnection.forwardOut(
-                socket.remoteAddress || "127.0.0.1",
-                socket.remotePort || 0,
-                process.env.DB_HOST,
-                Number(process.env.DB_PORT),
-                (err, stream) => {
-                  if (err) {
-                    logger.error("[ERROR] forwardOut failed:", err.message);
-                    socket.destroy();
-                    return;
-                  }
-
-                  // Safer cleanup handler
-                  let closed = false;
-                  const safeClose = () => {
-                    if (closed) return;
-                    closed = true;
-                    socket.destroy();
-                    stream.destroy();
-                  };
-
-                  // Pipe traffic
-                  socket.pipe(stream).pipe(socket);
-
-                  // Handle all termination paths
-                  stream.on("error", (err) => {
-                    logger.error("[ERROR] SSH stream error:", err.message);
-                    safeClose();
-                  });
-
-                  socket.on("error", () => {
-                    safeClose();
-                  });
-
-                  stream.on("close", safeClose);
-                  socket.on("close", safeClose);
+              const tryForwardOut = (retriesLeft = FORWARD_RETRIES) => {
+                if (!sshConnection || sshConnection._sock?.destroyed) {
+                  logger.error("[ERROR] SSH not connected for forwardOut");
+                  socket.destroy();
+                  return;
                 }
-              );
+
+                sshConnection.forwardOut(
+                  socket.remoteAddress || "127.0.0.1",
+                  socket.remotePort || 0,
+                  process.env.DB_HOST,
+                  Number(process.env.DB_PORT),
+                  (err, stream) => {
+                    if (err) {
+                      if (retriesLeft > 0) {
+                        logger.warn(
+                          `[WARN] forwardOut failed, retrying (${retriesLeft} left)...`
+                        );
+                        setTimeout(() => tryForwardOut(retriesLeft - 1), 500);
+                        return;
+                      }
+                      logger.error("[ERROR] forwardOut failed:", err.message);
+                      socket.destroy();
+                      return;
+                    }
+
+                    // Pipe traffic
+                    socket.pipe(stream).pipe(socket);
+
+                    const safeClose = () => {
+                      socket.destroy();
+                      stream.destroy();
+                    };
+
+                    socket.on("error", safeClose);
+                    stream.on("error", (e) => {
+                      logger.error("[ERROR] SSH stream error:", e.message);
+                      safeClose();
+                    });
+                    socket.on("close", safeClose);
+                    stream.on("close", safeClose);
+                  }
+                );
+              };
+
+              tryForwardOut();
             });
 
             localServer.listen(localPort, "127.0.0.1", () => {
-              logger.info(
-                `[SUCCESS] Local port ${localPort} forwarding to remote DB`
-              );
+              logger.info(`[SUCCESS] Local port ${localPort} forwarding to DB`);
               resolve();
             });
 
@@ -104,11 +111,11 @@ async function initDB(retries = MAX_RETRIES) {
             username: process.env.SSH_USER,
             password: process.env.SSH_PASSWORD,
             keepaliveInterval: 20000,
-            readyTimeout: 30000,
+            readyTimeout: 60000, // increase for slow servers
           });
       });
 
-      // Create Postgres pool
+      // Postgres pool
       dbClient = new Pool({
         host: "127.0.0.1",
         port: localPort,
@@ -122,27 +129,23 @@ async function initDB(retries = MAX_RETRIES) {
         connectionTimeoutMillis: 10000,
       });
 
-      // Pool-level error handling
       dbClient.on("error", (err) => {
         logger.error("[ERROR] Unexpected PG pool error:", err.message);
       });
 
-      // Test connection
       await dbClient.query("SELECT 1");
-
       logger.info("[SUCCESS] Database connected via SSH tunnel!");
       return dbClient;
-
     } catch (err) {
       logger.warn(`[WARN] Attempt ${attempt} failed: ${err.message}`);
       await closeDB();
 
       if (attempt === retries) {
-        logger.error("[ERROR] Failed to connect after maximum retries.");
+        logger.error("[ERROR] Failed after maximum retries.");
         throw err;
       }
 
-      logger.info(`[INFO] Retrying in ${RETRY_DELAY / 1000} seconds...`);
+      logger.info(`[INFO] Retrying in ${RETRY_DELAY / 1000}s...`);
       await new Promise((r) => setTimeout(r, RETRY_DELAY));
     }
   }
