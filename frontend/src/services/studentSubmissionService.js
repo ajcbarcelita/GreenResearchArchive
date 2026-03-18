@@ -1,4 +1,4 @@
-import { api } from './authService'
+import api from './api.js'
 
 const fileToBase64 = (file) =>
   new Promise((resolve, reject) => {

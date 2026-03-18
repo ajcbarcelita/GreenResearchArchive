@@ -84,13 +84,13 @@ async function initDB(retries = MAX_RETRIES) {
 
                   stream.on("close", safeClose);
                   socket.on("close", safeClose);
-                }
+                },
               );
             });
 
             localServer.listen(localPort, "127.0.0.1", () => {
               logger.info(
-                `[SUCCESS] Local port ${localPort} forwarding to remote DB`
+                `[SUCCESS] Local port ${localPort} forwarding to remote DB`,
               );
               resolve();
             });
@@ -132,7 +132,6 @@ async function initDB(retries = MAX_RETRIES) {
 
       logger.info("[SUCCESS] Database connected via SSH tunnel!");
       return dbClient;
-
     } catch (err) {
       logger.warn(`[WARN] Attempt ${attempt} failed: ${err.message}`);
       await closeDB();

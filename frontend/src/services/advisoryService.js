@@ -3,9 +3,9 @@ import { api as authApi } from "./authService";
 export const getAdvisoryLoad = async (params = {}) => {
   const response = await authApi.get("/api/advisory/load", { params });
   return {
-    rows: response?.data?.data || [],
-    summary: response?.data?.summary || {},
-    filters: response?.data?.filters || {},
+    rows: data?.data || [],
+    summary: data?.summary || {},
+    filters: data?.filters || {},
   };
 };
 
@@ -74,4 +74,7 @@ export default {
   getCoordinatorTerms,
   toggleCoordinatorTaskLock,
   toggleCoordinatorTaskAutoLock,
+  searchStudents,
+  createGroup,
+  deleteGroup,
 };

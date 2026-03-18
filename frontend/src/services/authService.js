@@ -1,13 +1,7 @@
-import axios from "axios";
+import api from "./api.js";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 const ACCESS_TOKEN_KEY = "gra_access_token";
 const USER_KEY = "gra_user";
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true, // send cookies (refresh token)
-});
 
 // --- access token helpers ---
 const getStoredAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
