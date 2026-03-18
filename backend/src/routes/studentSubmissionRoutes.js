@@ -27,7 +27,12 @@ router.get(
   requireRegisteredUser,
   getLatestStudentSubmission,
 );
-router.get("/student/tasks", requireAuth, requireRegisteredUser, getStudentTasks);
+router.get(
+  "/student/tasks",
+  requireAuth,
+  requireRegisteredUser,
+  getStudentTasks,
+);
 router.put(
   "/student/current",
   requireAuth,

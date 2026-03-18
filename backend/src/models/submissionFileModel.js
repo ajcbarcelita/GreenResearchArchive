@@ -55,7 +55,10 @@ export const deleteSubmissionFileById = async (db, fileId) => {
   return result.rows[0] || null;
 };
 
-export const getSubmissionFileStatsBySubmissionId = async (db, submissionId) => {
+export const getSubmissionFileStatsBySubmissionId = async (
+  db,
+  submissionId,
+) => {
   const result = await db.query(
     `
       SELECT
@@ -68,9 +71,11 @@ export const getSubmissionFileStatsBySubmissionId = async (db, submissionId) => 
     [submissionId],
   );
 
-  return result.rows[0] || {
-    capstone_paper_count: 0,
-    dataset_count: 0,
-    latest_upload_at: null,
-  };
+  return (
+    result.rows[0] || {
+      capstone_paper_count: 0,
+      dataset_count: 0,
+      latest_upload_at: null,
+    }
+  );
 };
