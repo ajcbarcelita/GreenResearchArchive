@@ -28,11 +28,7 @@ export const toggleSubmissionArchiveStatus = async (id) => {
 export default {
   listRepository,
   getCapstoneDetails,
-<<<<<<< HEAD
-}
-=======
   listCapstoneFiles,
   getCapstoneFileDownloadUrl,
   toggleSubmissionArchiveStatus,
 }
->>>>>>> ee3f1c3746a72a49b7e4552e67118a2b650e17fd
