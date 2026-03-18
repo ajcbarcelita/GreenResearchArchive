@@ -51,7 +51,7 @@ onMounted(async () => {
   loading.value = true
   try {
     const [repositoryData, programsResponse] = await Promise.all([
-      listRepository(),
+      listRepository({ status: 'Archived' }),
       getDegreePrograms(),
     ])
 

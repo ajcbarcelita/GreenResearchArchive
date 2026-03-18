@@ -1,14 +1,16 @@
 import Joi from "joi";
 import { findGroupsForStudent } from "../models/groupMembersModel.js";
 import {
-  existsSubmissionVersionForGroupTask,
   findLatestModifiedSubmissionByGroupId,
   findTaskById,
   findCurrentTask,
   findSubmissionByGroupAndTask,
+  getNextSubmissionVersionForGroupTask,
   insertSubmission,
+  listResearchFieldsBySubmissionId,
   listSubmissionsByGroupId,
   listTasksWithSubmissionStatus,
+  replaceSubmissionResearchFields,
   updateSubmission,
   updateSubmissionStatus,
 } from "../models/submissionModel.js";
@@ -26,8 +28,8 @@ const saveSubmissionSchema = Joi.object({
   taskId: Joi.number().integer().positive().optional(),
   title: Joi.string().trim().max(300).required(),
   abstract: Joi.string().trim().required(),
-  versionNo: Joi.number().integer().positive().required(),
   keywords: Joi.array().items(Joi.string().trim().max(100)).default([]),
+  researchFields: Joi.array().items(Joi.string().trim().max(100)).default([]),
 });
 
 const uploadFileSchema = Joi.object({
@@ -35,7 +37,7 @@ const uploadFileSchema = Joi.object({
   fileName: Joi.string().trim().max(255).required(),
   contentType: Joi.string().trim().max(100).required(),
   contentBase64: Joi.string().trim().required(),
-  versionNo: Joi.number().integer().positive().required(),
+  versionNo: Joi.number().integer().positive().optional(),
 });
 
 const parseOptionalTaskId = (value) => {
@@ -146,6 +148,7 @@ const mapSubmission = (submission) => ({
   groupId: submission.group_id,
   title: submission.title,
   keywords: submission.keywords || [],
+  researchFields: submission.research_fields || [],
   abstract: submission.abstract,
   versionNo: submission.version_no,
   status: submission.status,
@@ -309,6 +312,14 @@ export const getCurrentStudentSubmission = async (req, res, next) => {
       db,
       currentSubmission.submission_id,
     );
+    const researchFields = await listResearchFieldsBySubmissionId(
+      db,
+      currentSubmission.submission_id,
+    );
+    const currentSubmissionWithResearchFields = {
+      ...currentSubmission,
+      research_fields: researchFields,
+    };
 
     return res.status(200).json({
       message: "Current submission fetched.",
@@ -318,7 +329,7 @@ export const getCurrentStudentSubmission = async (req, res, next) => {
       },
       reviewer: mapReviewer(reviewer),
       task: mapTask(task),
-      submission: mapSubmission(currentSubmission),
+      submission: mapSubmission(currentSubmissionWithResearchFields),
       files: files.map(mapSubmissionFile),
       history: history.map(mapSubmission),
     });
@@ -373,21 +384,11 @@ export const saveCurrentStudentSubmission = async (req, res, next) => {
       });
     }
 
-    const duplicateVersionExists = await existsSubmissionVersionForGroupTask(db, {
-      groupId: group.group_id,
-      taskId: effectiveTaskId,
-      versionNo: value.versionNo,
-      excludeSubmissionId: currentSubmission?.submission_id || null,
-    });
-
-    if (duplicateVersionExists) {
-      return res.status(409).json({
-        message: "This version number already exists for the selected task.",
-      });
-    }
-
     let submission;
-    if (!currentSubmission) {
+    const shouldCreateNewVersion =
+      !currentSubmission || currentSubmission.status !== "Draft";
+
+    if (shouldCreateNewVersion) {
       const currentTask = { task_id: effectiveTaskId };
       if (!currentTask) {
         return res.status(500).json({
@@ -395,13 +396,19 @@ export const saveCurrentStudentSubmission = async (req, res, next) => {
             "No active task found. Ask your coordinator to set up the current term tasks.",
         });
       }
+
+      const assignedVersionNo = await getNextSubmissionVersionForGroupTask(db, {
+        groupId: group.group_id,
+        taskId: effectiveTaskId,
+      });
+
       submission = await insertSubmission(db, {
         taskId: currentTask.task_id,
         groupId: group.group_id,
         title: value.title,
         abstract: value.abstract,
         keywords: value.keywords || [],
-        versionNo: value.versionNo,
+        versionNo: assignedVersionNo,
         status: "Draft",
         isLocked: false,
       });
@@ -411,14 +418,27 @@ export const saveCurrentStudentSubmission = async (req, res, next) => {
         title: value.title,
         abstract: value.abstract,
         keywords: value.keywords || [],
-        versionNo: value.versionNo,
+        versionNo: currentSubmission.version_no,
         isLocked: false,
       });
     }
 
+    await replaceSubmissionResearchFields(db, {
+      submissionId: submission.submission_id,
+      researchFields: value.researchFields || [],
+    });
+    const researchFields = await listResearchFieldsBySubmissionId(
+      db,
+      submission.submission_id,
+    );
+    const submissionWithResearchFields = {
+      ...submission,
+      research_fields: researchFields,
+    };
+
     return res.status(200).json({
       message: "Submission draft saved.",
-      submission: mapSubmission(submission),
+      submission: mapSubmission(submissionWithResearchFields),
     });
   } catch (error) {
     if (error?.statusCode) {
@@ -527,7 +547,7 @@ export const uploadCurrentStudentSubmissionFile = async (req, res, next) => {
       s3Key,
       fileType: inferFileType(value.fileName, value.contentType),
       fileSize: buffer.length,
-      versionNo: value.versionNo,
+      versionNo: currentSubmission.version_no,
     });
 
     return res.status(201).json({

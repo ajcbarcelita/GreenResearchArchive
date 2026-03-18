@@ -1,22 +1,4 @@
-import axios from 'axios'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
-const ACCESS_TOKEN_KEY = 'gra_access_token'
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-})
-
-const getAuthConfig = () => {
-  const token = localStorage.getItem(ACCESS_TOKEN_KEY)
-  if (!token) return {}
-
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  }
-}
+import { api } from './authService'
 
 const fileToBase64 = (file) =>
   new Promise((resolve, reject) => {
@@ -31,33 +13,40 @@ const fileToBase64 = (file) =>
   })
 
 export const getStudentTasks = async () => {
-  const response = await api.get('/api/submissions/student/tasks', getAuthConfig())
+  const response = await api.get('/api/submissions/student/tasks')
   return response?.data || {}
 }
 
 export const getCurrentSubmission = async (taskId = null) => {
   const params = taskId ? { params: { taskId } } : {}
-  const response = await api.get('/api/submissions/student/current', { ...getAuthConfig(), ...params })
+  const response = await api.get('/api/submissions/student/current', params)
   return response?.data || {}
 }
 
 export const getLatestStudentSubmission = async () => {
-  const response = await api.get('/api/submissions/student/latest', getAuthConfig())
+  const response = await api.get('/api/submissions/student/latest')
+  return response?.data || {}
+}
+
+export const getSubmissionAuditLogs = async (submissionId) => {
+  const response = await api.get('/api/audit-logs', {
+    params: { submissionId },
+  })
   return response?.data || {}
 }
 
 export const saveCurrentSubmission = async (payload) => {
-  const response = await api.put('/api/submissions/student/current', payload, getAuthConfig())
+  const response = await api.put('/api/submissions/student/current', payload)
   return response?.data || {}
 }
 
 export const submitCurrentSubmission = async (taskId = null) => {
   const params = taskId ? { params: { taskId } } : {}
-  const response = await api.post('/api/submissions/student/current/submit', {}, { ...getAuthConfig(), ...params })
+  const response = await api.post('/api/submissions/student/current/submit', {}, params)
   return response?.data || {}
 }
 
-export const uploadCurrentSubmissionFile = async ({ file, versionNo, taskId = null }) => {
+export const uploadCurrentSubmissionFile = async ({ file, taskId = null }) => {
   const contentBase64 = await fileToBase64(file)
   const response = await api.post(
     '/api/submissions/student/current/files',
@@ -66,9 +55,7 @@ export const uploadCurrentSubmissionFile = async ({ file, versionNo, taskId = nu
       fileName: file.name,
       contentType: file.type || 'application/octet-stream',
       contentBase64,
-      versionNo,
     },
-    getAuthConfig(),
   )
 
   return response?.data || {}
@@ -76,13 +63,14 @@ export const uploadCurrentSubmissionFile = async ({ file, versionNo, taskId = nu
 
 export const deleteCurrentSubmissionFile = async (fileId, taskId = null) => {
   const params = taskId ? { params: { taskId } } : {}
-  const response = await api.delete(`/api/submissions/student/current/files/${fileId}`, { ...getAuthConfig(), ...params })
+  const response = await api.delete(`/api/submissions/student/current/files/${fileId}`, params)
   return response?.data || {}
 }
 
 export default {
   getStudentTasks,
   getLatestStudentSubmission,
+  getSubmissionAuditLogs,
   getCurrentSubmission,
   saveCurrentSubmission,
   submitCurrentSubmission,
