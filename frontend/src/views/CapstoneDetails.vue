@@ -25,7 +25,7 @@
                     </div>
                 </div>
 
-                <aside class="space-y-6">
+                <aside class="space-y-6 md:sticky md:top-32 self-start md:max-h-[calc(100vh-9rem)] md:overflow-y-auto md:pr-1">
                     <div class="bg-white rounded-xl shadow-lg border-2 border-gray-300 p-5">
                         <div class="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
                         <div class="space-y-4">
@@ -46,19 +46,16 @@
             </div>
 
             <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Left: Capstone Project Details -->
                 <section class="md:col-span-2">
                     <div class="bg-white rounded-xl shadow-lg border-2 border-gray-300 p-8.5 hover:border-green-text transition-all">
                         <h2 class="text-green-text text-3xl font-semibold mb-6 pb-2 border-b-2 border-green-text/30">Capstone Project Details</h2>
 
                         <div class="space-y-5 text-base text-gray-800">
-                            <!-- Title Section -->
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">TITLE</div>
                                 <div class="text-gray-900 font-semibold text-base">{{ capstone?.title }}</div>
                             </div>
 
-                            <!-- Authors and Adviser Grid -->
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                     <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">AUTHORS</div>
@@ -72,19 +69,16 @@
                                 </div>
                             </div>
 
-                            <!-- Program and Section Grid -->
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">PROGRAM</div>
                                 <div class="text-gray-900 font-medium text-base">{{ capstone?.programCode }}</div>
                             </div>
 
-                            <!-- Academic Year -->
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">ACADEMIC YEAR</div>
                                 <div class="text-gray-900 font-medium text-base">2025 - 2026</div>
                             </div>
 
-                            <!-- Abstract -->
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-2">ABSTRACT</div>
                                 <div class="bg-white border border-gray-300 rounded-lg p-3">
@@ -92,14 +86,11 @@
                                 </div>
                             </div>
 
-                            <!-- Keywords -->
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">Keywords</div>
-                                <div class="text-gray-900 font-medium text-base">{{ (capstone?.keywords || ['Tech','Try','Test','Dog','Cat']).join(', ') }}</div>
+                                <div class="text-gray-900 font-medium text-base">{{ (capstone?.keywords || []).join(', ') }}</div>
                             </div>
 
-
-                            <!-- Download Button -->
                             <div class="mt-4 pt-2 border-t-2 border-gray-300">
                                 <button
                                     class="download-btn inline-flex items-center text-base px-6 py-3 bg-green-text text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition border-2 border-green-800 disabled:opacity-60 disabled:cursor-not-allowed"
@@ -113,29 +104,80 @@
                                 </button>
                             </div>
                         </div>
+                    </div>
 
+                    <div
+                        v-if="canComment"
+                        class="mt-6 bg-white rounded-xl shadow-lg border-2 border-gray-300 p-5 hover:border-green-text transition-all"
+                    >
+                        <h3 class="text-green-text text-xl font-semibold mb-4 pb-2 border-b-2 border-green-text/30">Reviewer Comment</h3>
+                        <div class="space-y-3">
+                            <textarea
+                                v-model="commentText"
+                                rows="4"
+                                maxlength="1000"
+                                placeholder="Add your comment for this capstone submission"
+                                class="w-full rounded-lg border-2 border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-800 outline-none focus:border-green-text"
+                            ></textarea>
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="text-xs text-gray-600">{{ commentText.length }}/1000</span>
+                                <button
+                                    class="text-base px-4 py-2 bg-green-text text-white rounded-lg hover:bg-green-700 transition font-semibold shadow-md border-2 border-green-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                                    :disabled="submittingComment || !commentText.trim()"
+                                    @click="handleSubmitComment"
+                                >
+                                    {{ submittingComment ? 'Submitting...' : 'Submit Comment' }}
+                                </button>
+                            </div>
+                            <p v-if="commentSuccessMessage" class="text-sm text-green-700">{{ commentSuccessMessage }}</p>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="canComment"
+                        class="mt-6 bg-white rounded-xl shadow-lg border-2 border-gray-300 p-5 hover:border-green-text transition-all"
+                    >
+                        <h3 class="text-green-text text-xl font-semibold mb-4 pb-2 border-b-2 border-green-text/30">Previous Comments</h3>
+
+                        <div v-if="loadingComments" class="text-sm text-gray-600">Loading comments...</div>
+
+                        <div v-else-if="!commentHistory.length" class="text-sm text-gray-600">
+                            No previous comments yet.
+                        </div>
+
+                        <div v-else class="max-h-80 md:max-h-[42vh] overflow-y-auto space-y-3 pr-1">
+                            <div
+                                v-for="entry in commentHistory"
+                                :key="entry.logId"
+                                class="rounded-lg border-2 border-gray-300 bg-gray-100 p-3 wrap-break-word"
+                            >
+                                <div class="flex items-start justify-between gap-2">
+                                    <div>
+                                        <div class="text-sm font-semibold text-gray-900">{{ entry.actorName }}</div>
+                                        <div class="text-xs uppercase tracking-wide text-gray-600">{{ entry.actorRole || 'Reviewer' }}</div>
+                                    </div>
+                                    <div class="text-xs text-gray-600">{{ formatCommentDateTime(entry.changedAt) }}</div>
+                                </div>
+                                <p class="mt-2 text-sm leading-relaxed text-gray-800 whitespace-pre-line wrap-break-word">{{ entry.remarks }}</p>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
-                <!-- Right column -->
                 <aside class="space-y-6">
-                    <!-- Info Summary Card -->
                     <div class="bg-white rounded-xl shadow-lg border-2 border-gray-300 p-5 hover:border-green-text transition-all">
                         <h3 class="text-green-text text-xl font-semibold mb-4 pb-2 border-b-2 border-green-text/30">Info Summary</h3>
                         <div class="text-base text-gray-700 space-y-4">
-                            <!-- Submission Date -->
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">SUBMISSION DATE</div>
                                 <div class="text-gray-900 font-medium text-base">{{ capstone?.submittedAt }}</div>
                             </div>
 
-                            <!-- Research Field -->
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">RESEARCH FIELD</div>
                                 <div class="text-gray-900 font-medium text-base">{{ capstone?.researchField }}</div>
                             </div>
 
-                            <!-- Monitoring -->
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">MONITORING STATUS</div>
                                 <div class="mt-1">
@@ -145,7 +187,6 @@
                         </div>
                     </div>
 
-                    <!-- Quick Actions Card -->
                     <div class="bg-white rounded-xl shadow-lg border-2 border-gray-300 p-5 hover:border-green-text transition-all">
                         <h3 class="text-green-text text-xl font-semibold mb-4 pb-2 border-b-2 border-green-text/30">Quick Actions</h3>
                         <div class="space-y-3">
@@ -157,7 +198,6 @@
                             </button>
                         </div>
                     </div>
-
 
                 </aside>
             </div>
@@ -177,7 +217,13 @@ import NavbarFaculty from '@/components/NavbarFaculty.vue'
 import NavbarCoordinator from '@/components/NavbarCoordinator.vue'
 import NavbarAdmin from '@/components/NavbarAdmin.vue'
 import Footer from '@/components/Footer.vue'
-import { getCapstoneDetails, listCapstoneFiles, getCapstoneFileDownloadUrl } from '@/services/repositoryService'
+import {
+    getCapstoneDetails,
+    listCapstoneFiles,
+    getCapstoneFileDownloadUrl,
+    submitCapstoneComment,
+    listCapstoneComments,
+} from '@/services/repositoryService'
 import { getStoredUser } from '@/services/authService'
 
 const route = useRoute()
@@ -185,16 +231,37 @@ const user = ref(getStoredUser())
 const capstone = ref(null)
 const loading = ref(true)
 const downloading = ref(false)
+const commentText = ref('')
+const submittingComment = ref(false)
+const commentSuccessMessage = ref('')
+const commentHistory = ref([])
+const loadingComments = ref(false)
 const MIN_LOAD_MS = 300
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 const normalizedRoleName = computed(() => String(user.value?.roleName || '').trim().toLowerCase())
-
 const useAdminNavbar = computed(() => normalizedRoleName.value === 'admin')
-
 const useFacultyNavbar = computed(() => normalizedRoleName.value === 'faculty')
-
 const useCoordinatorNavbar = computed(() => normalizedRoleName.value === 'coordinator')
+const isReviewerRole = computed(
+    () => normalizedRoleName.value === 'faculty' || normalizedRoleName.value === 'coordinator',
+)
+const isFromSubmissionMonitoring = computed(
+    () => String(route.query.source || '').trim().toLowerCase() === 'monitoring',
+)
+const canComment = computed(() => isReviewerRole.value && isFromSubmissionMonitoring.value)
+
+const formatCommentDateTime = (value) => {
+    if (!value) return 'N/A'
+    return new Date(value).toLocaleString('en-PH', {
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    })
+}
 
 const triggerBrowserDownload = (url) => {
     const link = document.createElement('a')
@@ -204,6 +271,24 @@ const triggerBrowserDownload = (url) => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+}
+
+const loadComments = async (id) => {
+    if (!canComment.value) {
+        commentHistory.value = []
+        return
+    }
+
+    loadingComments.value = true
+    try {
+        const data = await listCapstoneComments(id)
+        commentHistory.value = Array.isArray(data) ? data : []
+    } catch (e) {
+        console.error('Failed to load capstone comments', e)
+        commentHistory.value = []
+    } finally {
+        loadingComments.value = false
+    }
 }
 
 const handleDownloadFiles = async () => {
@@ -223,7 +308,6 @@ const handleDownloadFiles = async () => {
             return
         }
 
-        // Trigger separate downloads for each submission file.
         files.forEach((file, index) => {
             const delay = index * 180
             const url = getCapstoneFileDownloadUrl(file.fileId)
@@ -234,6 +318,33 @@ const handleDownloadFiles = async () => {
         alert('Failed to download files. Please try again.')
     } finally {
         downloading.value = false
+    }
+}
+
+const handleSubmitComment = async () => {
+    if (!canComment.value || submittingComment.value) return
+
+    const remarks = commentText.value.trim()
+    if (!remarks) return
+
+    const submissionId = Number(route.params.id)
+    if (!Number.isInteger(submissionId) || submissionId <= 0) {
+        alert('Invalid submission ID.')
+        return
+    }
+
+    submittingComment.value = true
+    commentSuccessMessage.value = ''
+    try {
+        await submitCapstoneComment(submissionId, remarks)
+        commentText.value = ''
+        commentSuccessMessage.value = 'Comment submitted successfully.'
+        await loadComments(submissionId)
+    } catch (e) {
+        console.error('Failed to submit capstone comment', e)
+        alert('Failed to submit comment. Please try again.')
+    } finally {
+        submittingComment.value = false
     }
 }
 
@@ -256,10 +367,13 @@ const load = async (id) => {
 onMounted(() => {
     const id = route.params.id || null
     load(id)
+    if (id) loadComments(id)
 })
 
 watch(() => route.params.id, (newId) => {
-    if (newId) load(newId)
+    if (newId) {
+        load(newId)
+        loadComments(newId)
+    }
 })
-
 </script>

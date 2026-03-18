@@ -167,9 +167,7 @@ const loadSubmission = async () => {
       version: `v${item.versionNo}`,
       submittedAt: formatPhilippineDateTime(item.submittedAt || item.createdAt),
       submittedBy: currentSubmitterName.value,
-      reviewerName: currentReviewerName.value,
       status: item.status,
-      reviewerComment: item.status === 'Submitted' ? 'Pending review.' : 'Saved as draft.',
     }))
   } catch (error) {
     console.error('Failed to load submission', error)
@@ -575,13 +573,11 @@ onMounted(() => {
               <Column field="version" header="Version" />
               <Column field="submittedAt" header="Submitted At" />
               <Column field="submittedBy" header="Submitted By" />
-              <Column field="reviewerName" header="Reviewer" />
               <Column field="status" header="Status">
                 <template #body="slotProps">
                   <Tag :value="slotProps.data.status" :severity="slotProps.data.status === 'Submitted' ? 'info' : 'warn'" rounded />
                 </template>
               </Column>
-              <Column field="reviewerComment" header="Reviewer Comment" />
             </DataTable>
           </template>
         </Card>

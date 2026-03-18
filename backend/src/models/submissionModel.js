@@ -129,10 +129,38 @@ export const insertSubmission = async (
   return result.rows[0];
 };
 
-export const findCurrentTask = async (db) => {
+let hasTaskAutoLockAfterDueDateColumnCache = null;
+
+const hasTaskAutoLockAfterDueDateColumn = async (db) => {
+  if (typeof hasTaskAutoLockAfterDueDateColumnCache === "boolean") {
+    return hasTaskAutoLockAfterDueDateColumnCache;
+  }
+
   const result = await db.query(
     `
-      SELECT t.task_id, t.task_name, t.description, t.due_date, t.term_id,
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'tasks'
+        AND column_name = 'auto_lock_after_due_date'
+      LIMIT 1
+    `,
+  );
+
+  hasTaskAutoLockAfterDueDateColumnCache = result.rowCount > 0;
+  return hasTaskAutoLockAfterDueDateColumnCache;
+};
+
+export const findCurrentTask = async (db) => {
+  const hasAutoLockAfterDueDate = await hasTaskAutoLockAfterDueDateColumn(db);
+  const autoLockExpr = hasAutoLockAfterDueDate
+    ? "t.auto_lock_after_due_date AS auto_lock_after_due_date"
+    : "false::boolean AS auto_lock_after_due_date";
+
+  const result = await db.query(
+    `
+      SELECT t.task_id, t.task_name, t.description, t.due_date, t.term_id, t.is_locked,
+             ${autoLockExpr},
              at.academic_year, at.term_no, at.start_date, at.end_date
       FROM tasks t
       JOIN academic_terms at ON at.term_id = t.term_id
@@ -146,7 +174,8 @@ export const findCurrentTask = async (db) => {
 
   // Fallback: most recently created task if no active term matches
   const fallback = await db.query(
-    `SELECT t.task_id, t.task_name, t.description, t.due_date, t.term_id,
+      `SELECT t.task_id, t.task_name, t.description, t.due_date, t.term_id, t.is_locked,
+        ${autoLockExpr},
             at.academic_year, at.term_no, at.start_date, at.end_date
      FROM tasks t
      JOIN academic_terms at ON at.term_id = t.term_id
@@ -156,9 +185,15 @@ export const findCurrentTask = async (db) => {
 };
 
 export const findTaskById = async (db, taskId) => {
+  const hasAutoLockAfterDueDate = await hasTaskAutoLockAfterDueDateColumn(db);
+  const autoLockExpr = hasAutoLockAfterDueDate
+    ? "t.auto_lock_after_due_date AS auto_lock_after_due_date"
+    : "false::boolean AS auto_lock_after_due_date";
+
   const result = await db.query(
     `
-      SELECT t.task_id, t.task_name, t.description, t.due_date, t.term_id,
+      SELECT t.task_id, t.task_name, t.description, t.due_date, t.term_id, t.is_locked,
+             ${autoLockExpr},
              at.academic_year, at.term_no, at.start_date, at.end_date
       FROM tasks t
       JOIN academic_terms at ON at.term_id = t.term_id
@@ -373,6 +408,11 @@ export const replaceSubmissionResearchFields = async (
 };
 
 export const listTasksWithSubmissionStatus = async (db, groupId) => {
+  const hasAutoLockAfterDueDate = await hasTaskAutoLockAfterDueDateColumn(db);
+  const autoLockExpr = hasAutoLockAfterDueDate
+    ? "t.auto_lock_after_due_date AS auto_lock_after_due_date"
+    : "false::boolean AS auto_lock_after_due_date";
+
   const result = await db.query(
     `
       SELECT
@@ -380,6 +420,8 @@ export const listTasksWithSubmissionStatus = async (db, groupId) => {
         t.task_name,
         t.description,
         t.due_date,
+        t.is_locked,
+        ${autoLockExpr},
         at2.academic_year,
         at2.term_no,
         at2.start_date,
@@ -406,5 +448,100 @@ export const listTasksWithSubmissionStatus = async (db, groupId) => {
     `,
     [groupId],
   );
+  return result.rows;
+};
+
+export const listAllTasksWithSubmissionStats = async (db) => {
+  const hasAutoLockAfterDueDate = await hasTaskAutoLockAfterDueDateColumn(db);
+  const autoLockExpr = hasAutoLockAfterDueDate
+    ? "t.auto_lock_after_due_date AS auto_lock_after_due_date"
+    : "false::boolean AS auto_lock_after_due_date";
+  const autoLockGroupBy = hasAutoLockAfterDueDate ? ", t.auto_lock_after_due_date" : "";
+
+  const result = await db.query(
+    `
+      SELECT
+        t.task_id,
+        t.task_name,
+        t.description,
+        t.due_date,
+        t.is_locked,
+        ${autoLockExpr},
+        t.created_at,
+        at.term_id,
+        at.academic_year,
+        at.term_no,
+        COALESCE(COUNT(s.submission_id), 0)::int AS submission_count,
+        MAX(s.submitted_at) AS latest_submission_at,
+        ARRAY_REMOVE(ARRAY_AGG(DISTINCT rp.program_code), NULL) AS program_codes
+      FROM tasks t
+      JOIN academic_terms at ON at.term_id = t.term_id
+      LEFT JOIN submissions s ON s.task_id = t.task_id
+      LEFT JOIN capstone_groups cg ON cg.group_id = s.group_id
+      LEFT JOIN ref_degree_programs rp ON rp.program_id = cg.program_id
+      GROUP BY
+        t.task_id,
+        t.task_name,
+        t.description,
+        t.due_date,
+        t.is_locked,
+        ${autoLockGroupBy}
+        t.created_at,
+        at.term_id,
+        at.academic_year,
+        at.term_no
+      ORDER BY at.start_date DESC, t.due_date ASC NULLS LAST, t.created_at DESC
+    `,
+  );
+
+  return result.rows;
+};
+
+export const toggleTaskLockStatus = async (db, taskId) => {
+  const result = await db.query(
+    `
+      UPDATE tasks
+      SET is_locked = NOT COALESCE(is_locked, false)
+      WHERE task_id = $1
+      RETURNING task_id, is_locked
+    `,
+    [taskId],
+  );
+
+  return result.rows[0] || null;
+};
+
+export const toggleTaskAutoLockAfterDueDate = async (db, taskId) => {
+  const hasAutoLockAfterDueDate = await hasTaskAutoLockAfterDueDateColumn(db);
+  if (!hasAutoLockAfterDueDate) {
+    const error = new Error(
+      "Auto-lock is not available until the database migration is applied.",
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const result = await db.query(
+    `
+      UPDATE tasks
+      SET auto_lock_after_due_date = NOT COALESCE(auto_lock_after_due_date, false)
+      WHERE task_id = $1
+      RETURNING task_id, auto_lock_after_due_date
+    `,
+    [taskId],
+  );
+
+  return result.rows[0] || null;
+};
+
+export const listAcademicTerms = async (db) => {
+  const result = await db.query(
+    `
+      SELECT term_id, academic_year, term_no, start_date, end_date
+      FROM academic_terms
+      ORDER BY start_date DESC, term_no DESC
+    `,
+  );
+
   return result.rows;
 };

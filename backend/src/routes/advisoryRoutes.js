@@ -12,12 +12,38 @@ import {
   searchStudents,
   createGroup,
   deleteGroup,
+  getCoordinatorTasks,
+  getCoordinatorTerms,
+  toggleCoordinatorTaskLock,
+  toggleCoordinatorTaskAutoLock,
 } from "../controllers/advisoryController.js";
 
 const router = express.Router();
 
 // GET /api/advisory/load -> advisory load rows + summary
 router.get("/load", getAdvisoryLoad);
+
+// GET /api/advisory/tasks -> all tasks with term/submission stats
+router.get("/tasks", requireAuth, requireRegisteredUser, getCoordinatorTasks);
+
+// GET /api/advisory/terms -> academic terms catalog for task forms
+router.get("/terms", requireAuth, requireRegisteredUser, getCoordinatorTerms);
+
+// PATCH /api/advisory/tasks/:taskId/lock-toggle -> lock/unlock a task
+router.patch(
+  "/tasks/:taskId/lock-toggle",
+  requireAuth,
+  requireRegisteredUser,
+  toggleCoordinatorTaskLock,
+);
+
+// PATCH /api/advisory/tasks/:taskId/auto-lock-toggle -> toggle auto-lock after due date
+router.patch(
+  "/tasks/:taskId/auto-lock-toggle",
+  requireAuth,
+  requireRegisteredUser,
+  toggleCoordinatorTaskAutoLock,
+);
 
 // Authenticated endpoints for advisers
 router.get("/my-groups", requireAuth, requireRegisteredUser, getMyGroups);

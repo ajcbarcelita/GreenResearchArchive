@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { api as authApi } from './authService'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
@@ -30,10 +31,22 @@ export const toggleSubmissionArchiveStatus = async (id) => {
   return response.data?.data || null
 }
 
+export const submitCapstoneComment = async (id, remarks) => {
+  const response = await authApi.post(`/api/repository/${id}/comments`, { remarks })
+  return response.data?.data || null
+}
+
+export const listCapstoneComments = async (id) => {
+  const response = await authApi.get(`/api/repository/${id}/comments`)
+  return response.data?.data || []
+}
+
 export default {
   listRepository,
   getCapstoneDetails,
   listCapstoneFiles,
   getCapstoneFileDownloadUrl,
   toggleSubmissionArchiveStatus,
+  submitCapstoneComment,
+  listCapstoneComments,
 }

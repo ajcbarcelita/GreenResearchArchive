@@ -9,9 +9,9 @@ import CompleteProfileWrapper from '../views/CompleteProfie.vue'
 import FacultyCoordinatorHomeView from '../views/Coordinator/HomeView.vue'
 import AdvisoryView from '../views/Coordinator/AdvisoryView.vue'
 import FacultyCoordinatorSubmissionView from '../views/Coordinator/SubmissionMonitoringView.vue'
+import CoordinatorTasksView from '../views/Coordinator/CoordinatorTasksView.vue'
 import FacultyHomeView from '../views/Faculty/HomeView.vue'
 import FacultyMyAdviseesView from '../views/Faculty/MyAdviseesView.vue'
-import FacultyReviewQueueView from '../views/Faculty/ReviewQueueView.vue'
 import AdminDashboardView from '../views/Admin/DashboardView.vue'
 import AdminUsersView from '../views/Admin/UserManagementView.vue'
 import AdminProgramsView from '../views/Admin/ProgramManagementView.vue'
@@ -245,9 +245,14 @@ const router = createRouter({
       component: FacultyMyAdviseesView,
     },
     {
+      path: '/faculty/submissions',
+      name: 'faculty-submissions',
+      component: FacultyCoordinatorSubmissionView,
+    },
+    {
       path: '/faculty/review-queue',
       name: 'faculty-review-queue',
-      component: FacultyReviewQueueView,
+      redirect: '/faculty/submissions',
     },
     {
       path: '/faculty/repository',
@@ -273,6 +278,11 @@ const router = createRouter({
       component: FacultyCoordinatorSubmissionView,
     },
     {
+      path: '/coordinator/tasks',
+      name: 'coordinator-tasks',
+      component: CoordinatorTasksView,
+    },
+    {
       path: '/coordinator/repository',
       name: 'coordinator-repository',
       component: RepositoryView,
@@ -288,6 +298,10 @@ const router = createRouter({
     {
       path: '/faculty-coordinator/submissions',
       redirect: '/coordinator/submissions',
+    },
+    {
+      path: '/faculty-coordinator/tasks',
+      redirect: '/coordinator/tasks',
     },
     {
       path: '/faculty-coordinator/repository',

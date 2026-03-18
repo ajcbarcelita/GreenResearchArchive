@@ -11,6 +11,12 @@ import {
   insertCapstoneGroup,
   deleteCapstoneGroup,
 } from "../models/capstoneGroupModel.js";
+import {
+  listAllTasksWithSubmissionStats,
+  toggleTaskLockStatus,
+  toggleTaskAutoLockAfterDueDate,
+  listAcademicTerms,
+} from "../models/submissionModel.js";
 import { findUserProfileById } from "../models/userModel.js";
 
 const toInt = (value) => Number.parseInt(String(value), 10);
@@ -350,6 +356,129 @@ export const deleteGroup = async (req, res) => {
 
     return res.json({ data: deleted });
   } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const getCoordinatorTasks = async (req, res) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) return res.status(500).json({ error: "Database not initialized" });
+
+    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    if (roleName !== "coordinator" && roleName !== "faculty") {
+      return res.status(403).json({ error: "Only faculty and coordinator can view tasks" });
+    }
+
+    const rows = await listAllTasksWithSubmissionStats(db);
+    const data = rows.map((row) => ({
+      taskId: row.task_id,
+      taskName: row.task_name,
+      description: row.description,
+      dueDate: row.due_date,
+      isLocked: row.is_locked === true,
+      autoLockAfterDueDate: row.auto_lock_after_due_date === true,
+      createdAt: row.created_at,
+      termId: row.term_id,
+      academicYear: row.academic_year,
+      termNo: row.term_no,
+      submissionCount: Number(row.submission_count || 0),
+      latestSubmissionAt: row.latest_submission_at,
+      programCodes: Array.isArray(row.program_codes) ? row.program_codes.filter(Boolean) : [],
+    }));
+
+    return res.json({ data });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const getCoordinatorTerms = async (req, res) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) return res.status(500).json({ error: "Database not initialized" });
+
+    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    if (roleName !== "coordinator" && roleName !== "faculty") {
+      return res.status(403).json({ error: "Only faculty and coordinator can view terms" });
+    }
+
+    const rows = await listAcademicTerms(db);
+    const data = rows.map((row) => ({
+      termId: row.term_id,
+      academicYear: row.academic_year,
+      termNo: row.term_no,
+      startDate: row.start_date,
+      endDate: row.end_date,
+    }));
+
+    return res.json({ data });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const toggleCoordinatorTaskLock = async (req, res) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) return res.status(500).json({ error: "Database not initialized" });
+
+    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    if (roleName !== "coordinator" && roleName !== "faculty") {
+      return res.status(403).json({ error: "Only faculty and coordinator can lock tasks" });
+    }
+
+    const taskId = Number(req.params.taskId);
+    if (!Number.isInteger(taskId) || taskId <= 0) {
+      return res.status(400).json({ error: "Invalid task ID" });
+    }
+
+    const updated = await toggleTaskLockStatus(db, taskId);
+    if (!updated) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    return res.json({
+      data: {
+        taskId: updated.task_id,
+        isLocked: updated.is_locked === true,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const toggleCoordinatorTaskAutoLock = async (req, res) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) return res.status(500).json({ error: "Database not initialized" });
+
+    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    if (roleName !== "coordinator" && roleName !== "faculty") {
+      return res.status(403).json({ error: "Only faculty and coordinator can update task auto-lock" });
+    }
+
+    const taskId = Number(req.params.taskId);
+    if (!Number.isInteger(taskId) || taskId <= 0) {
+      return res.status(400).json({ error: "Invalid task ID" });
+    }
+
+    const updated = await toggleTaskAutoLockAfterDueDate(db, taskId);
+    if (!updated) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    return res.json({
+      data: {
+        taskId: updated.task_id,
+        autoLockAfterDueDate: updated.auto_lock_after_due_date === true,
+      },
+    });
+  } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ error: error.message });
+    }
     return res.status(500).json({ error: error.message });
   }
 };

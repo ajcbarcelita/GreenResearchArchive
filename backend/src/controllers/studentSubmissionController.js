@@ -1,6 +1,7 @@
 import Joi from "joi";
 import { findGroupsForStudent } from "../models/groupMembersModel.js";
 import {
+  findSubmissionById,
   findLatestModifiedSubmissionByGroupId,
   findTaskById,
   findCurrentTask,
@@ -108,6 +109,8 @@ export const getStudentTasks = async (req, res, next) => {
       taskName: r.task_name,
       description: r.description,
       dueDate: r.due_date,
+      isLocked: r.is_locked === true,
+         autoLockAfterDueDate: r.auto_lock_after_due_date === true,
       academicYear: r.academic_year,
       termNo: r.term_no,
       termStart: r.start_date,
@@ -183,11 +186,25 @@ const mapTask = (task) => {
     taskName: task.task_name,
     description: task.description,
     dueDate: task.due_date,
+    isLocked: task.is_locked === true,
+    autoLockAfterDueDate: task.auto_lock_after_due_date === true,
     academicYear: task.academic_year,
     termNo: task.term_no,
     termStart: task.start_date,
     termEnd: task.end_date,
   };
+};
+
+const ensureTaskAcceptingSubmissions = (task) => {
+  const dueDateMs = task?.due_date ? Date.parse(task.due_date) : Number.NaN;
+  const autoLockedByDueDate =
+    task?.auto_lock_after_due_date === true && Number.isFinite(dueDateMs) && dueDateMs <= Date.now();
+
+  if (task?.is_locked === true || autoLockedByDueDate) {
+    const error = new Error("This task is locked and no longer accepts submissions.");
+    error.statusCode = 423;
+    throw error;
+  }
 };
 
 const mapReviewer = (reviewer) => {
@@ -392,6 +409,9 @@ export const saveCurrentStudentSubmission = async (req, res, next) => {
       });
     }
 
+    const effectiveTask = await findTaskById(db, effectiveTaskId);
+    ensureTaskAcceptingSubmissions(effectiveTask);
+
     let submission;
     const shouldCreateNewVersion =
       !currentSubmission || currentSubmission.status !== "Draft";
@@ -480,13 +500,47 @@ export const submitCurrentStudentSubmission = async (req, res, next) => {
       });
     }
 
+    const task = await findTaskById(db, currentSubmission.task_id);
+    ensureTaskAcceptingSubmissions(task);
+
     const fileStats = await getSubmissionFileStatsBySubmissionId(
       db,
       currentSubmission.submission_id,
     );
-    const totalFiles =
+    let totalFiles =
       Number(fileStats?.capstone_paper_count || 0) +
       Number(fileStats?.dataset_count || 0);
+
+    // If the new draft version has no files, inherit file references from the latest
+    // previous version of the same task so students don't need to re-upload unchanged files.
+    if (totalFiles < 1) {
+      const history = await listSubmissionsByGroupId(db, currentSubmission.group_id);
+      const previousSameTask = (history || []).find(
+        (entry) =>
+          Number(entry.submission_id) !== Number(currentSubmission.submission_id) &&
+          Number(entry.task_id) === Number(currentSubmission.task_id),
+      );
+
+      if (previousSameTask) {
+        const previousFiles = await listSubmissionFilesBySubmissionId(
+          db,
+          previousSameTask.submission_id,
+        );
+
+        for (const prevFile of previousFiles) {
+          await insertSubmissionFile(db, {
+            submissionId: currentSubmission.submission_id,
+            fileName: prevFile.file_name,
+            s3Key: prevFile.s3_key,
+            fileType: prevFile.file_type,
+            fileSize: prevFile.file_size,
+            versionNo: currentSubmission.version_no,
+          });
+        }
+
+        totalFiles = previousFiles.length;
+      }
+    }
 
     if (totalFiles < 1) {
       return res.status(400).json({
@@ -551,6 +605,7 @@ export const uploadCurrentStudentSubmissionFile = async (req, res, next) => {
     const buffer = Buffer.from(value.contentBase64, "base64");
     const safeFileName = value.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
     const task = await findTaskById(db, currentSubmission.task_id);
+    ensureTaskAcceptingSubmissions(task);
     const termLabel =
       task?.academic_year && task?.term_no
         ? `${task.academic_year}-term-${task.term_no}`
@@ -620,8 +675,18 @@ export const deleteCurrentStudentSubmissionFile = async (req, res, next) => {
     }
 
     const taskId = parseOptionalTaskId(req.query.taskId);
-    const { currentSubmission } = await getCurrentSubmissionContext(db, userId, taskId);
-    if (!currentSubmission || Number(currentSubmission.submission_id) !== Number(file.submission_id)) {
+    const { group } = await getCurrentSubmissionContext(db, userId, taskId);
+    const fileSubmission = await findSubmissionById(db, Number(file.submission_id));
+
+    if (!fileSubmission) {
+      return res.status(404).json({ message: "Submission for this file was not found." });
+    }
+
+    const sameGroup = Number(fileSubmission.group_id) === Number(group.group_id);
+    const sameTaskWhenSpecified =
+      !taskId || Number(fileSubmission.task_id) === Number(taskId);
+
+    if (!sameGroup || !sameTaskWhenSpecified) {
       return res.status(403).json({ message: "You are not allowed to delete this file." });
     }
 
