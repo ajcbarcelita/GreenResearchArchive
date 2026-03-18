@@ -228,7 +228,6 @@ const openHistoryComments = async (event) => {
       role: log.actorRole || 'N/A',
       comment: log.remarks || 'No comment provided.',
       commentedAt: formatDateTime(log.changedAt),
-      transition: `${log.oldStatus || 'N/A'} -> ${log.newStatus || 'N/A'}`,
     }))
   } catch (error) {
     console.error('Failed to load submission comments', error)
@@ -401,7 +400,6 @@ onMounted(async () => {
             <Column field="role" header="Role" />
             <Column field="comment" header="Comment" />
             <Column field="commentedAt" header="Commented At" />
-            <Column field="transition" header="Status Transition" />
           </DataTable>
 
           <div v-else class="comments-empty-state">

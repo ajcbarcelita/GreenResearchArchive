@@ -162,6 +162,7 @@ const loadSubmissions = async () => {
 }
 
 const handleArchiveToggle = async (row) => {
+  if (isFaculty.value) return
   if (!row?.submissionId || archivingSubmissionId.value) return
 
   archivingSubmissionId.value = row.submissionId
@@ -192,6 +193,7 @@ const handleRowClick = ({ data }) => {
   router.push({
     name: isFaculty.value ? 'faculty-capstone-details' : 'coordinator-capstone-details',
     params: { id: submissionId },
+    query: { source: 'monitoring' },
   })
 }
 
@@ -283,7 +285,7 @@ onMounted(loadSubmissions)
                 {{ formatDateTime(slotProps.data.submittedAt) }}
               </template>
             </Column>
-            <Column header="Action">
+            <Column v-if="!isFaculty" header="Action">
               <template #body="slotProps">
                 <Button
                   :label="slotProps.data.status === 'Archived' ? 'Unarchive' : 'Archive'"

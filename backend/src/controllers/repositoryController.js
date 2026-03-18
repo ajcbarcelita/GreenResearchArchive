@@ -178,3 +178,115 @@ export const toggleRepositoryArchiveStatus = async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 };
+
+export const addRepositoryComment = async (req, res) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) return res.status(500).json({ error: "Database not initialized" });
+
+    const submissionId = Number(req.params.id);
+    if (!Number.isInteger(submissionId) || submissionId <= 0) {
+      return res.status(400).json({ error: "Invalid submission ID" });
+    }
+
+    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    if (roleName !== "faculty" && roleName !== "coordinator") {
+      return res.status(403).json({ error: "Only faculty and coordinator can submit comments" });
+    }
+
+    const actorId = Number(req.auth?.sub);
+    if (!Number.isInteger(actorId) || actorId <= 0) {
+      return res.status(401).json({ error: "Invalid authenticated user context" });
+    }
+
+    const submission = await findSubmissionById(db, submissionId);
+    if (!submission) return res.status(404).json({ error: "Not found" });
+
+    const remarks = String(req.body?.remarks || "").trim();
+    if (!remarks) {
+      return res.status(400).json({ error: "Comment is required" });
+    }
+    if (remarks.length > 1000) {
+      return res.status(400).json({ error: "Comment must be at most 1000 characters" });
+    }
+
+    const inserted = await db.query(
+      `
+        INSERT INTO submission_audit_logs (submission_id, changed_by, old_status, new_status, remarks)
+        VALUES ($1, $2, NULL, NULL, $3)
+        RETURNING log_id, submission_id, changed_by, remarks, changed_at
+      `,
+      [submissionId, actorId, remarks],
+    );
+
+    const row = inserted.rows[0];
+    return res.status(201).json({
+      data: {
+        logId: row.log_id,
+        submissionId: row.submission_id,
+        actorId: row.changed_by,
+        remarks: row.remarks,
+        changedAt: row.changed_at,
+      },
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const listRepositoryComments = async (req, res) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) return res.status(500).json({ error: "Database not initialized" });
+
+    const submissionId = Number(req.params.id);
+    if (!Number.isInteger(submissionId) || submissionId <= 0) {
+      return res.status(400).json({ error: "Invalid submission ID" });
+    }
+
+    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    if (roleName !== "faculty" && roleName !== "coordinator") {
+      return res.status(403).json({ error: "Only faculty and coordinator can view comments" });
+    }
+
+    const submission = await findSubmissionById(db, submissionId);
+    if (!submission) return res.status(404).json({ error: "Not found" });
+
+    const result = await db.query(
+      `
+        SELECT
+          sal.log_id,
+          sal.submission_id,
+          sal.changed_by,
+          sal.remarks,
+          sal.changed_at,
+          u.fname,
+          u.mname,
+          u.lname,
+          rr.role_name
+        FROM submission_audit_logs sal
+        LEFT JOIN users u ON u.user_id = sal.changed_by
+        LEFT JOIN ref_roles rr ON rr.role_id = u.role_id
+        WHERE sal.submission_id = $1
+          AND sal.remarks IS NOT NULL
+          AND BTRIM(sal.remarks) <> ''
+        ORDER BY sal.changed_at DESC, sal.log_id DESC
+      `,
+      [submissionId],
+    );
+
+    const data = result.rows.map((row) => ({
+      logId: row.log_id,
+      submissionId: row.submission_id,
+      actorId: row.changed_by,
+      actorName: [row.fname, row.mname, row.lname].filter(Boolean).join(" ") || "Unknown User",
+      actorRole: row.role_name || null,
+      remarks: row.remarks,
+      changedAt: row.changed_at,
+    }));
+
+    return res.json({ data });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};

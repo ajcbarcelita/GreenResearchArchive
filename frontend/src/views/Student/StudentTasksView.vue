@@ -193,9 +193,10 @@ onMounted(loadTasks)
 
                   <div class="task-action">
                     <Button
-                      :label="task.submission ? 'Open Submission' : 'Start Submission'"
-                      :severity="task.submission ? 'secondary' : 'primary'"
-                      :outlined="!!task.submission"
+                      :label="task.isLocked ? 'Locked' : (task.submission ? 'Open Submission' : 'Start Submission')"
+                      :severity="task.isLocked ? 'danger' : (task.submission ? 'secondary' : 'primary')"
+                      :outlined="task.isLocked ? false : !!task.submission"
+                      :disabled="task.isLocked"
                       size="small"
                       @click="openSubmission(task)"
                     />

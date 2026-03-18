@@ -163,6 +163,8 @@ CREATE TABLE tasks(
   task_name varchar(100) NOT NULL,
   description text,
   due_date timestamp with time zone,
+  is_locked boolean NOT NULL DEFAULT false,
+  auto_lock_after_due_date boolean NOT NULL DEFAULT false,
   term_id integer NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT tasks_pkey PRIMARY KEY(task_id)
