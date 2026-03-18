@@ -25,8 +25,10 @@ import {
   needsProfileCompletion,
 } from '../services/authService'
 
+const getRoleName = (user) => String(user?.roleName || '').trim().toLowerCase()
+
 const resolveCompleteProfilePath = (user) => {
-  const roleName = String(user?.roleName || '').trim().toLowerCase()
+  const roleName = getRoleName(user)
   if (roleName === 'admin') return '/complete-profile/admin'
   if (roleName === 'faculty') return '/complete-profile/faculty'
   if (roleName === 'coordinator') return '/complete-profile/coordinator'
@@ -35,7 +37,7 @@ const resolveCompleteProfilePath = (user) => {
 }
 
 const resolveHomePath = (user) => {
-  const roleName = String(user?.roleName || '').trim().toLowerCase()
+  const roleName = getRoleName(user)
   if (roleName === 'admin') {
     return '/admin/dashboard'
   }
@@ -49,6 +51,40 @@ const resolveHomePath = (user) => {
   }
 
   return '/dashboard'
+}
+
+const resolveRepositoryPath = (user) => {
+  const roleName = getRoleName(user)
+  if (roleName === 'admin') return '/admin/repository'
+  if (roleName === 'faculty') return '/faculty/repository'
+  if (roleName === 'coordinator') return '/coordinator/repository'
+
+  return '/repository'
+}
+
+const resolveCapstoneDetailsPath = (user, id) => {
+  const roleName = getRoleName(user)
+  const normalizedId = encodeURIComponent(String(id || ''))
+
+  if (roleName === 'admin') return `/admin/capstone/${normalizedId}`
+  if (roleName === 'faculty') return `/faculty/capstone/${normalizedId}`
+  if (roleName === 'coordinator') return `/coordinator/capstone/${normalizedId}`
+
+  return `/student/capstone/${normalizedId}`
+}
+
+const REPOSITORY_ROLE_BY_PATH = {
+  '/repository': 'student',
+  '/faculty/repository': 'faculty',
+  '/coordinator/repository': 'coordinator',
+  '/admin/repository': 'admin',
+}
+
+const CAPSTONE_ROUTE_ROLE_BY_NAME = {
+  'student-capstone-details': 'student',
+  'faculty-capstone-details': 'faculty',
+  'coordinator-capstone-details': 'coordinator',
+  'admin-capstone-details': 'admin',
 }
 
 const router = createRouter({
@@ -117,7 +153,26 @@ const router = createRouter({
     // Repository routes
     {
       path: '/capstone/:id',
-      name: 'capstone-details',
+      redirect: (to) => resolveCapstoneDetailsPath(getStoredUser(), to.params.id),
+    },
+    {
+      path: '/student/capstone/:id',
+      name: 'student-capstone-details',
+      component: CapstoneDetailsView,
+    },
+    {
+      path: '/faculty/capstone/:id',
+      name: 'faculty-capstone-details',
+      component: CapstoneDetailsView,
+    },
+    {
+      path: '/coordinator/capstone/:id',
+      name: 'coordinator-capstone-details',
+      component: CapstoneDetailsView,
+    },
+    {
+      path: '/admin/capstone/:id',
+      name: 'admin-capstone-details',
       component: CapstoneDetailsView,
     },
     {
@@ -247,9 +302,12 @@ router.beforeEach((to) => {
   const isPublicRoute = to.path === '/login'
   const authenticated = hasAccessToken()
   const user = getStoredUser()
+  const roleName = getRoleName(user)
   const requiresProfileCompletion = needsProfileCompletion(user)
   const completeProfilePath = resolveCompleteProfilePath(user)
   const homePath = resolveHomePath(user)
+  const repositoryPath = resolveRepositoryPath(user)
+  const capstoneDetailsPath = resolveCapstoneDetailsPath(user, to.params?.id)
   const isCompleteProfileRoute = to.path.startsWith('/complete-profile')
 
   if (!authenticated && !isPublicRoute) {
@@ -270,6 +328,28 @@ router.beforeEach((to) => {
 
   if (authenticated && !requiresProfileCompletion && isCompleteProfileRoute) {
     return homePath
+  }
+
+  const requiredRoleForPath = REPOSITORY_ROLE_BY_PATH[to.path]
+  if (authenticated && !requiresProfileCompletion && requiredRoleForPath) {
+    if (requiredRoleForPath === 'student' && roleName !== 'student') {
+      return repositoryPath
+    }
+
+    if (requiredRoleForPath !== 'student' && roleName !== requiredRoleForPath) {
+      return repositoryPath
+    }
+  }
+
+  const requiredRoleForCapstoneRoute = CAPSTONE_ROUTE_ROLE_BY_NAME[to.name]
+  if (authenticated && !requiresProfileCompletion && requiredRoleForCapstoneRoute) {
+    if (requiredRoleForCapstoneRoute === 'student' && roleName !== 'student') {
+      return capstoneDetailsPath
+    }
+
+    if (requiredRoleForCapstoneRoute !== 'student' && roleName !== requiredRoleForCapstoneRoute) {
+      return capstoneDetailsPath
+    }
   }
 
   return true

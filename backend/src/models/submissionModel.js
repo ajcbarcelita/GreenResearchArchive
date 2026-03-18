@@ -4,11 +4,29 @@ export const findSubmissionById = async (db, submissionId) => {
       SELECT s.submission_id, s.group_id, s.title, s.abstract, s.keywords, s.version_no, s.status, s.is_locked, s.created_at, s.submitted_at, s.archived_at,
              cg.group_name,
              rp.program_code,
+              t.task_id,
+              t.task_name,
+              at.academic_year,
+              at.term_no,
+             EXISTS (
+               SELECT 1
+               FROM submission_files sf
+               WHERE sf.submission_id = s.submission_id
+                 AND sf.file_type = 'Capstone Paper'
+             ) AS has_capstone_paper,
+             EXISTS (
+               SELECT 1
+               FROM submission_files sf
+               WHERE sf.submission_id = s.submission_id
+                 AND sf.file_type = 'Dataset'
+             ) AS has_dataset,
              adv.fname AS adviser_fname,
              adv.lname AS adviser_lname
       FROM submissions s
       LEFT JOIN capstone_groups cg ON cg.group_id = s.group_id
       LEFT JOIN ref_degree_programs rp ON rp.program_id = cg.program_id
+            LEFT JOIN tasks t ON t.task_id = s.task_id
+            LEFT JOIN academic_terms at ON at.term_id = t.term_id
       LEFT JOIN users adv ON adv.user_id = cg.group_adviser
       WHERE s.submission_id = $1
       LIMIT 1
@@ -48,6 +66,22 @@ export const listSubmissions = async (db, { status, programId, q } = {}) => {
     SELECT s.submission_id, s.group_id, s.title, s.abstract, s.keywords, s.version_no, s.status, s.is_locked, s.created_at, s.submitted_at,
            cg.group_name, cg.program_id,
            rp.program_code,
+           t.task_id,
+           t.task_name,
+           at.academic_year,
+           at.term_no,
+           EXISTS (
+             SELECT 1
+             FROM submission_files sf
+             WHERE sf.submission_id = s.submission_id
+               AND sf.file_type = 'Capstone Paper'
+           ) AS has_capstone_paper,
+           EXISTS (
+             SELECT 1
+             FROM submission_files sf
+             WHERE sf.submission_id = s.submission_id
+               AND sf.file_type = 'Dataset'
+           ) AS has_dataset,
            adv.fname AS adviser_fname,
            adv.lname AS adviser_lname
            , (
@@ -59,6 +93,8 @@ export const listSubmissions = async (db, { status, programId, q } = {}) => {
     FROM submissions s
     LEFT JOIN capstone_groups cg ON cg.group_id = s.group_id
     LEFT JOIN ref_degree_programs rp ON rp.program_id = cg.program_id
+    LEFT JOIN tasks t ON t.task_id = s.task_id
+    LEFT JOIN academic_terms at ON at.term_id = t.term_id
     LEFT JOIN users adv ON adv.user_id = cg.group_adviser
     ${where}
     ORDER BY s.submitted_at DESC NULLS LAST, s.created_at DESC
@@ -144,9 +180,14 @@ export const updateSubmissionStatus = async (db, { submissionId, status }) => {
             WHEN $1::submission_status = 'Submitted'::submission_status
             THEN CURRENT_TIMESTAMP
             ELSE submitted_at
+          END,
+          archived_at = CASE
+            WHEN $1::submission_status = 'Archived'::submission_status
+            THEN CURRENT_TIMESTAMP
+            ELSE NULL
           END
       WHERE submission_id = $2
-      RETURNING submission_id, status, submitted_at
+      RETURNING submission_id, status, submitted_at, archived_at
     `,
     [status, submissionId],
   );
@@ -242,6 +283,95 @@ export const existsSubmissionVersionForGroupTask = async (
   return result.rowCount > 0;
 };
 
+export const getNextSubmissionVersionForGroupTask = async (
+  db,
+  { groupId, taskId },
+) => {
+  const result = await db.query(
+    `
+      SELECT COALESCE(MAX(version_no), 0)::int + 1 AS next_version_no
+      FROM submissions
+      WHERE group_id = $1 AND task_id = $2
+    `,
+    [groupId, taskId],
+  );
+
+  return Number(result.rows[0]?.next_version_no || 1);
+};
+
+export const listResearchFieldsBySubmissionId = async (db, submissionId) => {
+  const result = await db.query(
+    `
+      SELECT rf.field_name
+      FROM paper_fields pf
+      JOIN ref_research_fields rf ON rf.field_id = pf.field_id
+      WHERE pf.submission_id = $1
+      ORDER BY rf.field_name ASC
+    `,
+    [submissionId],
+  );
+
+  return result.rows.map((row) => row.field_name).filter(Boolean);
+};
+
+export const replaceSubmissionResearchFields = async (
+  db,
+  { submissionId, researchFields },
+) => {
+  const normalized = Array.from(
+    new Set(
+      (researchFields || [])
+        .map((entry) => String(entry || "").trim())
+        .filter(Boolean),
+    ),
+  );
+
+  await db.query(
+    `
+      DELETE FROM paper_fields
+      WHERE submission_id = $1
+    `,
+    [submissionId],
+  );
+
+  for (const fieldName of normalized) {
+    const existing = await db.query(
+      `
+        SELECT field_id
+        FROM ref_research_fields
+        WHERE LOWER(field_name) = LOWER($1)
+        LIMIT 1
+      `,
+      [fieldName],
+    );
+
+    let fieldId = existing.rows[0]?.field_id || null;
+
+    if (!fieldId) {
+      const inserted = await db.query(
+        `
+          INSERT INTO ref_research_fields (field_name)
+          VALUES ($1)
+          RETURNING field_id
+        `,
+        [fieldName],
+      );
+      fieldId = inserted.rows[0]?.field_id || null;
+    }
+
+    if (fieldId) {
+      await db.query(
+        `
+          INSERT INTO paper_fields (submission_id, field_id)
+          VALUES ($1, $2)
+          ON CONFLICT DO NOTHING
+        `,
+        [submissionId, fieldId],
+      );
+    }
+  }
+};
+
 export const listTasksWithSubmissionStatus = async (db, groupId) => {
   const result = await db.query(
     `
@@ -264,7 +394,14 @@ export const listTasksWithSubmissionStatus = async (db, groupId) => {
         END AS is_active_term
       FROM tasks t
       JOIN academic_terms at2 ON at2.term_id = t.term_id
-      LEFT JOIN submissions s ON s.task_id = t.task_id AND s.group_id = $1
+      LEFT JOIN LATERAL (
+        SELECT s1.submission_id, s1.status, s1.version_no, s1.submitted_at
+        FROM submissions s1
+        WHERE s1.task_id = t.task_id
+          AND s1.group_id = $1
+        ORDER BY s1.version_no DESC, s1.created_at DESC
+        LIMIT 1
+      ) s ON true
       ORDER BY at2.start_date DESC, t.due_date ASC
     `,
     [groupId],

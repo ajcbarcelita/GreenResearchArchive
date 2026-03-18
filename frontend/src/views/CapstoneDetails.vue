@@ -1,7 +1,10 @@
 <template>
     <div class="min-h-screen flex flex-col bg-ash-white font-Montserrat">
         <header>
-            <Navbar />
+            <NavbarAdmin v-if="useAdminNavbar" />
+            <NavbarFaculty v-else-if="useFacultyNavbar" />
+            <NavbarCoordinator v-else-if="useCoordinatorNavbar" />
+            <Navbar v-else />
         </header>
 
         <main class="flex-1 container mx-auto px-6 py-6 pt-32">
@@ -88,21 +91,25 @@
                                     <p class="text-gray-700 leading-relaxed text-base">{{ capstone?.abstract }}</p>
                                 </div>
                             </div>
-                            
+
                             <!-- Keywords -->
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">Keywords</div>
                                 <div class="text-gray-900 font-medium text-base">{{ (capstone?.keywords || ['Tech','Try','Test','Dog','Cat']).join(', ') }}</div>
                             </div>
-                            
+
 
                             <!-- Download Button -->
                             <div class="mt-4 pt-2 border-t-2 border-gray-300">
-                                <button class="download-btn inline-flex items-center text-base px-6 py-3 bg-green-text text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition border-2 border-green-800">
+                                <button
+                                    class="download-btn inline-flex items-center text-base px-6 py-3 bg-green-text text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition border-2 border-green-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                                    :disabled="downloading"
+                                    @click="handleDownloadFiles"
+                                >
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m7-7H5" />
                                     </svg>
-                                    Download Transcript (PDF)
+                                    {{ downloading ? 'Downloading...' : 'Download Files' }}
                                 </button>
                             </div>
                         </div>
@@ -163,17 +170,72 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Navbar from '@/components/Navbar.vue'
+import NavbarFaculty from '@/components/NavbarFaculty.vue'
+import NavbarCoordinator from '@/components/NavbarCoordinator.vue'
+import NavbarAdmin from '@/components/NavbarAdmin.vue'
 import Footer from '@/components/Footer.vue'
-import { getCapstoneDetails } from '@/services/repositoryService'
+import { getCapstoneDetails, listCapstoneFiles, getCapstoneFileDownloadUrl } from '@/services/repositoryService'
+import { getStoredUser } from '@/services/authService'
 
 const route = useRoute()
+const user = ref(getStoredUser())
 const capstone = ref(null)
 const loading = ref(true)
+const downloading = ref(false)
 const MIN_LOAD_MS = 300
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+const normalizedRoleName = computed(() => String(user.value?.roleName || '').trim().toLowerCase())
+
+const useAdminNavbar = computed(() => normalizedRoleName.value === 'admin')
+
+const useFacultyNavbar = computed(() => normalizedRoleName.value === 'faculty')
+
+const useCoordinatorNavbar = computed(() => normalizedRoleName.value === 'coordinator')
+
+const triggerBrowserDownload = (url) => {
+    const link = document.createElement('a')
+    link.href = url
+    link.target = '_blank'
+    link.rel = 'noopener'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+}
+
+const handleDownloadFiles = async () => {
+    if (downloading.value) return
+
+    const submissionId = Number(route.params.id)
+    if (!Number.isInteger(submissionId) || submissionId <= 0) {
+        alert('Invalid submission ID.')
+        return
+    }
+
+    downloading.value = true
+    try {
+        const files = await listCapstoneFiles(submissionId)
+        if (!files.length) {
+            alert('No files found for this submission.')
+            return
+        }
+
+        // Trigger separate downloads for each submission file.
+        files.forEach((file, index) => {
+            const delay = index * 180
+            const url = getCapstoneFileDownloadUrl(file.fileId)
+            setTimeout(() => triggerBrowserDownload(url), delay)
+        })
+    } catch (e) {
+        console.error('Failed to download submission files', e)
+        alert('Failed to download files. Please try again.')
+    } finally {
+        downloading.value = false
+    }
+}
 
 const load = async (id) => {
     loading.value = true

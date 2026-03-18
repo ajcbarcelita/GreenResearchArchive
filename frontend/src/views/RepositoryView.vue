@@ -4,7 +4,6 @@ import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Chip from 'primevue/chip'
 import InputText from 'primevue/inputtext'
-import DatePicker from 'primevue/datepicker'
 import Paginator from 'primevue/paginator'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
@@ -26,10 +25,12 @@ const useFacultyNavbar = computed(() => {
   return normalizedRoleName === 'faculty'
 })
 
+const normalizedRoleName = computed(() => String(user.value?.roleName || '').trim().toLowerCase())
+
 const searchValue = ref('')
 const selectedProgram = ref('All')
+const selectedTerm = ref('All')
 const selectedSort = ref('submitted_desc')
-const selectedDate = ref(null)
 const pageStart = ref(0)
 const pageSize = ref(6)
 
@@ -51,7 +52,7 @@ onMounted(async () => {
   loading.value = true
   try {
     const [repositoryData, programsResponse] = await Promise.all([
-      listRepository(),
+      listRepository({ status: 'Archived' }),
       getDegreePrograms(),
     ])
 
@@ -103,15 +104,11 @@ const filteredItems = computed(() => {
 
     const matchesKeyword = !keyword || searchTarget.includes(keyword)
     const matchesProgram = selectedProgram.value === 'All' || item.programCode === selectedProgram.value
-    let matchesDate = true
-    if (selectedDate.value) {
-      // compare month/year against createdAt or submittedAt
-      const target = new Date(selectedDate.value)
-      const itemDate = item.submittedAt ? new Date(item.submittedAt) : new Date(item.createdAt)
-      matchesDate = itemDate.getMonth() === target.getMonth() && itemDate.getFullYear() === target.getFullYear()
-    }
+    const matchesTerm =
+      selectedTerm.value === 'All' ||
+      formatDbTerm(item.academicYear, item.termNo) === selectedTerm.value
 
-    return matchesKeyword && matchesProgram && matchesDate
+    return matchesKeyword && matchesProgram && matchesTerm
   })
 
   output = [...output].sort((a, b) => {
@@ -138,25 +135,86 @@ const pagedItems = computed(() => {
 const activeFilterPills = computed(() => {
   const pills = []
   if (selectedProgram.value !== 'All') pills.push(`Program: ${selectedProgram.value}`)
+  if (selectedTerm.value !== 'All') pills.push(`Term: ${selectedTerm.value}`)
   if (searchValue.value.trim()) pills.push(`Query: ${searchValue.value.trim()}`)
-  if (selectedDate.value) {
-    const d = new Date(selectedDate.value)
-    pills.push(`Date: ${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`)
-  }
   return pills
+})
+
+const formatDbTerm = (academicYear, termNo) => {
+  const year = String(academicYear || '').trim() || 'unknown-year'
+  const term = termNo === null || termNo === undefined || termNo === ''
+    ? 'unknown'
+    : String(termNo)
+
+  return `${year}-term-${term}`
+}
+
+const compareDbTerm = (a, b) => {
+  const matchA = String(a).match(/^(\d{4})-(\d{4})-term-(\d+)$/)
+  const matchB = String(b).match(/^(\d{4})-(\d{4})-term-(\d+)$/)
+
+  if (!matchA || !matchB) return String(a).localeCompare(String(b))
+
+  const startYearDiff = Number(matchA[1]) - Number(matchB[1])
+  if (startYearDiff !== 0) return startYearDiff
+
+  const endYearDiff = Number(matchA[2]) - Number(matchB[2])
+  if (endYearDiff !== 0) return endYearDiff
+
+  return Number(matchA[3]) - Number(matchB[3])
+}
+
+const termOptions = computed(() => {
+  const values = Array.from(
+    new Set(
+      repositoryItems.value
+        .map((item) => formatDbTerm(item?.academicYear, item?.termNo)),
+    ),
+  ).sort(compareDbTerm)
+
+  return ['All', ...values]
 })
 
 const clearFilters = () => {
   searchValue.value = ''
   selectedProgram.value = 'All'
+  selectedTerm.value = 'All'
   selectedSort.value = 'submitted_desc'
-  selectedDate.value = null
   pageStart.value = 0
 }
 
 const onPageChange = (event) => {
   pageStart.value = event.first
   pageSize.value = event.rows
+}
+
+const getCapstoneDetailsRoute = (submissionId) => {
+  if (normalizedRoleName.value === 'faculty') {
+    return { name: 'faculty-capstone-details', params: { id: submissionId } }
+  }
+
+  if (normalizedRoleName.value === 'coordinator') {
+    return { name: 'coordinator-capstone-details', params: { id: submissionId } }
+  }
+
+  if (normalizedRoleName.value === 'admin') {
+    return { name: 'admin-capstone-details', params: { id: submissionId } }
+  }
+
+  return { name: 'student-capstone-details', params: { id: submissionId } }
+}
+
+const formatSubmittedDateTime = (value) => {
+  if (!value) return 'Not submitted'
+
+  return new Date(value).toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 </script>
@@ -198,7 +256,12 @@ const onPageChange = (event) => {
               />
             </span>
 
-            <DatePicker v-model="selectedDate" view="month" dateFormat="mm/yy" placeholder="Month/Year" />
+            <Select
+              v-model="selectedTerm"
+              :options="termOptions"
+              placeholder="Filter term"
+              @change="pageStart = 0"
+            />
 
             <Select
               v-model="selectedProgram"
@@ -258,7 +321,7 @@ const onPageChange = (event) => {
               </div>
               <div>
                 <span class="meta-label">Submitted</span>
-                <p>{{ item.submittedAt || 'Not submitted' }}</p>
+                <p>{{ formatSubmittedDateTime(item.submittedAt) }}</p>
               </div>
               <div>
                 <span class="meta-label">Files</span>
@@ -267,7 +330,7 @@ const onPageChange = (event) => {
             </div>
 
             <div class="action-row">
-              <router-link :to="{ name: 'capstone-details', params: { id: item.submissionId } }">
+              <router-link :to="getCapstoneDetailsRoute(item.submissionId)">
                 <Button label="View Details" />
               </router-link>
             </div>

@@ -41,6 +41,7 @@ const uploading = ref(false)
 const submissionFiles = ref([])
 const currentSubmissionId = ref(null)
 const currentGroupName = ref('No Group')
+const currentVersionNo = ref(null)
 
 const status = ref('Draft')
 
@@ -73,7 +74,6 @@ const submissionSupportText = computed(() => {
 })
 
 const form = ref({
-  version: 'v1.0',
   title: '',
   keywords: '',
   researchFields: '',
@@ -84,16 +84,23 @@ const form = ref({
 
 const submissionHistory = ref([])
 
-const parseVersionNo = () => {
-  const raw = String(form.value.version || '').trim().toLowerCase().replace(/^v/, '')
-  const parsed = Number.parseInt(raw, 10)
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1
-}
-
 const formatFileSizeMb = (value) => {
   const bytes = Number(value)
   if (!Number.isFinite(bytes) || bytes <= 0) return '0.00 MB'
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+}
+
+const formatPhilippineDateTime = (value) => {
+  if (!value) return 'N/A'
+
+  return new Date(value).toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 const normalizeOptionalInput = (value) => {
@@ -133,14 +140,16 @@ const loadSubmission = async () => {
     const reviewer = response?.reviewer || null
 
     currentSubmissionId.value = submission?.submissionId || null
+    currentVersionNo.value = submission?.versionNo || null
     status.value = submission?.status || 'Draft'
     currentGroupName.value = group?.groupName || 'No Group'
     currentReviewerName.value = reviewer?.reviewerName || 'Not assigned'
 
-    form.value.version = submission?.versionNo ? `v${submission.versionNo}` : 'v1.0'
     form.value.title = submission?.title || ''
     form.value.keywords = Array.isArray(submission?.keywords) ? submission.keywords.join(', ') : ''
-    form.value.researchFields = ''
+    form.value.researchFields = Array.isArray(submission?.researchFields)
+      ? submission.researchFields.join(', ')
+      : ''
     form.value.abstract = submission?.abstract || ''
     form.value.repositoryLink = submission?.repositoryLink || ''
     form.value.demoLink = submission?.demoLink || ''
@@ -149,9 +158,14 @@ const loadSubmission = async () => {
     currentTaskName.value = response?.task?.taskName || ''
     currentAcademicYear.value = response?.task?.academicYear || ''
     currentTermNo.value = response?.task?.termNo || null
-    submissionHistory.value = history.map((item) => ({
+    const effectiveTaskId = currentTaskId.value || response?.task?.taskId || submission?.taskId || null
+    const filteredHistory = effectiveTaskId
+      ? history.filter((item) => Number(item?.taskId) === Number(effectiveTaskId))
+      : history
+
+    submissionHistory.value = filteredHistory.map((item) => ({
       version: `v${item.versionNo}`,
-      submittedAt: item.submittedAt || item.createdAt || 'N/A',
+      submittedAt: formatPhilippineDateTime(item.submittedAt || item.createdAt),
       submittedBy: currentSubmitterName.value,
       reviewerName: currentReviewerName.value,
       status: item.status,
@@ -172,13 +186,22 @@ const loadSubmission = async () => {
 
 const canSubmit = computed(
   () =>
-    Boolean(form.value.version.trim()) &&
     Boolean(form.value.title.trim()) &&
     Boolean(form.value.abstract.trim()) &&
+    submissionFiles.value.length > 0 &&
     (!requiresKeywordAndResearchField.value ||
       (parseCsvValues(form.value.keywords).length > 0 &&
         parseCsvValues(form.value.researchFields).length > 0)),
 )
+
+const assignedVersionLabel = computed(() => {
+  if (!currentVersionNo.value) return 'Will be assigned on first save'
+
+  const nextVersion =
+    status.value === 'Draft' ? currentVersionNo.value : Number(currentVersionNo.value) + 1
+
+  return `v${nextVersion}`
+})
 
 const statusSeverity = computed(() => {
   if (status.value === 'Approved') return 'success'
@@ -206,7 +229,6 @@ async function handleUpload(event) {
     for (const file of files) {
       await uploadCurrentSubmissionFile({
         file,
-        versionNo: parseVersionNo(),
         taskId: currentTaskId.value,
       })
     }
@@ -238,8 +260,8 @@ async function saveDraft() {
       ...(currentTaskId.value ? { taskId: currentTaskId.value } : {}),
       title: form.value.title,
       abstract: form.value.abstract,
-      versionNo: parseVersionNo(),
       keywords: parseCsvValues(form.value.keywords),
+      researchFields: parseCsvValues(form.value.researchFields),
       repositoryLink: normalizeOptionalInput(form.value.repositoryLink),
       demoLink: normalizeOptionalInput(form.value.demoLink),
     })
@@ -264,14 +286,24 @@ async function saveDraft() {
   }
 }
 
+const buildSubmissionPayload = () => ({
+  ...(currentTaskId.value ? { taskId: currentTaskId.value } : {}),
+  title: form.value.title,
+  abstract: form.value.abstract,
+  keywords: parseCsvValues(form.value.keywords),
+  researchFields: parseCsvValues(form.value.researchFields),
+  repositoryLink: normalizeOptionalInput(form.value.repositoryLink),
+  demoLink: normalizeOptionalInput(form.value.demoLink),
+})
+
 async function submitFinal() {
   if (!canSubmit.value) {
     toast.add({
       severity: 'warn',
       summary: 'Incomplete submission',
       detail: requiresKeywordAndResearchField.value
-        ? 'Complete all required fields, including Keywords and Research Field.'
-        : 'Complete all required fields before submitting.',
+        ? 'Complete all required fields, including Keywords and Research Field, and upload at least one file.'
+        : 'Complete all required fields and upload at least one file before submitting.',
       life: 3500,
     })
     return
@@ -279,6 +311,7 @@ async function submitFinal() {
 
   submitting.value = true
   try {
+    await saveCurrentSubmission(buildSubmissionPayload())
     await submitCurrentSubmission(currentTaskId.value)
     toast.add({
       severity: 'success',
@@ -366,12 +399,11 @@ onMounted(() => {
         <Card class="panel-card md:col-span-12">
           <template #title>Submission Details</template>
           <template #content>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="field-wrap">
-                <label class="field-label">Version <span class="req">*</span></label>
-                <InputText v-model="form.version" class="w-full" placeholder="e.g., v1.0" />
-              </div>
+            <div class="version-display">
+              <span class="field-label">Assigned Version</span>
+              <Tag :value="assignedVersionLabel" severity="secondary" rounded />
             </div>
+            <p class="support-text">Version is assigned automatically by the system.</p>
 
             <div class="mt-4 field-wrap">
               <label class="field-label">Submission Title <span class="req">*</span></label>
@@ -431,7 +463,7 @@ onMounted(() => {
 
             <div class="mt-5 flex flex-wrap gap-2">
               <Button label="Save Draft" severity="secondary" outlined :loading="saving" @click="saveDraft" />
-              <Button label="Submit" :disabled="!canSubmit || loading" :loading="submitting" @click="submitFinal" />
+              <Button label="Submit" :disabled="!canSubmit || loading || saving || submitting" :loading="submitting" @click="submitFinal" />
             </div>
           </template>
         </Card>
@@ -532,7 +564,14 @@ onMounted(() => {
         <Card class="panel-card md:col-span-12">
           <template #title>Submission History</template>
           <template #content>
-            <DataTable :value="submissionHistory" stripedRows size="small" responsiveLayout="scroll">
+            <DataTable
+              :value="submissionHistory"
+              stripedRows
+              size="small"
+              responsiveLayout="scroll"
+              paginator
+              :rows="5"
+            >
               <Column field="version" header="Version" />
               <Column field="submittedAt" header="Submitted At" />
               <Column field="submittedBy" header="Submitted By" />
@@ -588,6 +627,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+}
+
+.version-display {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .field-label {
