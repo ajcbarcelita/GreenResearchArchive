@@ -195,6 +195,13 @@ const handleRowClick = ({ data }) => {
   })
 }
 
+const resetFilters = () => {
+  query.value = ''
+  selectedTask.value = 'All'
+  selectedTerm.value = 'All'
+  versionMode.value = 'latest'
+}
+
 onMounted(loadSubmissions)
 </script>
 
@@ -241,6 +248,7 @@ onMounted(loadSubmissions)
       <Card class="table-card mt-4">
         <template #content>
           <DataTable
+            v-if="filteredRows.length || loading"
             :value="filteredRows"
             :loading="loading"
             paginator
@@ -288,6 +296,12 @@ onMounted(loadSubmissions)
               </template>
             </Column>
           </DataTable>
+
+          <div v-else class="empty-state">
+            <h3>No submissions found</h3>
+            <p>Try adjusting your search query or task/term filters.</p>
+            <Button label="Reset Filters" severity="secondary" @click="resetFilters" />
+          </div>
         </template>
       </Card>
     </main>
@@ -407,6 +421,27 @@ onMounted(loadSubmissions)
 :deep(.unarchive-btn.p-button:hover) {
   background: #e9ecef;
   border-color: #c8cfd6;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 260px;
+  text-align: center;
+}
+
+.empty-state h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #17362b;
+}
+
+.empty-state p {
+  margin: 0 0 0.5rem;
+  color: #456254;
 }
 
 @media (max-width: 960px) {
