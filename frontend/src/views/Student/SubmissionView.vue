@@ -188,6 +188,7 @@ const canSubmit = computed(
   () =>
     Boolean(form.value.title.trim()) &&
     Boolean(form.value.abstract.trim()) &&
+    submissionFiles.value.length > 0 &&
     (!requiresKeywordAndResearchField.value ||
       (parseCsvValues(form.value.keywords).length > 0 &&
         parseCsvValues(form.value.researchFields).length > 0)),
@@ -301,8 +302,8 @@ async function submitFinal() {
       severity: 'warn',
       summary: 'Incomplete submission',
       detail: requiresKeywordAndResearchField.value
-        ? 'Complete all required fields, including Keywords and Research Field.'
-        : 'Complete all required fields before submitting.',
+        ? 'Complete all required fields, including Keywords and Research Field, and upload at least one file.'
+        : 'Complete all required fields and upload at least one file before submitting.',
       life: 3500,
     })
     return

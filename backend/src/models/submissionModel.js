@@ -4,11 +4,29 @@ export const findSubmissionById = async (db, submissionId) => {
       SELECT s.submission_id, s.group_id, s.title, s.abstract, s.keywords, s.version_no, s.status, s.is_locked, s.created_at, s.submitted_at, s.archived_at,
              cg.group_name,
              rp.program_code,
+              t.task_id,
+              t.task_name,
+              at.academic_year,
+              at.term_no,
+             EXISTS (
+               SELECT 1
+               FROM submission_files sf
+               WHERE sf.submission_id = s.submission_id
+                 AND sf.file_type = 'Capstone Paper'
+             ) AS has_capstone_paper,
+             EXISTS (
+               SELECT 1
+               FROM submission_files sf
+               WHERE sf.submission_id = s.submission_id
+                 AND sf.file_type = 'Dataset'
+             ) AS has_dataset,
              adv.fname AS adviser_fname,
              adv.lname AS adviser_lname
       FROM submissions s
       LEFT JOIN capstone_groups cg ON cg.group_id = s.group_id
       LEFT JOIN ref_degree_programs rp ON rp.program_id = cg.program_id
+            LEFT JOIN tasks t ON t.task_id = s.task_id
+            LEFT JOIN academic_terms at ON at.term_id = t.term_id
       LEFT JOIN users adv ON adv.user_id = cg.group_adviser
       WHERE s.submission_id = $1
       LIMIT 1
@@ -48,6 +66,22 @@ export const listSubmissions = async (db, { status, programId, q } = {}) => {
     SELECT s.submission_id, s.group_id, s.title, s.abstract, s.keywords, s.version_no, s.status, s.is_locked, s.created_at, s.submitted_at,
            cg.group_name, cg.program_id,
            rp.program_code,
+           t.task_id,
+           t.task_name,
+           at.academic_year,
+           at.term_no,
+           EXISTS (
+             SELECT 1
+             FROM submission_files sf
+             WHERE sf.submission_id = s.submission_id
+               AND sf.file_type = 'Capstone Paper'
+           ) AS has_capstone_paper,
+           EXISTS (
+             SELECT 1
+             FROM submission_files sf
+             WHERE sf.submission_id = s.submission_id
+               AND sf.file_type = 'Dataset'
+           ) AS has_dataset,
            adv.fname AS adviser_fname,
            adv.lname AS adviser_lname
            , (
@@ -59,6 +93,8 @@ export const listSubmissions = async (db, { status, programId, q } = {}) => {
     FROM submissions s
     LEFT JOIN capstone_groups cg ON cg.group_id = s.group_id
     LEFT JOIN ref_degree_programs rp ON rp.program_id = cg.program_id
+    LEFT JOIN tasks t ON t.task_id = s.task_id
+    LEFT JOIN academic_terms at ON at.term_id = t.term_id
     LEFT JOIN users adv ON adv.user_id = cg.group_adviser
     ${where}
     ORDER BY s.submitted_at DESC NULLS LAST, s.created_at DESC
@@ -144,9 +180,14 @@ export const updateSubmissionStatus = async (db, { submissionId, status }) => {
             WHEN $1::submission_status = 'Submitted'::submission_status
             THEN CURRENT_TIMESTAMP
             ELSE submitted_at
+          END,
+          archived_at = CASE
+            WHEN $1::submission_status = 'Archived'::submission_status
+            THEN CURRENT_TIMESTAMP
+            ELSE NULL
           END
       WHERE submission_id = $2
-      RETURNING submission_id, status, submitted_at
+      RETURNING submission_id, status, submitted_at, archived_at
     `,
     [status, submissionId],
   );
