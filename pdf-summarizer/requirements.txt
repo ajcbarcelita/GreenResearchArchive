@@ -7,3 +7,5 @@ python-dotenv>=1.0.0           # For loading .env API keys locally
 docling>=2.8.0
 google-genai
 langchain-text-splitters
+pypdf
+pypdfium2
