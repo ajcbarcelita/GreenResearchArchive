@@ -2,6 +2,7 @@ import { api as authApi } from "./authService";
 
 export const getAdvisoryLoad = async (params = {}) => {
   const response = await authApi.get("/api/advisory/load", { params });
+  const data = response?.data;
   return {
     rows: data?.data || [],
     summary: data?.summary || {},
