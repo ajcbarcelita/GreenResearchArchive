@@ -5,18 +5,20 @@ import Column from 'primevue/column'
 import DataTable from 'primevue/datatable'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
-import Select from 'primevue/select'
 import Button from 'primevue/button'
+import Calendar from 'primevue/calendar'
 import Tag from 'primevue/tag'
 import ToggleSwitch from 'primevue/toggleswitch'
 import NavbarCoordinator from '@/components/NavbarCoordinator.vue'
 import Footer from '@/components/Footer.vue'
-import { getCoordinatorTasks, toggleCoordinatorTaskLock } from '@/services/advisoryService'
+import { getCoordinatorTasks, getCoordinatorTerms, toggleCoordinatorTaskLock } from '@/services/advisoryService'
 
 const loading = ref(false)
 const allTaskRows = ref([])
+const academicTerms = ref([])
 const query = ref('')
-const selectedTerm = ref('All')
+const selectedYear = ref('')
+const selectedTermNo = ref(null)
 const togglingTaskIds = ref(new Set())
 
 const showCreateDialog = ref(false)
@@ -25,7 +27,8 @@ const createForm = ref({
   taskName: '',
   description: '',
   dueDate: '',
-  term: null,
+  termYear: null,
+  termNo: null,
   autoLockAfterDueDate: false,
 })
 const showEditDialog = ref(false)
@@ -35,9 +38,16 @@ const editForm = ref({
   taskName: '',
   description: '',
   dueDate: '',
-  term: null,
+  termYear: null,
+  termNo: null,
   autoLockAfterDueDate: false,
 })
+
+const formatDbTerm = (academicYear, termNo) => {
+  const year = String(academicYear || '').trim() || 'unknown-year'
+  const term = termNo === null || termNo === undefined || termNo === '' ? 'unknown' : String(termNo)
+  return `${year}-term-${term}`
+}
 
 const termLabel = (academicYear, termNo) => {
   if (!academicYear && !termNo) return 'Unspecified Term'
@@ -57,29 +67,44 @@ const formatDateTime = (value) => {
   })
 }
 
-const termOptions = computed(() => {
-  const uniqueLabels = Array.from(new Set(allTaskRows.value.map((row) => row.term).filter(Boolean)))
-    .sort((a, b) => a.localeCompare(b))
+const isValidAcademicYear = (value) => {
+  const match = String(value || '').trim().match(/^(\d{4})-(\d{4})$/)
+  if (!match) return false
+  return Number(match[2]) === Number(match[1]) + 1
+}
 
-  return ['All', ...uniqueLabels]
-})
+const isValidTermNo = (value) => {
+  const num = Number(value)
+  return Number.isInteger(num) && num >= 1 && num <= 3
+}
 
-const createTermOptions = computed(() => {
-  const seen = new Map()
+const academicYearPattern = '^\\d{4}-\\d{4}$'
 
-  for (const row of allTaskRows.value) {
-    const key = `${row.academicYear || 'Unspecified Year'}::${row.termNo || 'N/A'}`
-    if (!seen.has(key)) {
-      seen.set(key, {
-        label: row.term,
-        academicYear: row.academicYear,
-        termNo: row.termNo,
-      })
-    }
+const getDefaultAcademicYear = () => {
+  const candidates = new Set(
+    academicTerms.value
+      .map((t) => String(t.academicYear || '').trim())
+      .filter((v) => isValidAcademicYear(v)),
+  )
+
+  if (candidates.size === 0) {
+    const year = new Date().getFullYear()
+    return `${year}-${year + 1}`
   }
 
-  return Array.from(seen.values()).sort((a, b) => String(a.label).localeCompare(String(b.label)))
-})
+  const sorted = Array.from(candidates).sort((a, b) => {
+    const aStart = Number(a.split('-')[0])
+    const bStart = Number(b.split('-')[0])
+    return bStart - aStart
+  })
+
+  return sorted[0]
+}
+
+const getDefaultTermNo = () => {
+  // Prefer term 1 by default
+  return 1
+}
 
 const filteredRows = computed(() => {
   const q = query.value.trim().toLowerCase()
@@ -89,15 +114,28 @@ const filteredRows = computed(() => {
       !q ||
       [row.taskName, row.description, row.programCodes.join(' ')].join(' ').toLowerCase().includes(q)
 
-    const matchesTerm = selectedTerm.value === 'All' || row.term === selectedTerm.value
+    const yearFilter = String(selectedYear.value || '').trim()
+    const matchesYear =
+      !yearFilter ||
+      (isValidAcademicYear(yearFilter) && String(row.academicYear) === yearFilter)
 
-    return matchesQuery && matchesTerm
+    const termFilter = selectedTermNo.value
+    const matchesTermNo =
+      termFilter === null ||
+      termFilter === '' ||
+      (isValidTermNo(termFilter) &&
+        row.termNo !== null &&
+        row.termNo !== undefined &&
+        Number(row.termNo) === Number(termFilter))
+
+    return matchesQuery && matchesYear && matchesTermNo
   })
 })
 
 const resetFilters = () => {
   query.value = ''
-  selectedTerm.value = 'All'
+  selectedYear.value = ''
+  selectedTermNo.value = null
 }
 
 const openCreateTask = () => {
@@ -105,7 +143,8 @@ const openCreateTask = () => {
     taskName: '',
     description: '',
     dueDate: '',
-    term: createTermOptions.value[0] || null,
+    termYear: getDefaultAcademicYear(),
+    termNo: getDefaultTermNo(),
     autoLockAfterDueDate: false,
   }
   showCreateDialog.value = true
@@ -120,19 +159,34 @@ const createTaskLocally = async () => {
     return
   }
 
+  const selectedYear = createForm.value.termYear
+  const selectedTermNo = createForm.value.termNo
+
+  if (!isValidAcademicYear(selectedYear)) {
+    alert('Academic year must be in format YYYY-YYYY and the second year must follow the first.')
+    return
+  }
+
+  if (!isValidTermNo(selectedTermNo)) {
+    alert('Term number must be a number between 1 and 3.')
+    return
+  }
+
+  const termNoNumber = Number(selectedTermNo)
+  const nowIso = new Date().toISOString()
+
   creating.value = true
   try {
-    const selected = createForm.value.term
-    const nowIso = new Date().toISOString()
-
     allTaskRows.value = [
       {
         taskId: `draft-${Date.now()}`,
         taskName,
         description: String(createForm.value.description || '').trim() || 'No description',
-        term: selected?.label || 'Unspecified Term',
-        academicYear: selected?.academicYear || null,
-        termNo: selected?.termNo || null,
+        term: termLabel(selectedYear, termNoNumber),
+        termKey: formatDbTerm(selectedYear, termNoNumber),
+        termId: null,
+        academicYear: selectedYear || null,
+        termNo: termNoNumber,
         dueDate: createForm.value.dueDate || null,
         autoLockAfterDueDate: createForm.value.autoLockAfterDueDate === true,
         createdAt: nowIso,
@@ -151,18 +205,13 @@ const createTaskLocally = async () => {
 }
 
 const openEditTask = (row) => {
-  const selectedTerm = createTermOptions.value.find(
-    (option) =>
-      String(option.academicYear || '') === String(row.academicYear || '') &&
-      String(option.termNo || '') === String(row.termNo || ''),
-  )
-
   editForm.value = {
     taskId: row.taskId,
     taskName: row.taskName || '',
     description: row.description || '',
     dueDate: row.dueDate || '',
-    term: selectedTerm || null,
+    termYear: row.academicYear || null,
+    termNo: row.termNo || null,
     autoLockAfterDueDate: row.autoLockAfterDueDate === true,
   }
   showEditDialog.value = true
@@ -177,20 +226,36 @@ const saveTaskLocally = async () => {
     return
   }
 
+  const selectedYear = editForm.value.termYear
+  const selectedTermNo = editForm.value.termNo
+
+  if (!isValidAcademicYear(selectedYear)) {
+    alert('Academic year must be in format YYYY-YYYY and follow sequential years.')
+    return
+  }
+
+  if (!isValidTermNo(selectedTermNo)) {
+    alert('Term number must be an integer between 1 and 3.')
+    return
+  }
+
+  const termNoNumber = Number(selectedTermNo)
+
   editing.value = true
   try {
     allTaskRows.value = allTaskRows.value.map((row) => {
       if (row.taskId !== editForm.value.taskId) return row
 
-      const selected = editForm.value.term
       return {
         ...row,
         taskName,
         description: String(editForm.value.description || '').trim() || 'No description',
         dueDate: editForm.value.dueDate || null,
-        term: selected?.label || row.term,
-        academicYear: selected?.academicYear || row.academicYear,
-        termNo: selected?.termNo || row.termNo,
+        term: termLabel(selectedYear, termNoNumber),
+        termKey: formatDbTerm(selectedYear, termNoNumber),
+        termId: row.termId || null,
+        academicYear: selectedYear || row.academicYear,
+        termNo: termNoNumber,
         autoLockAfterDueDate: editForm.value.autoLockAfterDueDate === true,
       }
     })
@@ -241,8 +306,9 @@ const toggleTaskLock = async (row) => {
 const loadTaskRows = async () => {
   loading.value = true
   try {
-    const data = await getCoordinatorTasks()
-    const rows = Array.isArray(data) ? data : []
+    const [taskData, termData] = await Promise.all([getCoordinatorTasks(), getCoordinatorTerms()])
+    const rows = Array.isArray(taskData) ? taskData : []
+    academicTerms.value = Array.isArray(termData) ? termData : []
 
     allTaskRows.value = rows
       .map((item) => ({
@@ -250,6 +316,8 @@ const loadTaskRows = async () => {
         taskName: item.taskName || 'Untitled Task',
         description: item.description || 'No description',
         term: termLabel(item.academicYear, item.termNo),
+        termKey: formatDbTerm(item.academicYear, item.termNo),
+        termId: item.termId || null,
         academicYear: item.academicYear || null,
         termNo: item.termNo || null,
         dueDate: item.dueDate || null,
@@ -306,7 +374,22 @@ onMounted(loadTaskRows)
         <template #content>
           <div class="filter-grid">
             <InputText v-model="query" placeholder="Search task" />
-            <Select v-model="selectedTerm" :options="termOptions" placeholder="Academic Term" />
+            <div class="term-filters">
+              <InputText
+                v-model="selectedYear"
+                placeholder="YYYY-YYYY"
+                :pattern="academicYearPattern"
+                class="w-full"
+              />
+              <InputText
+                v-model.number="selectedTermNo"
+                type="number"
+                min="1"
+                max="3"
+                placeholder="Term #"
+                class="w-full"
+              />
+            </div>
             <Button label="Reset" severity="secondary" outlined @click="resetFilters" />
           </div>
         </template>
@@ -393,13 +476,37 @@ onMounted(loadTaskRows)
         </div>
 
         <div>
-          <label class="form-label">Term</label>
-          <Select v-model="createForm.term" :options="createTermOptions" optionLabel="label" class="w-full" placeholder="Select term" />
+          <label class="form-label">Academic Year</label>
+          <InputText
+            v-model="createForm.termYear"
+            placeholder="YYYY-YYYY"
+            :pattern="academicYearPattern"
+            class="w-full"
+          />
+        </div>
+
+        <div>
+          <label class="form-label">Term #</label>
+          <InputText
+            v-model.number="createForm.termNo"
+            type="number"
+            min="1"
+            max="3"
+            class="w-full"
+            placeholder="e.g. 1"
+          />
         </div>
 
         <div>
           <label class="form-label">Due Date</label>
-          <InputText v-model="createForm.dueDate" class="w-full" placeholder="YYYY-MM-DD HH:mm" />
+          <Calendar
+            v-model="createForm.dueDate"
+            show-time
+            hour-format="12"
+            date-format="yy-mm-dd"
+            class="w-full"
+            placeholder="Select date and time"
+          />
         </div>
 
         <div>
@@ -442,13 +549,37 @@ onMounted(loadTaskRows)
         </div>
 
         <div>
-          <label class="form-label">Term</label>
-          <Select v-model="editForm.term" :options="createTermOptions" optionLabel="label" class="w-full" placeholder="Select term" />
+          <label class="form-label">Academic Year</label>
+          <InputText
+            v-model="editForm.termYear"
+            placeholder="YYYY-YYYY"
+            :pattern="academicYearPattern"
+            class="w-full"
+          />
+        </div>
+
+        <div>
+          <label class="form-label">Term #</label>
+          <InputText
+            v-model.number="editForm.termNo"
+            type="number"
+            min="1"
+            max="3"
+            class="w-full"
+            placeholder="e.g. 1"
+          />
         </div>
 
         <div>
           <label class="form-label">Due Date</label>
-          <InputText v-model="editForm.dueDate" class="w-full" placeholder="YYYY-MM-DD HH:mm" />
+          <Calendar
+            v-model="editForm.dueDate"
+            show-time
+            hour-format="12"
+            date-format="yy-mm-dd"
+            class="w-full"
+            placeholder="Select date and time"
+          />
         </div>
 
         <div>
@@ -525,8 +656,14 @@ onMounted(loadTaskRows)
 
 .filter-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr auto;
+  grid-template-columns: 2fr 1.2fr auto;
   gap: 0.75rem;
+}
+
+.term-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
 }
 
 :deep(.hero-card.p-card),
