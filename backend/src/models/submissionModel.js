@@ -1,7 +1,7 @@
 export const findSubmissionById = async (db, submissionId) => {
   const result = await db.query(
     `
-      SELECT s.submission_id, s.group_id, s.title, s.abstract, s.keywords, s.version_no, s.status, s.is_locked, s.created_at, s.submitted_at, s.archived_at,
+      SELECT s.submission_id, s.group_id, s.title, s.abstract, s.summary, s.keywords, s.version_no, s.status, s.is_locked, s.created_at, s.submitted_at, s.archived_at,
              cg.group_name,
              rp.program_code,
               t.task_id,
@@ -54,7 +54,7 @@ export const listSubmissions = async (db, { status, programId, q } = {}) => {
   if (q) {
     params.push(`%${q}%`);
     whereClauses.push(
-      `(s.title ILIKE $${params.length} OR s.abstract ILIKE $${params.length} OR s.keywords::text ILIKE $${params.length})`,
+      `(s.title ILIKE $${params.length} OR s.abstract ILIKE $${params.length} OR COALESCE(s.summary, '') ILIKE $${params.length} OR s.keywords::text ILIKE $${params.length})`,
     );
   }
 
@@ -63,7 +63,7 @@ export const listSubmissions = async (db, { status, programId, q } = {}) => {
     : "";
 
   const sql = `
-    SELECT s.submission_id, s.group_id, s.title, s.abstract, s.keywords, s.version_no, s.status, s.is_locked, s.created_at, s.submitted_at,
+    SELECT s.submission_id, s.group_id, s.title, s.abstract, s.summary, s.keywords, s.version_no, s.status, s.is_locked, s.created_at, s.submitted_at,
            cg.group_name, cg.program_id,
            rp.program_code,
            t.task_id,
@@ -111,6 +111,7 @@ export const insertSubmission = async (
     groupId,
     title,
     abstract,
+    summary = null,
     keywords,
     versionNo,
     status = "Draft",
@@ -119,11 +120,21 @@ export const insertSubmission = async (
 ) => {
   const result = await db.query(
     `
-      INSERT INTO submissions (task_id, group_id, title, abstract, keywords, version_no, status, is_locked, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
-      RETURNING submission_id, group_id, title, abstract, keywords, version_no, status, is_locked, created_at
+      INSERT INTO submissions (task_id, group_id, title, abstract, summary, keywords, version_no, status, is_locked, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+      RETURNING submission_id, group_id, title, abstract, summary, keywords, version_no, status, is_locked, created_at
     `,
-    [taskId, groupId, title, abstract, keywords, versionNo, status, isLocked],
+    [
+      taskId,
+      groupId,
+      title,
+      abstract,
+      summary,
+      keywords,
+      versionNo,
+      status,
+      isLocked,
+    ],
   );
 
   return result.rows[0];
@@ -232,16 +243,30 @@ export const updateSubmissionStatus = async (db, { submissionId, status }) => {
 
 export const updateSubmission = async (
   db,
-  { submissionId, title, abstract, keywords, versionNo, isLocked },
+  { submissionId, title, abstract, summary, keywords, versionNo, isLocked },
 ) => {
   const result = await db.query(
     `
       UPDATE submissions
-      SET title = $1, abstract = $2, keywords = $3, version_no = $4, is_locked = $5
-      WHERE submission_id = $6
-      RETURNING submission_id, group_id, title, abstract, keywords, version_no, status, is_locked, created_at, submitted_at
+      SET title = $1, abstract = $2, summary = $3, keywords = $4, version_no = $5, is_locked = $6
+      WHERE submission_id = $7
+      RETURNING submission_id, group_id, title, abstract, summary, keywords, version_no, status, is_locked, created_at, submitted_at
     `,
-    [title, abstract, keywords, versionNo, isLocked, submissionId],
+    [title, abstract, summary, keywords, versionNo, isLocked, submissionId],
+  );
+
+  return result.rows[0] || null;
+};
+
+export const updateSubmissionSummary = async (db, { submissionId, summary }) => {
+  const result = await db.query(
+    `
+      UPDATE submissions
+      SET summary = $1
+      WHERE submission_id = $2
+      RETURNING submission_id, task_id, group_id, title, abstract, summary, keywords, version_no, status, is_locked, created_at, submitted_at, archived_at
+    `,
+    [summary, submissionId],
   );
 
   return result.rows[0] || null;
@@ -250,7 +275,7 @@ export const updateSubmission = async (
 export const listSubmissionsByGroupId = async (db, groupId) => {
   const result = await db.query(
     `
-      SELECT submission_id, task_id, group_id, title, abstract, keywords, version_no, status, is_locked, created_at, submitted_at, archived_at
+      SELECT submission_id, task_id, group_id, title, abstract, summary, keywords, version_no, status, is_locked, created_at, submitted_at, archived_at
       FROM submissions
       WHERE group_id = $1
       ORDER BY version_no DESC, created_at DESC
@@ -264,7 +289,7 @@ export const listSubmissionsByGroupId = async (db, groupId) => {
 export const findSubmissionByGroupAndTask = async (db, groupId, taskId) => {
   const result = await db.query(
     `
-      SELECT submission_id, task_id, group_id, title, abstract, keywords, version_no, status, is_locked, created_at, submitted_at, archived_at
+      SELECT submission_id, task_id, group_id, title, abstract, summary, keywords, version_no, status, is_locked, created_at, submitted_at, archived_at
       FROM submissions
       WHERE group_id = $1 AND task_id = $2
       ORDER BY version_no DESC, created_at DESC
@@ -278,7 +303,7 @@ export const findSubmissionByGroupAndTask = async (db, groupId, taskId) => {
 export const findLatestModifiedSubmissionByGroupId = async (db, groupId) => {
   const result = await db.query(
     `
-      SELECT submission_id, task_id, group_id, title, abstract, keywords, version_no, status, is_locked, created_at, submitted_at, archived_at
+      SELECT submission_id, task_id, group_id, title, abstract, summary, keywords, version_no, status, is_locked, created_at, submitted_at, archived_at
       FROM submissions
       WHERE group_id = $1
       ORDER BY COALESCE(submitted_at, created_at) DESC, created_at DESC, version_no DESC

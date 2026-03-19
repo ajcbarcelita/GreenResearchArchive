@@ -13,6 +13,7 @@ import {
   listTasksWithSubmissionStatus,
   replaceSubmissionResearchFields,
   updateSubmission,
+  updateSubmissionSummary,
   updateSubmissionStatus,
 } from "../models/submissionModel.js";
 import {
@@ -24,13 +25,20 @@ import {
 } from "../models/submissionFileModel.js";
 import { findUserProfileById } from "../models/userModel.js";
 import { createObject, deleteObject } from "../services/s3CrudService.js";
+import { summarizeSubmissionFileFromS3 } from "../services/submissionSummaryService.js";
 
 const saveSubmissionSchema = Joi.object({
   taskId: Joi.number().integer().positive().optional(),
   title: Joi.string().trim().max(300).required(),
   abstract: Joi.string().trim().required(),
+  summary: Joi.string().allow("").max(20000).optional(),
   keywords: Joi.array().items(Joi.string().trim().max(100)).default([]),
   researchFields: Joi.array().items(Joi.string().trim().max(100)).default([]),
+});
+
+const generateSummarySchema = Joi.object({
+  taskId: Joi.number().integer().positive().optional(),
+  fileId: Joi.number().integer().positive().optional(),
 });
 
 const uploadFileSchema = Joi.object({
@@ -172,6 +180,7 @@ const mapSubmission = (submission) => ({
   taskId: submission.task_id,
   groupId: submission.group_id,
   title: submission.title,
+  summary: submission.summary || "",
   keywords: submission.keywords || [],
   researchFields: submission.research_fields || [],
   abstract: submission.abstract,
@@ -452,6 +461,7 @@ export const saveCurrentStudentSubmission = async (req, res, next) => {
         groupId: group.group_id,
         title: value.title,
         abstract: value.abstract,
+        summary: value.summary || null,
         keywords: value.keywords || [],
         versionNo: assignedVersionNo,
         status: "Draft",
@@ -462,6 +472,7 @@ export const saveCurrentStudentSubmission = async (req, res, next) => {
         submissionId: currentSubmission.submission_id,
         title: value.title,
         abstract: value.abstract,
+        summary: value.summary || null,
         keywords: value.keywords || [],
         versionNo: currentSubmission.version_no,
         isLocked: false,
@@ -484,6 +495,104 @@ export const saveCurrentStudentSubmission = async (req, res, next) => {
     return res.status(200).json({
       message: "Submission draft saved.",
       submission: mapSubmission(submissionWithResearchFields),
+    });
+  } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+    return next(error);
+  }
+};
+
+export const generateCurrentStudentSubmissionSummary = async (req, res, next) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) {
+      return res
+        .status(500)
+        .json({ message: "Database client is not initialized." });
+    }
+
+    const userId = Number(req.auth?.sub);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res
+        .status(401)
+        .json({ message: "Invalid authenticated user context." });
+    }
+
+    const { error, value } = generateSummarySchema.validate(req.body || {}, {
+      abortEarly: false,
+      stripUnknown: true,
+    });
+
+    if (error) {
+      return res.status(400).json({
+        message: "Invalid request body",
+        details: error.details.map((item) => item.message),
+      });
+    }
+
+    const resolvedTaskId = value.taskId ? Number(value.taskId) : null;
+    const { currentSubmission } = await getCurrentSubmissionContext(
+      db,
+      userId,
+      resolvedTaskId,
+    );
+
+    if (!currentSubmission) {
+      return res.status(400).json({
+        message: "No draft submission found. Save a draft first.",
+      });
+    }
+
+    if (currentSubmission.status !== "Draft") {
+      return res.status(400).json({
+        message: "Summary can only be generated while the submission is in Draft status.",
+      });
+    }
+
+    const files = await listSubmissionFilesBySubmissionId(
+      db,
+      currentSubmission.submission_id,
+    );
+    const capstoneFiles = files.filter((file) => file.file_type === "Capstone Paper");
+
+    if (!capstoneFiles.length) {
+      return res.status(400).json({
+        message:
+          "No capstone paper PDF found for this submission. Upload a capstone paper first.",
+      });
+    }
+
+    let selectedCapstone = capstoneFiles[0];
+    if (value.fileId) {
+      selectedCapstone = capstoneFiles.find(
+        (file) => Number(file.file_id) === Number(value.fileId),
+      );
+      if (!selectedCapstone) {
+        return res.status(400).json({
+          message:
+            "Selected file is invalid. The file must belong to this submission and be a capstone paper.",
+        });
+      }
+    }
+
+    const generatedSummary = await summarizeSubmissionFileFromS3({
+      s3Key: selectedCapstone.s3_key,
+    });
+
+    const updatedSubmission = await updateSubmissionSummary(db, {
+      submissionId: currentSubmission.submission_id,
+      summary: generatedSummary,
+    });
+
+    return res.status(200).json({
+      message: "Submission summary generated.",
+      sourceFile: {
+        fileId: selectedCapstone.file_id,
+        fileName: selectedCapstone.file_name,
+      },
+      submission: mapSubmission(updatedSubmission),
     });
   } catch (error) {
     if (error?.statusCode) {

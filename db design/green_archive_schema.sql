@@ -96,6 +96,7 @@ CREATE TABLE submissions(
   group_id integer NOT NULL,
   title text NOT NULL,
   abstract text NOT NULL,
+  summary text,
   keywords text[] NOT NULL,
   version_no integer NOT NULL DEFAULT 1,
   status submission_status NOT NULL DEFAULT 'Draft',

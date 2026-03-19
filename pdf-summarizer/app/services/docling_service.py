@@ -28,9 +28,9 @@ def split_pdf_batch(input_path: str, start: int, end: int) -> str:
 def make_converter():
     pipeline_options = PdfPipelineOptions()
     pipeline_options.do_ocr = False
-    # pipeline_options.do_table_structure = False
-    # pipeline_options.generate_page_images = False
-    # pipeline_options.generate_picture_images = False
+    pipeline_options.do_table_structure = False
+    pipeline_options.generate_page_images = False
+    pipeline_options.generate_picture_images = False
 
     return DocumentConverter(
         format_options={

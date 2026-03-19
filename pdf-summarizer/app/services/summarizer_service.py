@@ -1,4 +1,4 @@
-from google import genai
+from openai import OpenAI
 import os
 import re
 import time
@@ -6,25 +6,25 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+client = OpenAI(
+    api_key=os.getenv("DEEPSEEK_API_KEY"),
+    base_url="https://api.deepseek.com"
+)
 
-# Rate limiter
-SECONDS_PER_REQUEST = 7
-_last_request_time = 0.0
+SECONDS_BETWEEN_REQUESTS = 2
 
-def rate_limited_generate(prompt: str) -> str:
-    global _last_request_time
-    elapsed = time.time() - _last_request_time
-    wait = SECONDS_PER_REQUEST - elapsed
-    if wait > 0:
-        print(f"  Rate limit: waiting {wait:.1f}s...")
-        time.sleep(wait)
-    response = client.models.generate_content(
-        model="gemma-3-27b-it",
-        contents=prompt
+def rate_limited_generate(prompt: str, max_tokens: int = 500) -> str:
+    time.sleep(SECONDS_BETWEEN_REQUESTS)
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "system", "content": "You are a strict document summarizer that only restates what is explicitly written in the provided text."},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=max_tokens,
+        stream=False
     )
-    _last_request_time = time.time()
-    return response.text
+    return response.choices[0].message.content
 
 def clean_text(text: str) -> str:
     text = re.sub(r'\*\*?(.*?)\*\*?', r'\1', text)
@@ -34,35 +34,40 @@ def clean_text(text: str) -> str:
     text = text.replace('\\n', ' ').strip()
     return text
 
-CHUNK_PROMPT = """You are a strict document summarizer. Your only job is to extract and restate what is explicitly written in the document section below.
+CHUNK_PROMPT = """You are an academic research analyst. Extract only what is explicitly stated in the section below. Focus on capturing: research objectives, methodology, data, findings, tools used, and conclusions if present.
 
-Rules you must follow without exception:
-- Only include information that is directly stated in the text
-- Do not infer, assume, or add any external knowledge
-- Do not use bullet points, markdown, asterisks, or headers
-- Write in plain, flowing prose only
-- If a topic is mentioned but not explained in the text, skip it entirely
-- Keep it concise
+Rules:
+- Only restate what is directly written, nothing more
+- Do not infer, assume, or add external knowledge
+- Plain prose only, no bullet points, markdown, or headers
+- Skip anything not clearly explained in the text
+- 3-4 sentences maximum
 
 Document section:
 {chunk}
 
-Plain text summary of only what is stated above:"""
+Academic summary:"""
 
-FINAL_PROMPT = """You are a strict document summarizer. Below are summaries of sections from a document titled "{title}".
+FINAL_PROMPT = """You are an academic research analyst. Using only the section summaries below from a research document titled "{title}", write a structured academic summary.
 
-Rules you must follow without exception:
-- Only include information present in the section summaries below
-- Do not add any knowledge, context, or interpretation not found in the summaries
-- Do not use bullet points, markdown, asterisks, or headers
-- Write in plain, flowing prose as a single cohesive paragraph or two
-- Do not introduce the document or explain what you are doing, just write the summary
-- If something is unclear or missing from the summaries, skip it
+The summary must cover these elements if present in the summaries:
+1. Research objective or problem being addressed
+2. Methodology or approach used
+3. Key findings, results, or outputs
+4. Tools, frameworks, or technologies involved
+5. Conclusions or recommendations
+
+Rules:
+- Only include what is explicitly present in the summaries below
+- Do not add any external knowledge or interpretation
+- Plain prose only, no bullet points, markdown, or headers
+- Write as 2-3 cohesive paragraphs
+- Do not introduce the summary or explain what you are doing
 
 Section summaries:
 {summaries}
 
-Plain text final summary:"""
+Academic summary:"""
 
 def summarize_chunks(chunks: list[str], doc_title: str = "Document") -> str:
     # Step 1: summarize each chunk
@@ -70,14 +75,11 @@ def summarize_chunks(chunks: list[str], doc_title: str = "Document") -> str:
     for i, chunk in enumerate(chunks):
         print(f"  Summarizing chunk {i+1}/{len(chunks)}...")
         chunk_summaries.append(clean_text(rate_limited_generate(
-            CHUNK_PROMPT.format(chunk=chunk)
+            CHUNK_PROMPT.format(chunk=chunk),
+            max_tokens=250
         )))
 
-    # Cool down before moving to next step
-    print("  Step 1 complete. Cooling down 60s before batching...")
-    time.sleep(60)
-
-    # Step 2: batch the chunk summaries (50 at a time) into mid-level summaries
+    # Step 2: batch 50 at a time
     SUMMARY_BATCH_SIZE = 50
     batched_summaries = []
     for i in range(0, len(chunk_summaries), SUMMARY_BATCH_SIZE):
@@ -87,23 +89,21 @@ def summarize_chunks(chunks: list[str], doc_title: str = "Document") -> str:
         )
         print(f"  Batching summaries {i+1}–{min(i+SUMMARY_BATCH_SIZE, len(chunk_summaries))}...")
         batched_summaries.append(clean_text(rate_limited_generate(
-            FINAL_PROMPT.format(title=doc_title, summaries=combined)
+            FINAL_PROMPT.format(title=doc_title, summaries=combined),
+            max_tokens=600
         )))
-        time.sleep(60)
 
-    # Cool down before final synthesis
-    print("  Step 2 complete. Cooling down 60s before final synthesis...")
-    time.sleep(60)
-
-    # Step 3: if only one batch, we're done
     if len(batched_summaries) == 1:
         return batched_summaries[0]
 
-    # Step 4: final synthesis across batched summaries
+    # Step 3: final synthesis
     print(f"  Final synthesis across {len(batched_summaries)} batches...")
     combined_final = "\n\n".join(
         f"Part {i+1}: {s}" for i, s in enumerate(batched_summaries)
     )
     return clean_text(rate_limited_generate(
-        FINAL_PROMPT.format(title=doc_title, summaries=combined_final)
+    FINAL_PROMPT.format(title=doc_title, summaries=combined_final),
+    max_tokens=1200
     ))
+
+## 250 - chunk summaries / 600 - batch summaries / 1200 - final synthesis

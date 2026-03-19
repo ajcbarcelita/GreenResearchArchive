@@ -9,3 +9,4 @@ google-genai
 langchain-text-splitters
 pypdf
 pypdfium2
+openai

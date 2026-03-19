@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   deleteCurrentStudentSubmissionFile,
+  generateCurrentStudentSubmissionSummary,
   getCurrentStudentSubmission,
   getLatestStudentSubmission,
   getStudentTasks,
@@ -50,6 +51,12 @@ router.post(
   requireAuth,
   requireRegisteredUser,
   uploadCurrentStudentSubmissionFile,
+);
+router.post(
+  "/student/current/summary",
+  requireAuth,
+  requireRegisteredUser,
+  generateCurrentStudentSubmissionSummary,
 );
 router.delete(
   "/student/current/files/:fileId",
