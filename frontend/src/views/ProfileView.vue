@@ -1,11 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import Toast from 'primevue/toast'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
-import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import { useToast } from 'primevue/usetoast'
 import Navbar from '@/components/Navbar.vue'
 import NavbarAdmin from '@/components/NavbarAdmin.vue'
 import NavbarFaculty from '@/components/NavbarFaculty.vue'
@@ -13,15 +9,10 @@ import NavbarCoordinator from '@/components/NavbarCoordinator.vue'
 import Footer from '@/components/Footer.vue'
 import { getDegreePrograms, getMyProfile, getStoredUser } from '../services/authService'
 
-const toast = useToast()
 const user = ref(getStoredUser())
 const programs = ref([])
 const programName = ref('Not set')
 const loadingPrograms = ref(false)
-const isEditing = ref(false)
-const draftFirstName = ref('')
-const draftMiddleName = ref('')
-const draftLastName = ref('')
 
 const fullName = computed(() => {
   if (!user.value) return 'Unknown User'
@@ -35,6 +26,7 @@ const fullName = computed(() => {
 
 const accountStatus = computed(() => (user.value?.isActive ? 'Active' : 'Inactive'))
 const roleName = computed(() => user.value?.roleName || 'User')
+
 const useAdminNavbar = computed(() => {
   const normalizedRoleName = String(user.value?.roleName || '').trim().toLowerCase()
   return normalizedRoleName === 'admin'
@@ -47,56 +39,6 @@ const useFacultyNavbar = computed(() => {
   const normalizedRoleName = String(user.value?.roleName || '').trim().toLowerCase()
   return normalizedRoleName === 'faculty'
 })
-
-const beginEdit = () => {
-  draftFirstName.value = user.value?.firstName || ''
-  draftMiddleName.value = user.value?.middleName || ''
-  draftLastName.value = user.value?.lastName || ''
-  isEditing.value = true
-}
-
-const cancelEdit = () => {
-  isEditing.value = false
-}
-
-const saveEdit = () => {
-  if (!draftFirstName.value.trim()) {
-    toast.add({
-      severity: 'warn',
-      summary: 'Invalid Input',
-      detail: 'First name is required.',
-      life: 3000,
-    })
-    return
-  }
-
-  if (!draftLastName.value.trim()) {
-    toast.add({
-      severity: 'warn',
-      summary: 'Invalid Input',
-      detail: 'Last name is required.',
-      life: 3000,
-    })
-    return
-  }
-
-  user.value = {
-    ...user.value,
-    firstName: draftFirstName.value.trim(),
-    middleName: draftMiddleName.value.trim() || null,
-    lastName: draftLastName.value.trim(),
-  }
-
-  localStorage.setItem('gra_user', JSON.stringify(user.value))
-  isEditing.value = false
-
-  toast.add({
-    severity: 'success',
-    summary: 'Profile Updated',
-    detail: 'Your name details were updated locally.',
-    life: 2500,
-  })
-}
 
 const resolveProgramName = () => {
   const profile = user.value || {}
@@ -157,7 +99,6 @@ onMounted(async () => {
 
 <template>
   <div class="profile-page min-h-screen font-Karla">
-    <Toast />
     <header>
       <NavbarAdmin v-if="useAdminNavbar" />
       <NavbarFaculty v-else-if="useFacultyNavbar" />
@@ -201,50 +142,19 @@ onMounted(async () => {
             </div>
 
             <div class="field-box">
-              <span class="label">First Name <span class="required-mark">*</span></span>
-              <InputText v-if="isEditing" v-model="draftFirstName" class="w-full" />
-              <span v-else class="value">{{ user?.firstName || 'Not set' }}</span>
+              <span class="label">First Name</span>
+              <span class="value">{{ user?.firstName || 'Not set' }}</span>
             </div>
 
             <div class="field-box">
               <span class="label">Middle Name</span>
-              <InputText v-if="isEditing" v-model="draftMiddleName" class="w-full" />
-              <span v-else class="value">{{ user?.middleName || 'Not set' }}</span>
+              <span class="value">{{ user?.middleName || 'Not set' }}</span>
             </div>
 
             <div class="field-box">
-              <span class="label">Last Name <span class="required-mark">*</span></span>
-              <InputText v-if="isEditing" v-model="draftLastName" class="w-full" />
-              <span v-else class="value">{{ user?.lastName || 'Not set' }}</span>
+              <span class="label">Last Name</span>
+              <span class="value">{{ user?.lastName || 'Not set' }}</span>
             </div>
-          </div>
-        </template>
-
-        <template #footer>
-          <div class="action-row">
-            <Button v-if="!isEditing" @click="beginEdit">
-              <template #icon>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="h-4 w-4"
-                  aria-hidden="true"
-                >
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4Z" />
-                </svg>
-              </template>
-              <span>Edit</span>
-            </Button>
-            <template v-else>
-              <Button label="Cancel" severity="secondary" outlined @click="cancelEdit" />
-              <Button label="Save" icon="pi pi-check" @click="saveEdit" />
-            </template>
           </div>
         </template>
       </Card>

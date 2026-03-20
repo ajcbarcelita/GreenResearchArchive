@@ -93,7 +93,9 @@ const openEditDialog = (user) => {
 
 const mapRoleOptions = (roles = []) => [
   { label: 'All Roles', value: 'All' },
-  ...roles.map((role) => ({
+  ...roles
+  .filter((role => role.roleId !== 4))
+  .map((role) => ({
     label: role.roleName,
     value: role.roleId,
   })),
