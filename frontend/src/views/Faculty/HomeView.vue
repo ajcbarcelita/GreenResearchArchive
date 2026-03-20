@@ -39,6 +39,7 @@ const getMockProgress = (status) => {
   switch (status) {
     case 'Approved': return 100
     case 'Under Review': return 75
+    case 'Revision Requested': return 60
     case 'Submitted': return 50
     case 'Draft': return 25
     default: return 10

@@ -181,7 +181,9 @@
                             <div class="bg-gray-100 border-2 border-gray-400 rounded-lg px-4 py-3 shadow-sm">
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-600 mb-1">MONITORING STATUS</div>
                                 <div class="mt-1">
-                                    <span class="inline-block bg-green-highlight text-dark-green px-4 py-1.5 rounded-full text-sm font-bold border-2 border-green-text/40">APPROVED</span>
+                                    <span :class="['inline-block px-4 py-1.5 rounded-full text-sm font-bold border-2 border-green-text/40', statusBadgeClass]">
+                                        {{ (capstone?.status || 'APPROVED').toUpperCase() }}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -250,6 +252,25 @@ const isFromSubmissionMonitoring = computed(
     () => String(route.query.source || '').trim().toLowerCase() === 'monitoring',
 )
 const canComment = computed(() => isReviewerRole.value && isFromSubmissionMonitoring.value)
+
+const statusSeverity = computed(() => {
+    const s = capstone.value?.status
+    if (s === 'Approved') return 'success'
+    if (s === 'Revision Requested') return 'warn'
+    if (s === 'Under Review') return 'info'
+    if (s === 'Submitted') return 'contrast'
+    if (s === 'Archived') return 'secondary'
+    return 'secondary'
+})
+
+const statusBadgeClass = computed(() => {
+    const s = capstone.value?.status
+    if (s === 'Approved') return 'bg-green-highlight text-dark-green'
+    if (s === 'Revision Requested') return 'bg-amber-100 text-amber-800'
+    if (s === 'Under Review') return 'bg-blue-100 text-blue-800'
+    if (s === 'Submitted') return 'bg-gray-200 text-gray-800'
+    return 'bg-gray-100 text-gray-600'
+})
 
 const formatCommentDateTime = (value) => {
     if (!value) return 'N/A'

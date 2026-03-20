@@ -260,32 +260,33 @@ onMounted(loadSubmissions)
             size="small"
             responsiveLayout="scroll"
             @row-click="handleRowClick"
+            class="monitoring-table"
           >
-            <Column field="title" header="Title" sortable />
-            <Column field="groupName" header="Group" sortable />
-            <Column field="taskName" header="Task" sortable />
-            <Column field="term" header="Term" sortable />
-            <Column field="programCode" header="Program" sortable />
-            <Column field="versionNo" header="Version" sortable>
+            <Column field="title" header="Title" sortable class="column-title" />
+            <Column field="groupName" header="Group" sortable class="column-nowrap" />
+            <Column field="taskName" header="Task" sortable class="column-nowrap" />
+            <Column field="term" header="Term" sortable class="column-nowrap" />
+            <Column field="programCode" header="Program" sortable class="column-nowrap" />
+            <Column field="versionNo" header="Version" sortable class="column-nowrap text-center">
               <template #body="slotProps">
                 v{{ slotProps.data.versionNo || 'N/A' }}
               </template>
             </Column>
-            <Column header="Status" sortable field="status">
+            <Column header="Status" sortable field="status" class="column-status">
               <template #body="slotProps">
                 <Tag
                   :value="slotProps.data.status || 'Draft'"
                   :severity="statusSeverity(slotProps.data.status || 'Draft')"
-                  :class="statusClass(slotProps.data.status || 'Draft')"
+                  :class="[statusClass(slotProps.data.status || 'Draft'), 'm-0 w-full justify-center']"
                 />
               </template>
             </Column>
-            <Column header="Submitted At" sortable field="submittedAt">
+            <Column header="Submitted At" sortable field="submittedAt" class="column-nowrap">
               <template #body="slotProps">
                 {{ formatDateTime(slotProps.data.submittedAt) }}
               </template>
             </Column>
-            <Column v-if="!isFaculty" header="Action">
+            <Column v-if="!isFaculty" header="Action" class="column-nowrap">
               <template #body="slotProps">
                 <Button
                   :label="slotProps.data.status === 'Archived' ? 'Unarchive' : 'Archive'"
@@ -363,9 +364,19 @@ onMounted(loadSubmissions)
   box-shadow: 0 10px 22px rgba(19, 52, 39, 0.06);
 }
 
+:deep(.monitoring-table.p-datatable) .p-datatable-tbody > tr > td.column-status {
+  padding: 0.4rem 0.5rem !important;
+}
+
 :deep(.status-chip.p-tag) {
   border-radius: 999px;
   font-weight: 700;
+  margin: 0 !important;
+  display: flex;
+  width: 100%;
+  height: 1.8rem;
+  justify-content: center;
+  align-items: center;
 }
 
 :deep(.status-approved.p-tag) {
@@ -423,6 +434,34 @@ onMounted(loadSubmissions)
 :deep(.unarchive-btn.p-button:hover) {
   background: #e9ecef;
   border-color: #c8cfd6;
+}
+
+:deep(.monitoring-table.p-datatable) {
+  font-size: 0.825rem;
+}
+
+:deep(.monitoring-table.p-datatable) .p-datatable-tbody > tr > td {
+  padding: 0.6rem 0.75rem;
+}
+
+:deep(.monitoring-table.p-datatable) .p-datatable-thead > tr > th {
+  padding: 0.6rem 0.75rem;
+  white-space: nowrap;
+}
+
+:deep(.column-nowrap) {
+  white-space: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px; /* Prevents long Group or Task names from pushing the table out */
+}
+
+:deep(.column-title) {
+  min-width: 120px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .empty-state {
