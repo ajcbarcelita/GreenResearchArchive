@@ -1,6 +1,11 @@
 <script setup>
+import { computed, onMounted, ref, watch } from 'vue'
 import Footer from '@/components/Footer.vue'
 import NavbarAdmin from '@/components/NavbarAdmin.vue'
+
+onMounted(() => {
+  document.title = "Admin Dashboard | Green Archive"
+})
 </script>
 
 <template>

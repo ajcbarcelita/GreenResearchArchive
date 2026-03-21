@@ -114,6 +114,10 @@ watch(
 )
 
 onMounted(() => loadData({ includeFilterOptions: true }))
+
+onMounted(() => {
+  document.title = "Submission Logs | Green Archive"
+})
 </script>
 
 <template>

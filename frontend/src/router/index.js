@@ -15,8 +15,6 @@ import FacultyMyAdviseesView from '../views/Faculty/MyAdviseesView.vue'
 import AdminDashboardView from '../views/Admin/DashboardView.vue'
 import AdminUsersView from '../views/Admin/UserManagementView.vue'
 import AdminProgramsView from '../views/Admin/ProgramManagementView.vue'
-import AdminSubmissionsView from '../views/Admin/SubmissionsView.vue'
-import AdminRepositoryView from '../views/Admin/RepositoryView.vue'
 import AdminAuditLogsView from '../views/Admin/AuditLogsView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import {
@@ -215,16 +213,6 @@ const router = createRouter({
       path: '/admin/programs',
       name: 'admin-programs',
       component: AdminProgramsView,
-    },
-    {
-      path: '/admin/submissions',
-      name: 'admin-submissions',
-      component: AdminSubmissionsView,
-    },
-    {
-      path: '/admin/repository',
-      name: 'admin-repository',
-      component: AdminRepositoryView,
     },
     {
       path: '/admin/audit-logs',

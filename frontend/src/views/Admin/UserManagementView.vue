@@ -199,6 +199,7 @@ watch([searchQuery, selectedRole, selectedProgram, selectedStatus], () => {
 })
 
 onMounted(async () => {
+  document.title = "User Management | Green Archive"
   try {
     await loadMeta()
   } catch (error) {
@@ -206,6 +207,7 @@ onMounted(async () => {
   }
   await loadUsers()
 })
+
 </script>
 
 <template>

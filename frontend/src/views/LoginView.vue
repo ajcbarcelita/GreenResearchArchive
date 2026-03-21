@@ -86,9 +86,9 @@ const renderGoogleButton = () => {
         type: 'standard',
         theme: 'outline',
         size: 'large',
-        text: 'signin_with',
+        text: 'continue_with',
         shape: 'rectangular',
-        width: buttonWidth,
+        width: container.offsetWidth,
       }
     )
     console.log('[LoginView] Google button rendered successfully')
@@ -104,6 +104,10 @@ const reloadGoogleSignIn = async () => {
 }
 
 onMounted(reloadGoogleSignIn)
+
+onMounted(() => {
+  document.title = "Login | Green Archive"
+})
 </script>
 
 <template>

@@ -17,6 +17,7 @@ import {
   deleteProgramAdmin,
   listProgramsAdmin,
   updateProgramAdmin,
+  restoreProgramAdmin
 } from '@/services/programManagementService'
 
 const PROGRAM_LEVELS = ["Baccalaureate", "Master's", 'Doctorate']
@@ -33,6 +34,9 @@ const selectedLevel = ref('All')
 const dialogVisible = ref(false)
 const editMode = ref(false)
 const activeProgramId = ref(null)
+
+const selectedStatus = ref('All') // 'All', 'Active', 'Archived'
+const statusOptions = ['All', 'Active', 'Archived']
 
 const form = ref({
   programCode: '',
@@ -120,6 +124,10 @@ const loadPrograms = async () => {
     const normalizedQuery = searchQuery.value.trim()
     if (normalizedQuery) params.q = normalizedQuery
     if (selectedLevel.value !== 'All') params.level = selectedLevel.value
+
+    if (selectedStatus.value !== 'All') {
+      params.status = selectedStatus.value.toLowerCase() // "active" | "archived"
+    }
 
     programs.value = await listProgramsAdmin(params)
   } catch (error) {
@@ -209,6 +217,35 @@ const handleDelete = async (program) => {
   }
 }
 
+const handleRestore = async (program) => {
+  const confirmed = window.confirm(
+    `Restore program ${program.programCode}?`,
+  )
+  if (!confirmed) return
+
+  deletingId.value = program.programId
+  try {
+    await restoreProgramAdmin(program.programId) // 👈 new API call
+    toast.add({
+      severity: 'success',
+      summary: 'Program restored',
+      detail: `${program.programCode} is now active again.`,
+      life: 2500,
+    })
+    await loadPrograms()
+  } catch (error) {
+    console.error('Failed to restore program', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Restore failed',
+      detail: error?.response?.data?.message || 'Unable to restore program.',
+      life: 3500,
+    })
+  } finally {
+    deletingId.value = null
+  }
+}
+
 const totals = computed(() => ({
   programCount: programs.value.length,
   studentCount: programs.value.reduce((sum, row) => sum + Number(row.studentsCount || 0), 0),
@@ -218,7 +255,7 @@ const totals = computed(() => ({
 const levelOptions = computed(() => ['All', ...PROGRAM_LEVELS])
 
 let debounceTimer = null
-watch([searchQuery, selectedLevel], () => {
+watch([searchQuery, selectedLevel, selectedStatus], () => {
   if (debounceTimer) clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
     loadPrograms()
@@ -226,6 +263,7 @@ watch([searchQuery, selectedLevel], () => {
 })
 
 onMounted(() => {
+  document.title = "Program Management | Green Archive"
   loadPrograms()
 })
 </script>
@@ -260,14 +298,39 @@ onMounted(() => {
       </section>
 
       <Card class="filter-card mt-4">
-        <template #content>
-          <div class="filter-row">
-            <InputText v-model="searchQuery" placeholder="Search by code or name" />
-            <Select v-model="selectedLevel" :options="levelOptions" placeholder="Program level" />
-            <Button icon="pi pi-refresh" label="Refresh" outlined :loading="loading" @click="loadPrograms" />
-          </div>
-        </template>
-      </Card>
+  <template #content>
+    <div class="filter-row">
+      <InputText 
+        class="search-input" 
+        v-model="searchQuery" 
+        placeholder="Search by code or name" 
+      />
+      
+      <Select 
+        class="filter-select" 
+        v-model="selectedLevel" 
+        :options="levelOptions" 
+        placeholder="Program level" 
+      />
+      
+      <Select
+        class="filter-select"
+        v-model="selectedStatus"
+        :options="statusOptions"
+        placeholder="Status"
+      />
+      
+      <Button 
+        class="refresh-btn" 
+        icon="pi pi-refresh" 
+        label="Refresh" 
+        outlined 
+        :loading="loading" 
+        @click="loadPrograms" 
+      />
+    </div>
+  </template>
+</Card>
 
       <Card class="table-card mt-4">
         <template #content>
@@ -290,6 +353,14 @@ onMounted(() => {
             </Column>
             <Column field="studentsCount" header="Students" sortable />
             <Column field="groupsCount" header="Groups" sortable />
+            <Column header="Status">
+              <template #body="slotProps">
+                <Tag
+                  :value="slotProps.data.isDeleted ? 'Archived' : 'Active'"
+                  :severity="slotProps.data.isDeleted ? 'danger' : 'success'"
+                />
+              </template>
+            </Column>
             <Column header="Actions">
               <template #body="slotProps">
                 <div class="action-row">
@@ -298,9 +369,13 @@ onMounted(() => {
                     text
                     icon="pi pi-pencil"
                     label="Edit"
+                    :disabled="slotProps.data.isDeleted"
                     @click="openEditDialog(slotProps.data)"
                   />
+
+                  <!-- 👇 CONDITIONAL BUTTON -->
                   <Button
+                    v-if="!slotProps.data.isDeleted"
                     size="small"
                     text
                     severity="danger"
@@ -308,6 +383,16 @@ onMounted(() => {
                     label="Delete"
                     :loading="deletingId === slotProps.data.programId"
                     @click="handleDelete(slotProps.data)"
+                  />
+
+                  <Button
+                    v-else
+                    size="small"
+                    text
+                    severity="warning"
+                    icon="pi pi-refresh"
+                    label="Restore"
+                    @click="handleRestore(slotProps.data)"
                   />
                 </div>
               </template>
@@ -413,9 +498,24 @@ onMounted(() => {
 }
 
 .filter-row {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr auto;
-  gap: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem; /* Adjust this to match the exact gap in your design */
+  width: 100%;
+}
+
+.search-input {
+  flex: 2; 
+  min-width: 0; /* Prevents overflow issues */
+}
+
+.filter-select {
+  flex: 1; 
+  min-width: 0;
+}
+
+.refresh-btn {
+  flex-shrink: 0; /* Ensures the button never gets squished */
 }
 
 .action-row {

@@ -20,9 +20,15 @@ export const deleteProgramAdmin = async (programId) => {
   return data || {};
 };
 
+export const restoreProgramAdmin = async (programId) => {
+  const { data } = await api.patch(`/api/admin/programs/${programId}/restore`);
+  return data || {};
+};
+
 export default {
   listProgramsAdmin,
   createProgramAdmin,
   updateProgramAdmin,
   deleteProgramAdmin,
+  restoreProgramAdmin
 };

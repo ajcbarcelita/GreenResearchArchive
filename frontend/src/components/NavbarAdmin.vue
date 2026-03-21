@@ -24,7 +24,7 @@
             <router-link to="/admin/programs" class="nav-link">Program Management</router-link>
             <!-- <router-link to="/admin/submissions" class="nav-link">Submissions</router-link>
             <router-link to="/admin/repository" class="nav-link">Repository</router-link> -->
-            <router-link to="/admin/audit-logs" class="nav-link">Audit Logs</router-link>
+            <router-link to="/admin/audit-logs" class="nav-link">Submission Logs</router-link>
           </div>
         </div>
 

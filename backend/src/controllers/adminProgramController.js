@@ -6,6 +6,7 @@ import {
   insertDegreeProgram,
   listDegreeProgramsForAdmin,
   updateDegreeProgramById,
+  restoreDegreeProgramById
 } from "../models/degreeProgramModel.js";
 
 const PROGRAM_LEVELS = ["Baccalaureate", "Master's", "Doctorate"];
@@ -15,6 +16,10 @@ const listProgramsQuerySchema = Joi.object({
   level: Joi.string()
     .trim()
     .valid(...PROGRAM_LEVELS)
+    .allow("", null),
+  status: Joi.string()
+    .trim()
+    .valid("active", "archived")
     .allow("", null),
 });
 
@@ -66,6 +71,7 @@ export const listPrograms = async (req, res, next) => {
     const rows = await listDegreeProgramsForAdmin(db, {
       q: value.q || null,
       level: value.level || null,
+      status: value.status || null,
     });
 
     return res.status(200).json({
@@ -77,6 +83,7 @@ export const listPrograms = async (req, res, next) => {
         programLevel: row.program_level,
         studentsCount: row.user_count,
         groupsCount: row.group_count,
+        isDeleted: row.is_deleted,
       })),
     });
   } catch (error) {
@@ -247,6 +254,28 @@ export const deleteProgram = async (req, res, next) => {
       });
     }
 
+    return next(error);
+  }
+  
+};
+
+export const restoreProgram = async (req, res, next) => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const programId = Number(req.params.programId);
+
+    const restored = await restoreDegreeProgramById(req.app.locals.db, programId);
+
+    if (!restored) {
+      return res.status(404).json({ message: "Program not found or already active." });
+    }
+
+    return res.status(200).json({
+      message: "Program restored",
+      restoredProgramId: restored.program_id,
+    });
+  } catch (error) {
     return next(error);
   }
 };

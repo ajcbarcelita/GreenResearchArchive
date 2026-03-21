@@ -21,6 +21,10 @@ CREATE TABLE ref_degree_programs(
 CREATE UNIQUE INDEX program_code_idx ON ref_degree_programs(program_code);
 
 
+ALTER TABLE ref_degree_programs
+ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+
+
 COMMENT ON TABLE ref_degree_programs IS
   'Reference list of all degree programs in CCS.'
 ;

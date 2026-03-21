@@ -24,7 +24,7 @@ export const findDegreeProgramById = async (db, programId) => {
   return result.rows[0] || null;
 };
 
-export const listDegreeProgramsForAdmin = async (db, { q, level } = {}) => {
+export const listDegreeProgramsForAdmin = async (db, { q, level, status } = {}) => {
   const params = [];
   const whereClauses = [];
 
@@ -40,6 +40,12 @@ export const listDegreeProgramsForAdmin = async (db, { q, level } = {}) => {
     whereClauses.push(`p.program_level::text = $${params.length}`);
   }
 
+  if (status === 'active') {
+    whereClauses.push(`p.is_deleted = FALSE`);
+  } else if (status === 'archived') {
+    whereClauses.push(`p.is_deleted = TRUE`);
+  }
+
   const where = whereClauses.length
     ? `WHERE ${whereClauses.join(" AND ")}`
     : "";
@@ -51,6 +57,7 @@ export const listDegreeProgramsForAdmin = async (db, { q, level } = {}) => {
         p.program_code,
         p.program_name,
         p.program_level,
+        p.is_deleted,
         COALESCE(u.user_count, 0)::int AS user_count,
         COALESCE(g.group_count, 0)::int AS group_count
       FROM ref_degree_programs p
@@ -134,8 +141,23 @@ export const updateDegreeProgramById = async (
 export const deleteDegreeProgramById = async (db, programId) => {
   const result = await db.query(
     `
-      DELETE FROM ref_degree_programs
-      WHERE program_id = $1
+      UPDATE ref_degree_programs
+      SET is_deleted = TRUE
+      WHERE program_id = $1 AND is_deleted = FALSE
+      RETURNING program_id
+    `,
+    [programId],
+  );
+
+  return result.rows[0] || null;
+};
+
+export const restoreDegreeProgramById = async (db, programId) => {
+  const result = await db.query(
+    `
+      UPDATE ref_degree_programs
+      SET is_deleted = FALSE
+      WHERE program_id = $1 AND is_deleted = TRUE
       RETURNING program_id
     `,
     [programId],
