@@ -127,9 +127,7 @@ watch(universityId, (value) => {
 
 <template>
   <Card class="complete-profile-card">
-    <template #title>
-      Complete Your Profile
-    </template>
+    <template #title> Complete Your Profile </template>
 
     <template #content>
       <p class="subtitle">

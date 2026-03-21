@@ -22,7 +22,10 @@ const handleGoogleCredential = async (response) => {
   try {
     console.log('[LoginView] handleGoogleCredential called')
     console.log('[LoginView] response:', response)
-    console.log('[LoginView] credential:', response?.credential ? `${response.credential.substring(0, 50)}...` : 'EMPTY')
+    console.log(
+      '[LoginView] credential:',
+      response?.credential ? `${response.credential.substring(0, 50)}...` : 'EMPTY',
+    )
     isLoading.value = true
     const result = await authenticateWithGoogle(response.credential)
     if (!result?.accessToken) {
@@ -68,7 +71,9 @@ const renderGoogleButton = () => {
   container.innerHTML = '' // Clear previous button if any
   if (!googleClientId) {
     console.error('[LoginView] googleClientId is missing:', googleClientId)
-    openErrorModal('VITE_GOOGLE_CLIENT_ID is missing. Set it in frontend/.env and restart the dev server.')
+    openErrorModal(
+      'VITE_GOOGLE_CLIENT_ID is missing. Set it in frontend/.env and restart the dev server.',
+    )
     return
   }
   const buttonWidth = Math.min(320, Math.max(220, container.clientWidth))
@@ -80,17 +85,14 @@ const renderGoogleButton = () => {
       callback: handleGoogleCredential,
     })
     console.log('[LoginView] Google initialized, rendering button...')
-    window.google.accounts.id.renderButton(
-      container,
-      {
-        type: 'standard',
-        theme: 'outline',
-        size: 'large',
-        text: 'continue_with',
-        shape: 'rectangular',
-        width: container.offsetWidth,
-      }
-    )
+    window.google.accounts.id.renderButton(container, {
+      type: 'standard',
+      theme: 'outline',
+      size: 'large',
+      text: 'continue_with',
+      shape: 'rectangular',
+      width: container.offsetWidth,
+    })
     console.log('[LoginView] Google button rendered successfully')
   } catch (err) {
     console.error('[LoginView] Error rendering Google button:', err)
@@ -106,7 +108,7 @@ const reloadGoogleSignIn = async () => {
 onMounted(reloadGoogleSignIn)
 
 onMounted(() => {
-  document.title = "Login | Green Archive"
+  document.title = 'Login | Green Archive'
 })
 </script>
 
@@ -159,7 +161,15 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 1fr 1.4fr;
   overflow: hidden;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial;
 }
 
 .left-panel {
@@ -167,16 +177,16 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 48px;
-  background: linear-gradient(180deg, rgba(250,251,250,1), rgba(247,249,247,1));
+  background: linear-gradient(180deg, rgba(250, 251, 250, 1), rgba(247, 249, 247, 1));
 }
 
 .card-glass {
   width: 100%;
   max-width: 520px;
-  background: rgba(255,255,255,0.92);
+  background: rgba(255, 255, 255, 0.92);
   border-radius: 16px;
   padding: 36px;
-  box-shadow: 0 12px 36px rgba(6, 45, 24, 0.10);
+  box-shadow: 0 12px 36px rgba(6, 45, 24, 0.1);
   backdrop-filter: blur(6px) saturate(120%);
   border: 1px solid rgba(15, 82, 46, 0.06);
 }
@@ -242,7 +252,7 @@ onMounted(() => {
 .green-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(6,86,37,0.28), rgba(6,86,37,0.48));
+  background: linear-gradient(180deg, rgba(6, 86, 37, 0.28), rgba(6, 86, 37, 0.48));
   mix-blend-mode: multiply;
 }
 
@@ -252,12 +262,23 @@ onMounted(() => {
   backdrop-filter: blur(6px) saturate(1.2);
 }
 
-.modal-message { color: #062b1d }
+.modal-message {
+  color: #062b1d;
+}
 
 @media (max-width: 1024px) {
-  .login-page { grid-template-columns: 1fr }
-  .right-panel { display: none }
-  .left-panel { padding: 28px }
-  .card-glass { padding: 24px; max-width: 520px }
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+  .right-panel {
+    display: none;
+  }
+  .left-panel {
+    padding: 28px;
+  }
+  .card-glass {
+    padding: 24px;
+    max-width: 520px;
+  }
 }
 </style>

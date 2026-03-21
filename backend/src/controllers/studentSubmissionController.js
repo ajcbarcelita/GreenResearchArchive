@@ -129,7 +129,7 @@ export const getStudentTasks = async (req, res, next) => {
       description: r.description,
       dueDate: r.due_date,
       isLocked: r.is_locked === true,
-         autoLockAfterDueDate: r.auto_lock_after_due_date === true,
+      autoLockAfterDueDate: r.auto_lock_after_due_date === true,
       academicYear: r.academic_year,
       termNo: r.term_no,
       termStart: r.start_date,
@@ -168,11 +168,13 @@ const inferFileType = (fileName = "", contentType = "") => {
 };
 
 const toS3Slug = (value = "") => {
-  return String(value)
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "na";
+  return (
+    String(value)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "na"
+  );
 };
 
 const mapSubmission = (submission) => ({
@@ -221,10 +223,14 @@ const mapTask = (task) => {
 const ensureTaskAcceptingSubmissions = (task) => {
   const dueDateMs = task?.due_date ? Date.parse(task.due_date) : Number.NaN;
   const autoLockedByDueDate =
-    task?.auto_lock_after_due_date === true && Number.isFinite(dueDateMs) && dueDateMs <= Date.now();
+    task?.auto_lock_after_due_date === true &&
+    Number.isFinite(dueDateMs) &&
+    dueDateMs <= Date.now();
 
   if (task?.is_locked === true || autoLockedByDueDate) {
-    const error = new Error("This task is locked and no longer accepts submissions.");
+    const error = new Error(
+      "This task is locked and no longer accepts submissions.",
+    );
     error.statusCode = 423;
     throw error;
   }
@@ -504,7 +510,11 @@ export const saveCurrentStudentSubmission = async (req, res, next) => {
   }
 };
 
-export const generateCurrentStudentSubmissionSummary = async (req, res, next) => {
+export const generateCurrentStudentSubmissionSummary = async (
+  req,
+  res,
+  next,
+) => {
   try {
     const db = req.app?.locals?.db;
     if (!db) {
@@ -547,7 +557,8 @@ export const generateCurrentStudentSubmissionSummary = async (req, res, next) =>
 
     if (currentSubmission.status !== "Draft") {
       return res.status(400).json({
-        message: "Summary can only be generated while the submission is in Draft status.",
+        message:
+          "Summary can only be generated while the submission is in Draft status.",
       });
     }
 
@@ -555,7 +566,9 @@ export const generateCurrentStudentSubmissionSummary = async (req, res, next) =>
       db,
       currentSubmission.submission_id,
     );
-    const capstoneFiles = files.filter((file) => file.file_type === "Capstone Paper");
+    const capstoneFiles = files.filter(
+      (file) => file.file_type === "Capstone Paper",
+    );
 
     if (!capstoneFiles.length) {
       return res.status(400).json({
@@ -644,10 +657,14 @@ export const submitCurrentStudentSubmission = async (req, res, next) => {
     // If the new draft version has no files, inherit file references from the latest
     // previous version of the same task so students don't need to re-upload unchanged files.
     if (totalFiles < 1) {
-      const history = await listSubmissionsByGroupId(db, currentSubmission.group_id);
+      const history = await listSubmissionsByGroupId(
+        db,
+        currentSubmission.group_id,
+      );
       const previousSameTask = (history || []).find(
         (entry) =>
-          Number(entry.submission_id) !== Number(currentSubmission.submission_id) &&
+          Number(entry.submission_id) !==
+            Number(currentSubmission.submission_id) &&
           Number(entry.task_id) === Number(currentSubmission.task_id),
       );
 
@@ -810,18 +827,26 @@ export const deleteCurrentStudentSubmissionFile = async (req, res, next) => {
 
     const taskId = parseOptionalTaskId(req.query.taskId);
     const { group } = await getCurrentSubmissionContext(db, userId, taskId);
-    const fileSubmission = await findSubmissionById(db, Number(file.submission_id));
+    const fileSubmission = await findSubmissionById(
+      db,
+      Number(file.submission_id),
+    );
 
     if (!fileSubmission) {
-      return res.status(404).json({ message: "Submission for this file was not found." });
+      return res
+        .status(404)
+        .json({ message: "Submission for this file was not found." });
     }
 
-    const sameGroup = Number(fileSubmission.group_id) === Number(group.group_id);
+    const sameGroup =
+      Number(fileSubmission.group_id) === Number(group.group_id);
     const sameTaskWhenSpecified =
       !taskId || Number(fileSubmission.task_id) === Number(taskId);
 
     if (!sameGroup || !sameTaskWhenSpecified) {
-      return res.status(403).json({ message: "You are not allowed to delete this file." });
+      return res
+        .status(403)
+        .json({ message: "You are not allowed to delete this file." });
     }
 
     await deleteObject({ key: file.s3_key });

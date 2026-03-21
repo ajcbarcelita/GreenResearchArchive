@@ -185,7 +185,7 @@ export const findCurrentTask = async (db) => {
 
   // Fallback: most recently created task if no active term matches
   const fallback = await db.query(
-      `SELECT t.task_id, t.task_name, t.description, t.due_date, t.term_id, t.is_locked,
+    `SELECT t.task_id, t.task_name, t.description, t.due_date, t.term_id, t.is_locked,
         ${autoLockExpr},
             at.academic_year, at.term_no, at.start_date, at.end_date
      FROM tasks t
@@ -258,7 +258,10 @@ export const updateSubmission = async (
   return result.rows[0] || null;
 };
 
-export const updateSubmissionSummary = async (db, { submissionId, summary }) => {
+export const updateSubmissionSummary = async (
+  db,
+  { submissionId, summary },
+) => {
   const result = await db.query(
     `
       UPDATE submissions
@@ -481,7 +484,9 @@ export const listAllTasksWithSubmissionStats = async (db) => {
   const autoLockExpr = hasAutoLockAfterDueDate
     ? "t.auto_lock_after_due_date AS auto_lock_after_due_date"
     : "false::boolean AS auto_lock_after_due_date";
-  const autoLockGroupBy = hasAutoLockAfterDueDate ? ", t.auto_lock_after_due_date" : "";
+  const autoLockGroupBy = hasAutoLockAfterDueDate
+    ? ", t.auto_lock_after_due_date"
+    : "";
 
   const result = await db.query(
     `

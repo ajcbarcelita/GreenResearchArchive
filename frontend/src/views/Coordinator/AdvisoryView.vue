@@ -15,7 +15,10 @@ import { getStoredUser } from '../../services/authService'
 
 const user = ref(getStoredUser())
 const isFaculty = computed(
-  () => String(user.value?.roleName || '').trim().toLowerCase() === 'faculty',
+  () =>
+    String(user.value?.roleName || '')
+      .trim()
+      .toLowerCase() === 'faculty',
 )
 
 const loading = ref(false)
@@ -124,28 +127,71 @@ onMounted(() => loadData({ includeFilterOptions: true }))
             <div>
               <p class="kicker">Advisory Load</p>
               <h1 class="headline">Faculty and Coordinator Advisory Matrix</h1>
-              <p class="support-text">Track adviser assignments, group count, and latest submission health per group.</p>
+              <p class="support-text">
+                Track adviser assignments, group count, and latest submission health per group.
+              </p>
             </div>
-            <Button label="Refresh" icon="pi pi-refresh" outlined :loading="loading" @click="loadData" />
+            <Button
+              label="Refresh"
+              icon="pi pi-refresh"
+              outlined
+              :loading="loading"
+              @click="loadData"
+            />
           </div>
         </template>
       </Card>
 
       <section class="summary-grid mt-4">
-        <Card class="summary-card"><template #content><p class="label">Total Advisers</p><p class="value">{{ summary.totalAdvisers }}</p></template></Card>
-        <Card class="summary-card"><template #content><p class="label">Total Groups</p><p class="value">{{ summary.totalGroups }}</p></template></Card>
-        <Card class="summary-card"><template #content><p class="label">Active Groups</p><p class="value">{{ summary.activeGroups }}</p></template></Card>
-        <Card class="summary-card"><template #content><p class="label">No Submission</p><p class="value">{{ summary.groupsWithoutSubmission }}</p></template></Card>
-        <Card class="summary-card"><template #content><p class="label">Need Attention</p><p class="value">{{ summary.groupsNeedingAttention }}</p></template></Card>
+        <Card class="summary-card"
+          ><template #content
+            ><p class="label">Total Advisers</p>
+            <p class="value">{{ summary.totalAdvisers }}</p></template
+          ></Card
+        >
+        <Card class="summary-card"
+          ><template #content
+            ><p class="label">Total Groups</p>
+            <p class="value">{{ summary.totalGroups }}</p></template
+          ></Card
+        >
+        <Card class="summary-card"
+          ><template #content
+            ><p class="label">Active Groups</p>
+            <p class="value">{{ summary.activeGroups }}</p></template
+          ></Card
+        >
+        <Card class="summary-card"
+          ><template #content
+            ><p class="label">No Submission</p>
+            <p class="value">{{ summary.groupsWithoutSubmission }}</p></template
+          ></Card
+        >
+        <Card class="summary-card"
+          ><template #content
+            ><p class="label">Need Attention</p>
+            <p class="value">{{ summary.groupsNeedingAttention }}</p></template
+          ></Card
+        >
       </section>
 
       <Card class="filter-card mt-4">
         <template #content>
           <div class="filter-grid">
             <InputText v-model="query" placeholder="Search adviser, group, program, status" />
-            <Select v-model="selectedAdviser" :options="adviserOptions" optionLabel="label" optionValue="value" placeholder="Adviser" />
+            <Select
+              v-model="selectedAdviser"
+              :options="adviserOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Adviser"
+            />
             <Select v-model="selectedProgram" :options="programOptions" placeholder="Program" />
-            <Select v-model="selectedStatus" :options="statusOptions" placeholder="Submission status" />
+            <Select
+              v-model="selectedStatus"
+              :options="statusOptions"
+              placeholder="Submission status"
+            />
             <Button label="Reset" severity="secondary" outlined @click="clearFilters" />
           </div>
         </template>
@@ -170,14 +216,19 @@ onMounted(() => loadData({ includeFilterOptions: true }))
             <Column field="memberCount" header="Members" sortable />
             <Column header="Group Active">
               <template #body="slotProps">
-                <Tag :value="slotProps.data.groupIsActive ? 'Active' : 'Inactive'" :severity="slotProps.data.groupIsActive ? 'success' : 'secondary'" />
+                <Tag
+                  :value="slotProps.data.groupIsActive ? 'Active' : 'Inactive'"
+                  :severity="slotProps.data.groupIsActive ? 'success' : 'secondary'"
+                />
               </template>
             </Column>
             <Column header="Submission Status">
               <template #body="slotProps">
                 <Tag
                   :value="slotProps.data.latestSubmissionStatus || 'No Submission'"
-                  :severity="statusSeverity(slotProps.data.latestSubmissionStatus || 'No Submission')"
+                  :severity="
+                    statusSeverity(slotProps.data.latestSubmissionStatus || 'No Submission')
+                  "
                 />
               </template>
             </Column>

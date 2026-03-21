@@ -48,15 +48,12 @@ export const submitCurrentSubmission = async (taskId = null) => {
 
 export const uploadCurrentSubmissionFile = async ({ file, taskId = null }) => {
   const contentBase64 = await fileToBase64(file)
-  const response = await api.post(
-    '/api/submissions/student/current/files',
-    {
-      ...(taskId ? { taskId } : {}),
-      fileName: file.name,
-      contentType: file.type || 'application/octet-stream',
-      contentBase64,
-    },
-  )
+  const response = await api.post('/api/submissions/student/current/files', {
+    ...(taskId ? { taskId } : {}),
+    fileName: file.name,
+    contentType: file.type || 'application/octet-stream',
+    contentBase64,
+  })
 
   return response?.data || {}
 }

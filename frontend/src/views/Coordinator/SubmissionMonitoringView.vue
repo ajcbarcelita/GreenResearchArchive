@@ -18,7 +18,10 @@ import { listRepository, toggleSubmissionArchiveStatus } from '@/services/reposi
 const router = useRouter()
 const user = ref(getStoredUser())
 const isFaculty = computed(
-  () => String(user.value?.roleName || '').trim().toLowerCase() === 'faculty',
+  () =>
+    String(user.value?.roleName || '')
+      .trim()
+      .toLowerCase() === 'faculty',
 )
 
 const loading = ref(false)
@@ -49,9 +52,7 @@ const taskOptions = computed(() => {
 
 const termOptions = computed(() => {
   const unique = Array.from(
-    new Set(
-      allSubmissions.value.map((item) => termLabel(item.academicYear, item.termNo)),
-    ),
+    new Set(allSubmissions.value.map((item) => termLabel(item.academicYear, item.termNo))),
   ).sort((a, b) => a.localeCompare(b))
   return ['All', ...unique]
 })
@@ -116,13 +117,7 @@ const filteredRows = computed(() => {
   return sourceRows.value.filter((item) => {
     const matchesQuery =
       !q ||
-      [
-        item.title,
-        item.groupName,
-        item.taskName,
-        item.programCode,
-        ...(item.keywords || []),
-      ]
+      [item.title, item.groupName, item.taskName, item.programCode, ...(item.keywords || [])]
         .join(' ')
         .toLowerCase()
         .includes(q)
@@ -221,7 +216,10 @@ onMounted(loadSubmissions)
             <div>
               <p class="kicker">Submission Monitoring</p>
               <h1 class="headline">Track Submissions Across Tasks and Terms</h1>
-              <p class="support-text">Filter by task, academic term, and version mode, then drill into submission status and history.</p>
+              <p class="support-text">
+                Filter by task, academic term, and version mode, then drill into submission status
+                and history.
+              </p>
             </div>
             <Tag :value="`${filteredRows.length} record(s)`" severity="success" rounded />
           </div>
@@ -268,16 +266,17 @@ onMounted(loadSubmissions)
             <Column field="term" header="Term" sortable class="column-nowrap" />
             <Column field="programCode" header="Program" sortable class="column-nowrap" />
             <Column field="versionNo" header="Version" sortable class="column-nowrap text-center">
-              <template #body="slotProps">
-                v{{ slotProps.data.versionNo || 'N/A' }}
-              </template>
+              <template #body="slotProps"> v{{ slotProps.data.versionNo || 'N/A' }} </template>
             </Column>
             <Column header="Status" sortable field="status" class="column-status">
               <template #body="slotProps">
                 <Tag
                   :value="slotProps.data.status || 'Draft'"
                   :severity="statusSeverity(slotProps.data.status || 'Draft')"
-                  :class="[statusClass(slotProps.data.status || 'Draft'), 'm-0 w-full justify-center']"
+                  :class="[
+                    statusClass(slotProps.data.status || 'Draft'),
+                    'm-0 w-full justify-center',
+                  ]"
                 />
               </template>
             </Column>

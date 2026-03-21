@@ -6,7 +6,7 @@ import {
   insertDegreeProgram,
   listDegreeProgramsForAdmin,
   updateDegreeProgramById,
-  restoreDegreeProgramById
+  restoreDegreeProgramById,
 } from "../models/degreeProgramModel.js";
 
 const PROGRAM_LEVELS = ["Baccalaureate", "Master's", "Doctorate"];
@@ -17,10 +17,7 @@ const listProgramsQuerySchema = Joi.object({
     .trim()
     .valid(...PROGRAM_LEVELS)
     .allow("", null),
-  status: Joi.string()
-    .trim()
-    .valid("active", "archived")
-    .allow("", null),
+  status: Joi.string().trim().valid("active", "archived").allow("", null),
 });
 
 const upsertProgramSchema = Joi.object({
@@ -256,7 +253,6 @@ export const deleteProgram = async (req, res, next) => {
 
     return next(error);
   }
-  
 };
 
 export const restoreProgram = async (req, res, next) => {
@@ -265,10 +261,15 @@ export const restoreProgram = async (req, res, next) => {
 
     const programId = Number(req.params.programId);
 
-    const restored = await restoreDegreeProgramById(req.app.locals.db, programId);
+    const restored = await restoreDegreeProgramById(
+      req.app.locals.db,
+      programId,
+    );
 
     if (!restored) {
-      return res.status(404).json({ message: "Program not found or already active." });
+      return res
+        .status(404)
+        .json({ message: "Program not found or already active." });
     }
 
     return res.status(200).json({

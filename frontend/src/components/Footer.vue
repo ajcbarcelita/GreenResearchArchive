@@ -8,9 +8,7 @@
   </footer>
 </template>
 
-<script setup>
-
-</script>
+<script setup></script>
 
 <style scoped>
 .footer-glass {
@@ -18,12 +16,11 @@
   background-image: linear-gradient(90deg, var(--color-dark-green), var(--color-bright-green));
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
-  border-top: 3px solid rgba(255,255,255,0.06);
-  box-shadow: 0 6px 18px rgba(10,20,15,0.15);
+  border-top: 3px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 6px 18px rgba(10, 20, 15, 0.15);
 }
 
 .footer-glass .container {
   max-width: 1100px;
 }
-
 </style>

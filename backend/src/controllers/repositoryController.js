@@ -88,7 +88,10 @@ export const getRepositoryById = async (req, res) => {
 
     const resp = mapRowToResponse(row);
     resp.authors = authors;
-    const files = await listSubmissionFilesBySubmissionId(db, row.submission_id);
+    const files = await listSubmissionFilesBySubmissionId(
+      db,
+      row.submission_id,
+    );
     resp.files = files.map(mapSubmissionFile);
 
     return res.json({ data: resp });
@@ -132,7 +135,9 @@ export const downloadRepositorySubmissionFile = async (req, res) => {
 
     const object = await readObject({ key: file.s3_key, as: "stream" });
     const contentType = object.contentType || "application/octet-stream";
-    const safeName = String(file.file_name || `submission-file-${fileId}`).replace(/[\r\n"]/g, "_");
+    const safeName = String(
+      file.file_name || `submission-file-${fileId}`,
+    ).replace(/[\r\n"]/g, "_");
 
     res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${safeName}"`);
@@ -151,7 +156,9 @@ export const downloadRepositorySubmissionFile = async (req, res) => {
     object.body.pipe(res);
   } catch (err) {
     const statusCode = err?.statusCode || 500;
-    return res.status(statusCode).json({ error: err.message || "Failed to download file" });
+    return res
+      .status(statusCode)
+      .json({ error: err.message || "Failed to download file" });
   }
 };
 
@@ -189,14 +196,20 @@ export const addRepositoryComment = async (req, res) => {
       return res.status(400).json({ error: "Invalid submission ID" });
     }
 
-    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    const roleName = String(req.auth?.roleName || "")
+      .trim()
+      .toLowerCase();
     if (roleName !== "faculty" && roleName !== "coordinator") {
-      return res.status(403).json({ error: "Only faculty and coordinator can submit comments" });
+      return res
+        .status(403)
+        .json({ error: "Only faculty and coordinator can submit comments" });
     }
 
     const actorId = Number(req.auth?.sub);
     if (!Number.isInteger(actorId) || actorId <= 0) {
-      return res.status(401).json({ error: "Invalid authenticated user context" });
+      return res
+        .status(401)
+        .json({ error: "Invalid authenticated user context" });
     }
 
     const submission = await findSubmissionById(db, submissionId);
@@ -207,7 +220,9 @@ export const addRepositoryComment = async (req, res) => {
       return res.status(400).json({ error: "Comment is required" });
     }
     if (remarks.length > 1000) {
-      return res.status(400).json({ error: "Comment must be at most 1000 characters" });
+      return res
+        .status(400)
+        .json({ error: "Comment must be at most 1000 characters" });
     }
 
     const inserted = await db.query(
@@ -244,9 +259,13 @@ export const listRepositoryComments = async (req, res) => {
       return res.status(400).json({ error: "Invalid submission ID" });
     }
 
-    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    const roleName = String(req.auth?.roleName || "")
+      .trim()
+      .toLowerCase();
     if (roleName !== "faculty" && roleName !== "coordinator") {
-      return res.status(403).json({ error: "Only faculty and coordinator can view comments" });
+      return res
+        .status(403)
+        .json({ error: "Only faculty and coordinator can view comments" });
     }
 
     const submission = await findSubmissionById(db, submissionId);
@@ -279,7 +298,9 @@ export const listRepositoryComments = async (req, res) => {
       logId: row.log_id,
       submissionId: row.submission_id,
       actorId: row.changed_by,
-      actorName: [row.fname, row.mname, row.lname].filter(Boolean).join(" ") || "Unknown User",
+      actorName:
+        [row.fname, row.mname, row.lname].filter(Boolean).join(" ") ||
+        "Unknown User",
       actorRole: row.role_name || null,
       remarks: row.remarks,
       changedAt: row.changed_at,

@@ -249,7 +249,7 @@ export const revokeSessionsByUserId = async (db, userId) => {
      WHERE user_id = $1
        AND is_revoked = false
      RETURNING *`,
-    [userId]
+    [userId],
   );
   return result.rows; // all revoked sessions
 };

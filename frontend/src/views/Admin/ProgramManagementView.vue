@@ -17,10 +17,10 @@ import {
   deleteProgramAdmin,
   listProgramsAdmin,
   updateProgramAdmin,
-  restoreProgramAdmin
+  restoreProgramAdmin,
 } from '@/services/programManagementService'
 
-const PROGRAM_LEVELS = ["Baccalaureate", "Master's", 'Doctorate']
+const PROGRAM_LEVELS = ['Baccalaureate', "Master's", 'Doctorate']
 
 const toast = useToast()
 const loading = ref(false)
@@ -93,7 +93,9 @@ const validateForm = () => {
     programLevel: '',
   }
 
-  const code = String(form.value.programCode || '').trim().toUpperCase()
+  const code = String(form.value.programCode || '')
+    .trim()
+    .toUpperCase()
   const name = String(form.value.programName || '').trim()
   const level = String(form.value.programLevel || '').trim()
 
@@ -150,7 +152,9 @@ const handleSave = async () => {
   saving.value = true
   try {
     const payload = {
-      programCode: String(form.value.programCode || '').trim().toUpperCase(),
+      programCode: String(form.value.programCode || '')
+        .trim()
+        .toUpperCase(),
       programName: String(form.value.programName || '').trim(),
       programLevel: String(form.value.programLevel || '').trim(),
     }
@@ -218,9 +222,7 @@ const handleDelete = async (program) => {
 }
 
 const handleRestore = async (program) => {
-  const confirmed = window.confirm(
-    `Restore program ${program.programCode}?`,
-  )
+  const confirmed = window.confirm(`Restore program ${program.programCode}?`)
   if (!confirmed) return
 
   deletingId.value = program.programId
@@ -263,7 +265,7 @@ watch([searchQuery, selectedLevel, selectedStatus], () => {
 })
 
 onMounted(() => {
-  document.title = "Program Management | Green Archive"
+  document.title = 'Program Management | Green Archive'
   loadPrograms()
 })
 </script>
@@ -283,7 +285,8 @@ onMounted(() => {
               <p class="kicker">Admin</p>
               <h1 class="headline">Program Management</h1>
               <p class="support-text">
-                Maintain degree programs and monitor their current usage across student records and capstone groups.
+                Maintain degree programs and monitor their current usage across student records and
+                capstone groups.
               </p>
             </div>
             <Button icon="pi pi-plus" label="New Program" @click="openCreateDialog" />
@@ -292,45 +295,60 @@ onMounted(() => {
       </Card>
 
       <section class="summary-grid mt-4">
-        <Card class="summary-card"><template #content><p class="label">Programs</p><p class="value">{{ totals.programCount }}</p></template></Card>
-        <Card class="summary-card"><template #content><p class="label">Students Linked</p><p class="value">{{ totals.studentCount }}</p></template></Card>
-        <Card class="summary-card"><template #content><p class="label">Groups Linked</p><p class="value">{{ totals.groupCount }}</p></template></Card>
+        <Card class="summary-card"
+          ><template #content
+            ><p class="label">Programs</p>
+            <p class="value">{{ totals.programCount }}</p></template
+          ></Card
+        >
+        <Card class="summary-card"
+          ><template #content
+            ><p class="label">Students Linked</p>
+            <p class="value">{{ totals.studentCount }}</p></template
+          ></Card
+        >
+        <Card class="summary-card"
+          ><template #content
+            ><p class="label">Groups Linked</p>
+            <p class="value">{{ totals.groupCount }}</p></template
+          ></Card
+        >
       </section>
 
       <Card class="filter-card mt-4">
-  <template #content>
-    <div class="filter-row">
-      <InputText 
-        class="search-input" 
-        v-model="searchQuery" 
-        placeholder="Search by code or name" 
-      />
-      
-      <Select 
-        class="filter-select" 
-        v-model="selectedLevel" 
-        :options="levelOptions" 
-        placeholder="Program level" 
-      />
-      
-      <Select
-        class="filter-select"
-        v-model="selectedStatus"
-        :options="statusOptions"
-        placeholder="Status"
-      />
-      
-      <Button 
-        class="refresh-btn" 
-        icon="pi pi-refresh" 
-        label="Refresh" 
-        outlined 
-        :loading="loading" 
-        @click="loadPrograms" 
-      />
-    </div>
-  </template>
-</Card>
+        <template #content>
+          <div class="filter-row">
+            <InputText
+              class="search-input"
+              v-model="searchQuery"
+              placeholder="Search by code or name"
+            />
+
+            <Select
+              class="filter-select"
+              v-model="selectedLevel"
+              :options="levelOptions"
+              placeholder="Program level"
+            />
+
+            <Select
+              class="filter-select"
+              v-model="selectedStatus"
+              :options="statusOptions"
+              placeholder="Status"
+            />
+
+            <Button
+              class="refresh-btn"
+              icon="pi pi-refresh"
+              label="Refresh"
+              outlined
+              :loading="loading"
+              @click="loadPrograms"
+            />
+          </div>
+        </template>
+      </Card>
 
       <Card class="table-card mt-4">
         <template #content>
@@ -412,25 +430,35 @@ onMounted(() => {
         <div class="field">
           <label for="programCode">Program Code</label>
           <InputText id="programCode" v-model="form.programCode" maxlength="10" />
-          <small v-if="formErrors.programCode" class="error-text">{{ formErrors.programCode }}</small>
+          <small v-if="formErrors.programCode" class="error-text">{{
+            formErrors.programCode
+          }}</small>
         </div>
 
         <div class="field">
           <label for="programName">Program Name</label>
           <InputText id="programName" v-model="form.programName" maxlength="100" />
-          <small v-if="formErrors.programName" class="error-text">{{ formErrors.programName }}</small>
+          <small v-if="formErrors.programName" class="error-text">{{
+            formErrors.programName
+          }}</small>
         </div>
 
         <div class="field">
           <label for="programLevel">Program Level</label>
           <Select id="programLevel" v-model="form.programLevel" :options="PROGRAM_LEVELS" />
-          <small v-if="formErrors.programLevel" class="error-text">{{ formErrors.programLevel }}</small>
+          <small v-if="formErrors.programLevel" class="error-text">{{
+            formErrors.programLevel
+          }}</small>
         </div>
       </div>
 
       <template #footer>
         <Button label="Cancel" text @click="dialogVisible = false" />
-        <Button :label="editMode ? 'Save Changes' : 'Create Program'" :loading="saving" @click="handleSave" />
+        <Button
+          :label="editMode ? 'Save Changes' : 'Create Program'"
+          :loading="saving"
+          @click="handleSave"
+        />
       </template>
     </Dialog>
 
@@ -505,12 +533,12 @@ onMounted(() => {
 }
 
 .search-input {
-  flex: 2; 
+  flex: 2;
   min-width: 0; /* Prevents overflow issues */
 }
 
 .filter-select {
-  flex: 1; 
+  flex: 1;
   min-width: 0;
 }
 

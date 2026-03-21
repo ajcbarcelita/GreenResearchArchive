@@ -87,8 +87,9 @@ onMounted(loadTasks)
       <Navbar />
     </header>
 
-    <main class="mx-auto w-full max-w-7xl flex-1 px-4 pb-8 pt-24 sm:px-6 sm:pb-10 sm:pt-28 lg:pt-32">
-
+    <main
+      class="mx-auto w-full max-w-7xl flex-1 px-4 pb-8 pt-24 sm:px-6 sm:pb-10 sm:pt-28 lg:pt-32"
+    >
       <!-- Hero -->
       <Card class="panel-card mb-6">
         <template #content>
@@ -116,7 +117,9 @@ onMounted(loadTasks)
           <div class="empty-state">
             <p class="empty-icon">📋</p>
             <p class="empty-title">No tasks available yet</p>
-            <p class="empty-sub">Ask your coordinator to set up the academic term and milestone tasks.</p>
+            <p class="empty-sub">
+              Ask your coordinator to set up the academic term and milestone tasks.
+            </p>
           </div>
         </template>
       </Card>
@@ -131,13 +134,10 @@ onMounted(loadTasks)
           <!-- Term header -->
           <div class="term-header">
             <div class="term-label-row">
-              <span class="term-title">AY {{ group.academicYear }} — {{ termLabel(group.termNo) }}</span>
-              <Tag
-                v-if="group.isActiveTerm"
-                value="Current Term"
-                severity="success"
-                rounded
-              />
+              <span class="term-title"
+                >AY {{ group.academicYear }} — {{ termLabel(group.termNo) }}</span
+              >
+              <Tag v-if="group.isActiveTerm" value="Current Term" severity="success" rounded />
             </div>
           </div>
 
@@ -176,7 +176,11 @@ onMounted(loadTasks)
                     <div class="task-meta">
                       <span class="meta-item">
                         <span class="meta-label">Due:</span>
-                        <span :class="{ 'text-red-600 font-semibold': isDue(task.dueDate) && !task.submission }">
+                        <span
+                          :class="{
+                            'text-red-600 font-semibold': isDue(task.dueDate) && !task.submission,
+                          }"
+                        >
                           {{ formatDate(task.dueDate) }}
                         </span>
                       </span>
@@ -193,8 +197,16 @@ onMounted(loadTasks)
 
                   <div class="task-action">
                     <Button
-                      :label="task.isLocked ? 'Locked' : (task.submission ? 'Open Submission' : 'Start Submission')"
-                      :severity="task.isLocked ? 'danger' : (task.submission ? 'secondary' : 'primary')"
+                      :label="
+                        task.isLocked
+                          ? 'Locked'
+                          : task.submission
+                            ? 'Open Submission'
+                            : 'Start Submission'
+                      "
+                      :severity="
+                        task.isLocked ? 'danger' : task.submission ? 'secondary' : 'primary'
+                      "
                       :outlined="task.isLocked ? false : !!task.submission"
                       :disabled="task.isLocked"
                       size="small"
@@ -293,7 +305,10 @@ onMounted(loadTasks)
 
 /* Task card */
 .task-card {
-  transition: border-color 180ms ease, box-shadow 180ms ease, transform 120ms ease;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 120ms ease;
 }
 
 .task-card:hover {
@@ -315,8 +330,12 @@ onMounted(loadTasks)
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .task-inner {

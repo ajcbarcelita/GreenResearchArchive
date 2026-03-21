@@ -10,7 +10,8 @@
     "test:s3": "node ./src/scripts/testS3Connection.js",
     "install": "prettier --write --experimental-cli src/",
     "seed": "node ./src/scripts/seedDatabase.js",
-    "seed:advisory-mock": "node ./src/scripts/seedAdvisoryMockData.js"
+    "seed:advisory-mock": "node ./src/scripts/seedAdvisoryMockData.js",
+    "format": "prettier --write --experimental-cli --no-cache src/"
   },
   "keywords": [],
   "author": "",

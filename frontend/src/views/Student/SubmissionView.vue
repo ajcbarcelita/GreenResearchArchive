@@ -123,9 +123,11 @@ const requiresKeywordAndResearchField = computed(() => {
 const formatStoredUserName = (user) => {
   if (!user) return 'Unknown User'
 
-  return [user.firstName, user.middleName, user.lastName]
-    .filter(Boolean)
-    .join(' ') || user.email || 'Unknown User'
+  return (
+    [user.firstName, user.middleName, user.lastName].filter(Boolean).join(' ') ||
+    user.email ||
+    'Unknown User'
+  )
 }
 
 const loadSubmission = async () => {
@@ -158,7 +160,8 @@ const loadSubmission = async () => {
     currentTaskName.value = response?.task?.taskName || ''
     currentAcademicYear.value = response?.task?.academicYear || ''
     currentTermNo.value = response?.task?.termNo || null
-    const effectiveTaskId = currentTaskId.value || response?.task?.taskId || submission?.taskId || null
+    const effectiveTaskId =
+      currentTaskId.value || response?.task?.taskId || submission?.taskId || null
     const filteredHistory = effectiveTaskId
       ? history.filter((item) => Number(item?.taskId) === Number(effectiveTaskId))
       : history
@@ -384,11 +387,14 @@ onMounted(() => {
             <div class="mt-2 flex flex-wrap gap-2">
               <Tag :value="status" :severity="statusSeverity" rounded />
               <Tag :value="academicYearLabel" severity="secondary" rounded />
-              <Tag v-if="currentTermNo" :value="termLabel(currentTermNo)" severity="contrast" rounded />
+              <Tag
+                v-if="currentTermNo"
+                :value="termLabel(currentTermNo)"
+                severity="contrast"
+                rounded
+              />
             </div>
-            <p class="support-text mt-3">
-              Reviewer: {{ currentReviewerName }}
-            </p>
+            <p class="support-text mt-3">Reviewer: {{ currentReviewerName }}</p>
           </template>
         </Card>
       </section>
@@ -460,8 +466,19 @@ onMounted(() => {
             </div>
 
             <div class="mt-5 flex flex-wrap gap-2">
-              <Button label="Save Draft" severity="secondary" outlined :loading="saving" @click="saveDraft" />
-              <Button label="Submit" :disabled="!canSubmit || loading || saving || submitting" :loading="submitting" @click="submitFinal" />
+              <Button
+                label="Save Draft"
+                severity="secondary"
+                outlined
+                :loading="saving"
+                @click="saveDraft"
+              />
+              <Button
+                label="Submit"
+                :disabled="!canSubmit || loading || saving || submitting"
+                :loading="submitting"
+                @click="submitFinal"
+              />
             </div>
           </template>
         </Card>
@@ -575,7 +592,11 @@ onMounted(() => {
               <Column field="submittedBy" header="Submitted By" />
               <Column field="status" header="Status">
                 <template #body="slotProps">
-                  <Tag :value="slotProps.data.status" :severity="slotProps.data.status === 'Submitted' ? 'info' : 'warn'" rounded />
+                  <Tag
+                    :value="slotProps.data.status"
+                    :severity="slotProps.data.status === 'Submitted' ? 'info' : 'warn'"
+                    rounded
+                  />
                 </template>
               </Column>
             </DataTable>
@@ -599,7 +620,9 @@ onMounted(() => {
   border-radius: 1rem;
   border: 1px solid #d5e2db;
   box-shadow: 0 12px 32px rgba(18, 43, 32, 0.07);
-  transition: border-color 200ms ease, box-shadow 200ms ease;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
 }
 
 .panel-card-accent {

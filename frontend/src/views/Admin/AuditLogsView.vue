@@ -80,10 +80,10 @@ const loadData = async ({ includeFilterOptions = false } = {}) => {
       filterNewStatuses.value = ['All', ...(response.filters?.newStatuses || [])]
       filterActors.value = [
         { label: 'All', value: 'All' },
-        ...((response.filters?.actors || []).map((actor) => ({
+        ...(response.filters?.actors || []).map((actor) => ({
           label: `${actor.actorName} (${actor.actorEmail})`,
           value: actor.actorId,
-        }))),
+        })),
       ]
     }
   } catch (error) {
@@ -106,7 +106,15 @@ const statusSeverity = (status) => {
 let filterDebounceTimer = null
 
 watch(
-  [query, selectedProgram, selectedOldStatus, selectedNewStatus, selectedActor, selectedDateFrom, selectedDateTo],
+  [
+    query,
+    selectedProgram,
+    selectedOldStatus,
+    selectedNewStatus,
+    selectedActor,
+    selectedDateFrom,
+    selectedDateTo,
+  ],
   () => {
     if (filterDebounceTimer) clearTimeout(filterDebounceTimer)
     filterDebounceTimer = setTimeout(() => loadData(), 250)
@@ -116,7 +124,7 @@ watch(
 onMounted(() => loadData({ includeFilterOptions: true }))
 
 onMounted(() => {
-  document.title = "Submission Logs | Green Archive"
+  document.title = 'Submission Logs | Green Archive'
 })
 </script>
 
@@ -133,28 +141,70 @@ onMounted(() => {
             <div>
               <p class="kicker">Audit Logs</p>
               <h1 class="headline">Submission Change History</h1>
-              <p class="support-text">Track status transitions, actors, and remarks across submission lifecycle events.</p>
+              <p class="support-text">
+                Track status transitions, actors, and remarks across submission lifecycle events.
+              </p>
             </div>
-            <Button label="Refresh" icon="pi pi-refresh" outlined :loading="loading" @click="loadData" />
+            <Button
+              label="Refresh"
+              icon="pi pi-refresh"
+              outlined
+              :loading="loading"
+              @click="loadData"
+            />
           </div>
         </template>
       </Card>
 
       <section class="summary-grid mt-4">
-        <Card class="summary-card"><template #content><p class="label">Total Logs</p><p class="value">{{ summary.totalLogs }}</p></template></Card>
-        <Card class="summary-card"><template #content><p class="label">Logs Today</p><p class="value">{{ summary.logsToday }}</p></template></Card>
-        <Card class="summary-card"><template #content><p class="label">Unique Actors</p><p class="value">{{ summary.uniqueActors }}</p></template></Card>
-        <Card class="summary-card"><template #content><p class="label">Top Transition</p><p class="value compact">{{ summary.mostCommonTransition || 'N/A' }}</p></template></Card>
+        <Card class="summary-card"
+          ><template #content
+            ><p class="label">Total Logs</p>
+            <p class="value">{{ summary.totalLogs }}</p></template
+          ></Card
+        >
+        <Card class="summary-card"
+          ><template #content
+            ><p class="label">Logs Today</p>
+            <p class="value">{{ summary.logsToday }}</p></template
+          ></Card
+        >
+        <Card class="summary-card"
+          ><template #content
+            ><p class="label">Unique Actors</p>
+            <p class="value">{{ summary.uniqueActors }}</p></template
+          ></Card
+        >
+        <Card class="summary-card"
+          ><template #content
+            ><p class="label">Top Transition</p>
+            <p class="value compact">{{ summary.mostCommonTransition || 'N/A' }}</p></template
+          ></Card
+        >
       </section>
 
       <Card class="filter-card mt-4">
         <template #content>
           <div class="filter-grid">
             <InputText v-model="query" placeholder="Search by remarks, group, or actor" />
-            <Select v-model="selectedActor" :options="filterActors" optionLabel="label" optionValue="value" placeholder="Actor" />
+            <Select
+              v-model="selectedActor"
+              :options="filterActors"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Actor"
+            />
             <Select v-model="selectedProgram" :options="filterPrograms" placeholder="Program" />
-            <Select v-model="selectedOldStatus" :options="filterOldStatuses" placeholder="Old status" />
-            <Select v-model="selectedNewStatus" :options="filterNewStatuses" placeholder="New status" />
+            <Select
+              v-model="selectedOldStatus"
+              :options="filterOldStatuses"
+              placeholder="Old status"
+            />
+            <Select
+              v-model="selectedNewStatus"
+              :options="filterNewStatuses"
+              placeholder="New status"
+            />
             <DatePicker v-model="selectedDateFrom" dateFormat="yy-mm-dd" placeholder="From date" />
             <DatePicker v-model="selectedDateTo" dateFormat="yy-mm-dd" placeholder="To date" />
             <Button label="Reset" severity="secondary" outlined @click="clearFilters" />
@@ -182,9 +232,15 @@ onMounted(() => {
             <Column header="Transition">
               <template #body="slotProps">
                 <div class="status-stack">
-                  <Tag :value="slotProps.data.oldStatus || 'None'" :severity="statusSeverity(slotProps.data.oldStatus)" />
+                  <Tag
+                    :value="slotProps.data.oldStatus || 'None'"
+                    :severity="statusSeverity(slotProps.data.oldStatus)"
+                  />
                   <span class="arrow">to</span>
-                  <Tag :value="slotProps.data.newStatus || 'None'" :severity="statusSeverity(slotProps.data.newStatus)" />
+                  <Tag
+                    :value="slotProps.data.newStatus || 'None'"
+                    :severity="statusSeverity(slotProps.data.newStatus)"
+                  />
                 </div>
               </template>
             </Column>

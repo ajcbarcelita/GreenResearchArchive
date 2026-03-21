@@ -16,16 +16,24 @@ import { getDegreePrograms, getStoredUser } from '../services/authService'
 const user = ref(getStoredUser())
 
 const useCoordinatorNavbar = computed(() => {
-  const normalizedRoleName = String(user.value?.roleName || '').trim().toLowerCase()
+  const normalizedRoleName = String(user.value?.roleName || '')
+    .trim()
+    .toLowerCase()
   return normalizedRoleName === 'coordinator'
 })
 
 const useFacultyNavbar = computed(() => {
-  const normalizedRoleName = String(user.value?.roleName || '').trim().toLowerCase()
+  const normalizedRoleName = String(user.value?.roleName || '')
+    .trim()
+    .toLowerCase()
   return normalizedRoleName === 'faculty'
 })
 
-const normalizedRoleName = computed(() => String(user.value?.roleName || '').trim().toLowerCase())
+const normalizedRoleName = computed(() =>
+  String(user.value?.roleName || '')
+    .trim()
+    .toLowerCase(),
+)
 
 const searchValue = ref('')
 const selectedProgram = ref('All')
@@ -60,9 +68,7 @@ onMounted(async () => {
       .map((program) => String(program?.program_code || '').trim())
       .filter(Boolean)
 
-    const uniqueCodes = Array.from(new Set(databaseProgramCodes)).sort((a, b) =>
-      a.localeCompare(b),
-    )
+    const uniqueCodes = Array.from(new Set(databaseProgramCodes)).sort((a, b) => a.localeCompare(b))
 
     programOptions.value = ['All', ...uniqueCodes]
 
@@ -72,11 +78,7 @@ onMounted(async () => {
     // Fallback: if programs endpoint is empty, derive options from loaded repository rows.
     if (uniqueCodes.length === 0) {
       const repositoryCodes = Array.from(
-        new Set(
-          data
-            .map((item) => String(item?.programCode || '').trim())
-            .filter(Boolean),
-        ),
+        new Set(data.map((item) => String(item?.programCode || '').trim()).filter(Boolean)),
       ).sort((a, b) => a.localeCompare(b))
 
       programOptions.value = ['All', ...repositoryCodes]
@@ -103,7 +105,8 @@ const filteredItems = computed(() => {
       .toLowerCase()
 
     const matchesKeyword = !keyword || searchTarget.includes(keyword)
-    const matchesProgram = selectedProgram.value === 'All' || item.programCode === selectedProgram.value
+    const matchesProgram =
+      selectedProgram.value === 'All' || item.programCode === selectedProgram.value
     const matchesTerm =
       selectedTerm.value === 'All' ||
       formatDbTerm(item.academicYear, item.termNo) === selectedTerm.value
@@ -142,9 +145,7 @@ const activeFilterPills = computed(() => {
 
 const formatDbTerm = (academicYear, termNo) => {
   const year = String(academicYear || '').trim() || 'unknown-year'
-  const term = termNo === null || termNo === undefined || termNo === ''
-    ? 'unknown'
-    : String(termNo)
+  const term = termNo === null || termNo === undefined || termNo === '' ? 'unknown' : String(termNo)
 
   return `${year}-term-${term}`
 }
@@ -166,10 +167,7 @@ const compareDbTerm = (a, b) => {
 
 const termOptions = computed(() => {
   const values = Array.from(
-    new Set(
-      repositoryItems.value
-        .map((item) => formatDbTerm(item?.academicYear, item?.termNo)),
-    ),
+    new Set(repositoryItems.value.map((item) => formatDbTerm(item?.academicYear, item?.termNo))),
   ).sort(compareDbTerm)
 
   return ['All', ...values]
@@ -216,7 +214,6 @@ const formatSubmittedDateTime = (value) => {
     minute: '2-digit',
   })
 }
-
 </script>
 
 <template>
@@ -297,17 +294,30 @@ const formatSubmittedDateTime = (value) => {
         <Card v-for="item in pagedItems" :key="item.submissionId" class="catalog-card">
           <template #content>
             <div class="row-top">
-              <Tag :value="item.isLocked ? 'Locked' : 'Open'" :severity="item.isLocked ? 'secondary' : 'success'" rounded />
+              <Tag
+                :value="item.isLocked ? 'Locked' : 'Open'"
+                :severity="item.isLocked ? 'secondary' : 'success'"
+                rounded
+              />
             </div>
 
             <h2 class="item-title">{{ item.title }}</h2>
-            <p class="meta-line">{{ item.groupName }} · {{ item.programCode }} · Adviser: {{ item.adviserName }}</p>
-            <p class="meta-line">By: {{ (item.authors && item.authors.length) ? item.authors.join(', ') : item.groupName }}</p>
+            <p class="meta-line">
+              {{ item.groupName }} · {{ item.programCode }} · Adviser: {{ item.adviserName }}
+            </p>
+            <p class="meta-line">
+              By:
+              {{ item.authors && item.authors.length ? item.authors.join(', ') : item.groupName }}
+            </p>
 
             <p class="abstract-preview">{{ item.abstract }}</p>
 
             <div class="keyword-row">
-              <Chip v-for="keyword in item.keywords" :key="`${item.submissionId}-${keyword}`" :label="keyword" />
+              <Chip
+                v-for="keyword in item.keywords"
+                :key="`${item.submissionId}-${keyword}`"
+                :label="keyword"
+              />
             </div>
 
             <div class="meta-grid">
@@ -325,7 +335,10 @@ const formatSubmittedDateTime = (value) => {
               </div>
               <div>
                 <span class="meta-label">Files</span>
-                <p>{{ item.hasCapstonePaper ? 'Paper' : '-' }} / {{ item.hasDataset ? 'Dataset' : '-' }}</p>
+                <p>
+                  {{ item.hasCapstonePaper ? 'Paper' : '-' }} /
+                  {{ item.hasDataset ? 'Dataset' : '-' }}
+                </p>
               </div>
             </div>
 
@@ -379,7 +392,9 @@ const formatSubmittedDateTime = (value) => {
   border: 2px solid #d1d5db;
   border-radius: 0.75rem;
   box-shadow: 0 10px 15px rgba(2, 6, 23, 0.06);
-  transition: border-color 200ms ease, box-shadow 200ms ease;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
 }
 
 .hero-content {

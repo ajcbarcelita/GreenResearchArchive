@@ -365,9 +365,13 @@ export const getCoordinatorTasks = async (req, res) => {
     const db = req.app?.locals?.db;
     if (!db) return res.status(500).json({ error: "Database not initialized" });
 
-    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    const roleName = String(req.auth?.roleName || "")
+      .trim()
+      .toLowerCase();
     if (roleName !== "coordinator" && roleName !== "faculty") {
-      return res.status(403).json({ error: "Only faculty and coordinator can view tasks" });
+      return res
+        .status(403)
+        .json({ error: "Only faculty and coordinator can view tasks" });
     }
 
     const rows = await listAllTasksWithSubmissionStats(db);
@@ -384,7 +388,9 @@ export const getCoordinatorTasks = async (req, res) => {
       termNo: row.term_no,
       submissionCount: Number(row.submission_count || 0),
       latestSubmissionAt: row.latest_submission_at,
-      programCodes: Array.isArray(row.program_codes) ? row.program_codes.filter(Boolean) : [],
+      programCodes: Array.isArray(row.program_codes)
+        ? row.program_codes.filter(Boolean)
+        : [],
     }));
 
     return res.json({ data });
@@ -398,9 +404,13 @@ export const getCoordinatorTerms = async (req, res) => {
     const db = req.app?.locals?.db;
     if (!db) return res.status(500).json({ error: "Database not initialized" });
 
-    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    const roleName = String(req.auth?.roleName || "")
+      .trim()
+      .toLowerCase();
     if (roleName !== "coordinator" && roleName !== "faculty") {
-      return res.status(403).json({ error: "Only faculty and coordinator can view terms" });
+      return res
+        .status(403)
+        .json({ error: "Only faculty and coordinator can view terms" });
     }
 
     const rows = await listAcademicTerms(db);
@@ -423,9 +433,13 @@ export const toggleCoordinatorTaskLock = async (req, res) => {
     const db = req.app?.locals?.db;
     if (!db) return res.status(500).json({ error: "Database not initialized" });
 
-    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    const roleName = String(req.auth?.roleName || "")
+      .trim()
+      .toLowerCase();
     if (roleName !== "coordinator" && roleName !== "faculty") {
-      return res.status(403).json({ error: "Only faculty and coordinator can lock tasks" });
+      return res
+        .status(403)
+        .json({ error: "Only faculty and coordinator can lock tasks" });
     }
 
     const taskId = Number(req.params.taskId);
@@ -454,9 +468,13 @@ export const toggleCoordinatorTaskAutoLock = async (req, res) => {
     const db = req.app?.locals?.db;
     if (!db) return res.status(500).json({ error: "Database not initialized" });
 
-    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    const roleName = String(req.auth?.roleName || "")
+      .trim()
+      .toLowerCase();
     if (roleName !== "coordinator" && roleName !== "faculty") {
-      return res.status(403).json({ error: "Only faculty and coordinator can update task auto-lock" });
+      return res.status(403).json({
+        error: "Only faculty and coordinator can update task auto-lock",
+      });
     }
 
     const taskId = Number(req.params.taskId);

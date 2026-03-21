@@ -1,16 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Karla:ital,wght@0,200..800;1,200..800&display=swap');
-@import "tailwindcss";
-@import "tailwindcss-primeui";
+@import 'tailwindcss';
+@import 'tailwindcss-primeui';
 
 @theme {
   --font-sans: 'Karla', sans-serif;
   --color-bright-green: #377352;
-  --color-dark-green: #22473C;
-  --color-ash-white: #EBEEF1;
-  --color-white: #E9ECEF;
+  --color-dark-green: #22473c;
+  --color-ash-white: #ebeef1;
+  --color-white: #e9ecef;
   --color-hover-green: #416153;
   --color-green-text: #203432;
-  --color-green-highlight: #E1F9E6;
+  --color-green-highlight: #e1f9e6;
 }
 
 .font-Karla {
@@ -18,7 +18,9 @@
 }
 
 .p-card {
-  transition: border-color 200ms ease, box-shadow 200ms ease;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
 }
 .p-card:hover {
   border-color: #0e662e;

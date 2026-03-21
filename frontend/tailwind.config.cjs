@@ -1,8 +1,5 @@
 module.exports = {
-  content: [
-    './index.html',
-    './src/**/*.{vue,js,ts,jsx,tsx}'
-  ],
+  content: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -10,12 +7,12 @@ module.exports = {
         'dark-green': '#22473C',
         'ash-white': '#EBEEF1',
         'soft-white': '#E9ECEF',
-        'hover-green': '#416153'
+        'hover-green': '#416153',
       },
       fontFamily: {
-        montserrat: ['Montserrat', 'sans-serif']
-      }
-    }
+        montserrat: ['Montserrat', 'sans-serif'],
+      },
+    },
   },
-  plugins: []
-};
+  plugins: [],
+}

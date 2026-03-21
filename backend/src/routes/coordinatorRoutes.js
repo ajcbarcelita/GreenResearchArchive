@@ -11,7 +11,7 @@ import {
   updateSubmissionStatus,
   lockSubmission,
   getProgramsList,
-  getAdvisersList
+  getAdvisersList,
 } from "../controllers/coordinatorController.js";
 import {
   requireAuth,
@@ -26,12 +26,24 @@ router.get("/analytics/keywords", requireAuth, getKeywordAnalytics);
 router.get("/analytics/trends", requireAuth, getResearchTrendsAnalytics);
 router.get("/analytics/advisers", requireAuth, getAdviserWorkloadAnalytics);
 router.get("/analytics/health", requireAuth, getRepositoryHealthAnalytics);
-router.get("/analytics/performance", requireAuth, getPerformanceIndicatorsAnalytics);
+router.get(
+  "/analytics/performance",
+  requireAuth,
+  getPerformanceIndicatorsAnalytics,
+);
 
 // Submissions management
 router.get("/submissions/live", requireAuth, getLiveSubmissionsList);
-router.get("/submissions/pending-validation", requireAuth, getPendingValidationsList);
-router.put("/submissions/:submissionId/status", requireAuth, updateSubmissionStatus);
+router.get(
+  "/submissions/pending-validation",
+  requireAuth,
+  getPendingValidationsList,
+);
+router.put(
+  "/submissions/:submissionId/status",
+  requireAuth,
+  updateSubmissionStatus,
+);
 router.put("/submissions/:submissionId/lock", requireAuth, lockSubmission);
 
 // Utility routes

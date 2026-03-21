@@ -17,13 +17,12 @@ import AdminUsersView from '../views/Admin/UserManagementView.vue'
 import AdminProgramsView from '../views/Admin/ProgramManagementView.vue'
 import AdminAuditLogsView from '../views/Admin/AuditLogsView.vue'
 import ProfileView from '../views/ProfileView.vue'
-import {
-  getStoredUser,
-  hasAccessToken,
-  needsProfileCompletion,
-} from '../services/authService'
+import { getStoredUser, hasAccessToken, needsProfileCompletion } from '../services/authService'
 
-const getRoleName = (user) => String(user?.roleName || '').trim().toLowerCase()
+const getRoleName = (user) =>
+  String(user?.roleName || '')
+    .trim()
+    .toLowerCase()
 
 const resolveCompleteProfilePath = (user) => {
   const roleName = getRoleName(user)
@@ -197,7 +196,6 @@ const router = createRouter({
       component: StudentTasksView,
     },
 
-
     // Admin Routes
     {
       path: '/admin/dashboard',
@@ -219,7 +217,6 @@ const router = createRouter({
       name: 'admin-audit-logs',
       component: AdminAuditLogsView,
     },
-
 
     // Faculty Routes
     {
@@ -247,7 +244,6 @@ const router = createRouter({
       name: 'faculty-repository',
       component: RepositoryView,
     },
-
 
     // Faculty / Coordinator Routes
     {
@@ -295,8 +291,6 @@ const router = createRouter({
       path: '/faculty-coordinator/repository',
       redirect: '/coordinator/repository',
     },
-
-
   ],
 })
 
@@ -320,7 +314,12 @@ router.beforeEach((to) => {
     return requiresProfileCompletion ? completeProfilePath : homePath
   }
 
-  if (authenticated && !requiresProfileCompletion && to.path === '/dashboard' && homePath !== '/dashboard') {
+  if (
+    authenticated &&
+    !requiresProfileCompletion &&
+    to.path === '/dashboard' &&
+    homePath !== '/dashboard'
+  ) {
     return homePath
   }
 

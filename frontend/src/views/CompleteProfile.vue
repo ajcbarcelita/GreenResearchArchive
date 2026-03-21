@@ -20,11 +20,16 @@ const router = useRouter()
 const route = useRoute()
 const toast = useToast()
 
-const propRole = String(route.params.role || '').trim().toLowerCase() || null
+const propRole =
+  String(route.params.role || '')
+    .trim()
+    .toLowerCase() || null
 const user = ref(getStoredUser())
 
 const resolvedRole = computed(() => {
-  const fromUser = String(user.value?.roleName || '').trim().toLowerCase()
+  const fromUser = String(user.value?.roleName || '')
+    .trim()
+    .toLowerCase()
   const r = propRole || fromUser
   if (r === 'admin') return 'admin'
   if (r === 'faculty') return 'faculty'
@@ -49,7 +54,8 @@ const loadPrograms = async () => {
     const response = await getDegreePrograms()
     programs.value = response?.programs || []
   } catch (error) {
-    const message = error?.response?.data?.message || 'Unable to load degree programs. Please try again.'
+    const message =
+      error?.response?.data?.message || 'Unable to load degree programs. Please try again.'
     errorMessage.value = message
     toast.add({ severity: 'error', summary: 'Request Failed', detail: message, life: 3500 })
   } finally {
@@ -81,7 +87,8 @@ const submitProfile = async (payload) => {
     else if (isCoordinator.value) router.push('/coordinator/home')
     else router.push('/dashboard')
   } catch (error) {
-    const message = error?.response?.data?.message || 'Unable to complete profile. Please try again.'
+    const message =
+      error?.response?.data?.message || 'Unable to complete profile. Please try again.'
     errorMessage.value = message
     toast.add({ severity: 'error', summary: 'Invalid Input', detail: message, life: 3500 })
   } finally {
@@ -112,7 +119,9 @@ onMounted(async () => {
       <Navbar v-else />
     </header>
 
-    <main class="flex-1 flex items-center justify-center px-4 py-6 pt-24 sm:px-6 sm:py-8 sm:pt-28 lg:pt-32">
+    <main
+      class="flex-1 flex items-center justify-center px-4 py-6 pt-24 sm:px-6 sm:py-8 sm:pt-28 lg:pt-32"
+    >
       <CompleteProfileForm
         :programs="programs"
         :loading-programs="isLoadingPrograms"

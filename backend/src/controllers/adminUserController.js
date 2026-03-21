@@ -5,7 +5,7 @@ import {
   listUsersForAdmin,
   updateAdminManagedUser,
   insertUserFromOnboarding,
-  revokeSessionsByUserId
+  revokeSessionsByUserId,
 } from "../models/userModel.js";
 import { findRoleByNameExact } from "../models/roleModel.js";
 
@@ -19,13 +19,21 @@ const querySchema = Joi.object({
 const DLSU_EMAIL_REGEX = /^[^\s@]+@dlsu\.edu\.ph$/i;
 
 const createUserSchema = Joi.object({
-  email: Joi.string().trim().email().pattern(DLSU_EMAIL_REGEX).required()
+  email: Joi.string()
+    .trim()
+    .email()
+    .pattern(DLSU_EMAIL_REGEX)
+    .required()
     .messages({
-      "string.pattern.base": "Email must be a valid DLSU email (example@dlsu.edu.ph).",
+      "string.pattern.base":
+        "Email must be a valid DLSU email (example@dlsu.edu.ph).",
     }),
-  universityId: Joi.string().pattern(/^\d{1,8}$/).required()
+  universityId: Joi.string()
+    .pattern(/^\d{1,8}$/)
+    .required()
     .messages({
-      "string.pattern.base": "University ID must be numeric and up to 8 digits.",
+      "string.pattern.base":
+        "University ID must be numeric and up to 8 digits.",
     }),
   firstName: Joi.string().trim().max(100).required(),
   middleName: Joi.string().trim().max(100).allow("", null),
@@ -168,7 +176,7 @@ export const createAdminUser = async (req, res, next) => {
     // Check if role exists
     const roleLookup = await db.query(
       "SELECT role_id, role_name FROM ref_roles WHERE role_id = $1 LIMIT 1",
-      [value.roleId]
+      [value.roleId],
     );
     const role = roleLookup.rows[0];
     if (!role) {
@@ -192,7 +200,9 @@ export const createAdminUser = async (req, res, next) => {
     if (isStudent) {
       const programExists = await findDegreeProgramById(db, value.programId);
       if (!programExists) {
-        return res.status(400).json({ message: "Selected degree program does not exist." });
+        return res
+          .status(400)
+          .json({ message: "Selected degree program does not exist." });
       }
     }
 
@@ -225,7 +235,8 @@ export const createAdminUser = async (req, res, next) => {
   } catch (error) {
     if (error?.code === "23505") {
       return res.status(409).json({
-        message: "A unique user field conflict occurred (email or university ID).",
+        message:
+          "A unique user field conflict occurred (email or university ID).",
       });
     }
     return next(error);
@@ -376,15 +387,15 @@ export const revokeAllUserSessions = async (req, res) => {
     const { userId } = req.params;
 
     if (!userId) {
-      return res.status(400).json({ message: 'User ID is required.' });
+      return res.status(400).json({ message: "User ID is required." });
     }
 
     const db = req.app?.locals?.db;
     await revokeSessionsByUserId(db, userId); // pass db here
 
-    return res.status(200).json({ message: 'All sessions revoked for user.' });
+    return res.status(200).json({ message: "All sessions revoked for user." });
   } catch (error) {
-    console.error('Failed to revoke sessions:', error);
-    return res.status(500).json({ message: 'Failed to revoke user sessions.' });
+    console.error("Failed to revoke sessions:", error);
+    return res.status(500).json({ message: "Failed to revoke user sessions." });
   }
 };

@@ -1,5 +1,8 @@
 const getSummarizerBaseUrl = () =>
-  (process.env.PDF_SUMMARIZER_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
+  (process.env.PDF_SUMMARIZER_BASE_URL || "http://localhost:8000").replace(
+    /\/+$/,
+    "",
+  );
 
 const getRequestTimeoutMs = () => {
   const raw = Number(process.env.PDF_SUMMARIZER_TIMEOUT_MS || 180000);

@@ -24,7 +24,10 @@ export const findDegreeProgramById = async (db, programId) => {
   return result.rows[0] || null;
 };
 
-export const listDegreeProgramsForAdmin = async (db, { q, level, status } = {}) => {
+export const listDegreeProgramsForAdmin = async (
+  db,
+  { q, level, status } = {},
+) => {
   const params = [];
   const whereClauses = [];
 
@@ -40,9 +43,9 @@ export const listDegreeProgramsForAdmin = async (db, { q, level, status } = {}) 
     whereClauses.push(`p.program_level::text = $${params.length}`);
   }
 
-  if (status === 'active') {
+  if (status === "active") {
     whereClauses.push(`p.is_deleted = FALSE`);
-  } else if (status === 'archived') {
+  } else if (status === "archived") {
     whereClauses.push(`p.is_deleted = TRUE`);
   }
 

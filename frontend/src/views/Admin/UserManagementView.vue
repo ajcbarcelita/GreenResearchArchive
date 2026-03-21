@@ -18,7 +18,7 @@ import {
   listUsersAdmin,
   updateUserAdmin,
   createUserAdmin,
-  revokeUserSessionsAdmin
+  revokeUserSessionsAdmin,
 } from '@/services/userManagementService'
 
 const toast = useToast()
@@ -58,7 +58,9 @@ const statusOptions = [
   { label: 'Inactive', value: false },
 ]
 
-const selectedRoleIsStudent = computed(() => Number(form.value.roleId) === Number(studentRoleId.value))
+const selectedRoleIsStudent = computed(
+  () => Number(form.value.roleId) === Number(studentRoleId.value),
+)
 
 const validateForm = () => {
   const errors = {
@@ -131,8 +133,11 @@ const validateNewUserForm = () => {
   if (!newUserForm.value.firstName) errors.firstName = 'First name is required.'
   if (!newUserForm.value.lastName) errors.lastName = 'Last name is required.'
   if (!newUserForm.value.roleId) errors.roleId = 'Role is required.'
-  
-  if (Number(newUserForm.value.roleId) === Number(studentRoleId.value) && !newUserForm.value.programId) {
+
+  if (
+    Number(newUserForm.value.roleId) === Number(studentRoleId.value) &&
+    !newUserForm.value.programId
+  ) {
     errors.programId = 'Program is required for Student role.'
   }
 
@@ -203,11 +208,11 @@ const openEditDialog = (user) => {
 const mapRoleOptions = (roles = []) => [
   { label: 'All Roles', value: 'All' },
   ...roles
-  .filter((role => role.roleId !== 4))
-  .map((role) => ({
-    label: role.roleName,
-    value: role.roleId,
-  })),
+    .filter((role) => role.roleId !== 4)
+    .map((role) => ({
+      label: role.roleName,
+      value: role.roleId,
+    })),
 ]
 
 const mapProgramOptions = (programs = []) => [
@@ -297,34 +302,34 @@ const handleSave = async () => {
 }
 
 const confirmRevokeSessionsRow = async (userId) => {
-  if (!userId) return;
+  if (!userId) return
 
   const confirmed = window.confirm(
-    'Are you sure you want to revoke all sessions for this user? They will be logged out on all devices.'
-  );
+    'Are you sure you want to revoke all sessions for this user? They will be logged out on all devices.',
+  )
 
-  if (!confirmed) return;
+  if (!confirmed) return
 
   try {
-    await revokeUserSessionsAdmin(userId);
+    await revokeUserSessionsAdmin(userId)
     toast.add({
       severity: 'success',
       summary: 'Sessions revoked',
       detail: 'User will be required to log in again on all devices.',
       life: 3000,
-    });
+    })
     // Optionally reload the table to reflect session status if needed
-    await loadUsers();
+    await loadUsers()
   } catch (error) {
-    console.error('Failed to revoke sessions', error);
+    console.error('Failed to revoke sessions', error)
     toast.add({
       severity: 'error',
       summary: 'Revocation failed',
       detail: error?.response?.data?.message || 'Could not revoke sessions.',
       life: 3500,
-    });
+    })
   }
-};
+}
 
 const totals = computed(() => ({
   totalUsers: users.value.length,
@@ -341,7 +346,7 @@ watch([searchQuery, selectedRole, selectedProgram, selectedStatus], () => {
 })
 
 onMounted(async () => {
-  document.title = "User Management | Green Archive"
+  document.title = 'User Management | Green Archive'
   try {
     await loadMeta()
   } catch (error) {
@@ -350,54 +355,79 @@ onMounted(async () => {
   await loadUsers()
 })
 
-watch(() => newUserForm.value.email, (val) => {
-  if (!val) newUserFormErrors.value.email = 'Email is required.'
-  else if (!DLSU_EMAIL_REGEX.test(val)) newUserFormErrors.value.email = 'Enter a valid DLSU email.'
-  else newUserFormErrors.value.email = ''
-})
+watch(
+  () => newUserForm.value.email,
+  (val) => {
+    if (!val) newUserFormErrors.value.email = 'Email is required.'
+    else if (!DLSU_EMAIL_REGEX.test(val))
+      newUserFormErrors.value.email = 'Enter a valid DLSU email.'
+    else newUserFormErrors.value.email = ''
+  },
+)
 
-watch(() => newUserForm.value.universityId, (val) => {
-  if (!val) newUserFormErrors.value.universityId = 'University ID is required.'
-  else if (!/^\d{8}$/.test(val)) newUserFormErrors.value.universityId = 'Must be numeric, max 8 digits.'
-  else newUserFormErrors.value.universityId = ''
-})
+watch(
+  () => newUserForm.value.universityId,
+  (val) => {
+    if (!val) newUserFormErrors.value.universityId = 'University ID is required.'
+    else if (!/^\d{8}$/.test(val))
+      newUserFormErrors.value.universityId = 'Must be numeric, max 8 digits.'
+    else newUserFormErrors.value.universityId = ''
+  },
+)
 
-watch(() => newUserForm.value.firstName, (val) => {
-  newUserFormErrors.value.firstName = val ? '' : 'First name is required.'
-})
+watch(
+  () => newUserForm.value.firstName,
+  (val) => {
+    newUserFormErrors.value.firstName = val ? '' : 'First name is required.'
+  },
+)
 
-watch(() => newUserForm.value.lastName, (val) => {
-  newUserFormErrors.value.lastName = val ? '' : 'Last name is required.'
-})
+watch(
+  () => newUserForm.value.lastName,
+  (val) => {
+    newUserFormErrors.value.lastName = val ? '' : 'Last name is required.'
+  },
+)
 
-watch(() => newUserForm.value.roleId, (val) => {
-  newUserFormErrors.value.roleId = val ? '' : 'Role is required.'
-})
+watch(
+  () => newUserForm.value.roleId,
+  (val) => {
+    newUserFormErrors.value.roleId = val ? '' : 'Role is required.'
+  },
+)
 
-watch(() => newUserForm.value.programId, (val) => {
-  if (Number(newUserForm.value.roleId) === Number(studentRoleId.value)) {
-    newUserFormErrors.value.programId = val ? '' : 'Program is required for Student role.'
-  } else {
-    newUserFormErrors.value.programId = ''
-  }
-})
+watch(
+  () => newUserForm.value.programId,
+  (val) => {
+    if (Number(newUserForm.value.roleId) === Number(studentRoleId.value)) {
+      newUserFormErrors.value.programId = val ? '' : 'Program is required for Student role.'
+    } else {
+      newUserFormErrors.value.programId = ''
+    }
+  },
+)
 
 // For new user dialog
-watch(() => newUserForm.value.roleId, (val) => {
-  if (Number(val) !== Number(studentRoleId.value)) {
-    newUserForm.value.programId = null
-    newUserFormErrors.value.programId = ''
-  }
-})
+watch(
+  () => newUserForm.value.roleId,
+  (val) => {
+    if (Number(val) !== Number(studentRoleId.value)) {
+      newUserForm.value.programId = null
+      newUserFormErrors.value.programId = ''
+    }
+  },
+)
 
 // For edit dialog
-watch(() => form.value.roleId, (val) => {
-  if (Number(val) !== Number(studentRoleId.value)) {
-    form.value.programId = null
-    formErrors.value.programId = ''
-  }
-})
-
+watch(
+  () => form.value.roleId,
+  (val) => {
+    if (Number(val) !== Number(studentRoleId.value)) {
+      form.value.programId = null
+      formErrors.value.programId = ''
+    }
+  },
+)
 </script>
 
 <template>
@@ -415,31 +445,74 @@ watch(() => form.value.roleId, (val) => {
               <p class="kicker">Admin</p>
               <h1 class="headline">User Management</h1>
               <p class="support-text">
-                Manage role assignment, account status, and student program mappings across the platform.
+                Manage role assignment, account status, and student program mappings across the
+                platform.
               </p>
             </div>
 
             <div class="action-buttons">
-              <Button icon="pi pi-refresh" label="Refresh" outlined :loading="loading" @click="loadUsers" />
-              <Button icon="pi pi-plus" label="New User" @click="openNewUserDialog"/>
+              <Button
+                icon="pi pi-refresh"
+                label="Refresh"
+                outlined
+                :loading="loading"
+                @click="loadUsers"
+              />
+              <Button icon="pi pi-plus" label="New User" @click="openNewUserDialog" />
             </div>
           </div>
         </template>
       </Card>
 
       <section class="summary-grid mt-4">
-        <Card class="summary-card"><template #content><p class="label">Users</p><p class="value">{{ totals.totalUsers }}</p></template></Card>
-        <Card class="summary-card"><template #content><p class="label">Active</p><p class="value">{{ totals.activeUsers }}</p></template></Card>
-        <Card class="summary-card"><template #content><p class="label">Inactive</p><p class="value">{{ totals.inactiveUsers }}</p></template></Card>
+        <Card class="summary-card"
+          ><template #content
+            ><p class="label">Users</p>
+            <p class="value">{{ totals.totalUsers }}</p></template
+          ></Card
+        >
+        <Card class="summary-card"
+          ><template #content
+            ><p class="label">Active</p>
+            <p class="value">{{ totals.activeUsers }}</p></template
+          ></Card
+        >
+        <Card class="summary-card"
+          ><template #content
+            ><p class="label">Inactive</p>
+            <p class="value">{{ totals.inactiveUsers }}</p></template
+          ></Card
+        >
       </section>
 
       <Card class="filter-card mt-4">
         <template #content>
           <div class="filter-row">
-            <InputText v-model="searchQuery" placeholder="Search by name, email, or university ID" />
-            <Select v-model="selectedRole" :options="roleOptions" optionLabel="label" optionValue="value" placeholder="Role" />
-            <Select v-model="selectedProgram" :options="programOptions" optionLabel="label" optionValue="value" placeholder="Program" />
-            <Select v-model="selectedStatus" :options="statusOptions" optionLabel="label" optionValue="value" placeholder="Status" />
+            <InputText
+              v-model="searchQuery"
+              placeholder="Search by name, email, or university ID"
+            />
+            <Select
+              v-model="selectedRole"
+              :options="roleOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Role"
+            />
+            <Select
+              v-model="selectedProgram"
+              :options="programOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Program"
+            />
+            <Select
+              v-model="selectedStatus"
+              :options="statusOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Status"
+            />
           </div>
         </template>
       </Card>
@@ -467,19 +540,22 @@ watch(() => form.value.roleId, (val) => {
             </Column>
             <Column header="Status" sortable field="isActive">
               <template #body="slotProps">
-                <Tag :value="slotProps.data.isActive ? 'Active' : 'Inactive'" :severity="slotProps.data.isActive ? 'success' : 'danger'" />
+                <Tag
+                  :value="slotProps.data.isActive ? 'Active' : 'Inactive'"
+                  :severity="slotProps.data.isActive ? 'success' : 'danger'"
+                />
               </template>
             </Column>
             <Column field="lastLogin" header="Last Login" sortable />
             <Column header="Actions">
               <template #body="slotProps">
                 <div class="row-actions">
-                  <Button 
-                    size="small" 
-                    text 
-                    icon="pi pi-pencil" 
-                    label="Edit" 
-                    @click="openEditDialog(slotProps.data)" 
+                  <Button
+                    size="small"
+                    text
+                    icon="pi pi-pencil"
+                    label="Edit"
+                    @click="openEditDialog(slotProps.data)"
                   />
                   <Button
                     size="small"
@@ -505,7 +581,6 @@ watch(() => form.value.roleId, (val) => {
       :style="{ width: 'min(95vw, 36rem)' }"
     >
       <div class="dialog-grid">
-
         <div class="field">
           <label for="firstName">First Name</label>
           <InputText id="firstName" v-model="form.firstName" />
@@ -525,7 +600,13 @@ watch(() => form.value.roleId, (val) => {
 
         <div class="field">
           <label for="roleId">Role</label>
-          <Select id="roleId" v-model="form.roleId" :options="roleOptions.filter((item) => item.value !== 'All')" optionLabel="label" optionValue="value" />
+          <Select
+            id="roleId"
+            v-model="form.roleId"
+            :options="roleOptions.filter((item) => item.value !== 'All')"
+            optionLabel="label"
+            optionValue="value"
+          />
           <small v-if="formErrors.roleId" class="error-text">{{ formErrors.roleId }}</small>
         </div>
 
@@ -568,19 +649,25 @@ watch(() => form.value.roleId, (val) => {
         <div class="field">
           <label>Email</label>
           <InputText v-model="newUserForm.email" placeholder="user@dlsu.edu.ph" />
-          <small v-if="newUserFormErrors.email" class="error-text">{{ newUserFormErrors.email }}</small>
+          <small v-if="newUserFormErrors.email" class="error-text">{{
+            newUserFormErrors.email
+          }}</small>
         </div>
 
         <div class="field">
           <label>University ID</label>
           <InputText v-model="newUserForm.universityId" placeholder="8-digit ID" />
-          <small v-if="newUserFormErrors.universityId" class="error-text">{{ newUserFormErrors.universityId }}</small>
+          <small v-if="newUserFormErrors.universityId" class="error-text">{{
+            newUserFormErrors.universityId
+          }}</small>
         </div>
 
         <div class="field">
           <label>First Name</label>
           <InputText v-model="newUserForm.firstName" />
-          <small v-if="newUserFormErrors.firstName" class="error-text">{{ newUserFormErrors.firstName }}</small>
+          <small v-if="newUserFormErrors.firstName" class="error-text">{{
+            newUserFormErrors.firstName
+          }}</small>
         </div>
 
         <div class="field">
@@ -591,25 +678,36 @@ watch(() => form.value.roleId, (val) => {
         <div class="field">
           <label>Last Name</label>
           <InputText v-model="newUserForm.lastName" />
-          <small v-if="newUserFormErrors.lastName" class="error-text">{{ newUserFormErrors.lastName }}</small>
+          <small v-if="newUserFormErrors.lastName" class="error-text">{{
+            newUserFormErrors.lastName
+          }}</small>
         </div>
 
         <div class="field">
           <label>Role</label>
-          <Select v-model="newUserForm.roleId" :options="roleOptions.filter(r => r.value !== 'All')" optionLabel="label" optionValue="value" />
-          <small v-if="newUserFormErrors.roleId" class="error-text">{{ newUserFormErrors.roleId }}</small>
+          <Select
+            v-model="newUserForm.roleId"
+            :options="roleOptions.filter((r) => r.value !== 'All')"
+            optionLabel="label"
+            optionValue="value"
+          />
+          <small v-if="newUserFormErrors.roleId" class="error-text">{{
+            newUserFormErrors.roleId
+          }}</small>
         </div>
 
         <div class="field">
           <label>Program (Student only)</label>
           <Select
             v-model="newUserForm.programId"
-            :options="programOptions.filter(p => p.value !== 'All')"
+            :options="programOptions.filter((p) => p.value !== 'All')"
             optionLabel="label"
             optionValue="value"
             :disabled="Number(newUserForm.roleId) !== Number(studentRoleId)"
           />
-          <small v-if="newUserFormErrors.programId" class="error-text">{{ newUserFormErrors.programId }}</small>
+          <small v-if="newUserFormErrors.programId" class="error-text">{{
+            newUserFormErrors.programId
+          }}</small>
         </div>
       </div>
 

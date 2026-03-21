@@ -11,7 +11,11 @@ import Tag from 'primevue/tag'
 import ToggleSwitch from 'primevue/toggleswitch'
 import NavbarCoordinator from '@/components/NavbarCoordinator.vue'
 import Footer from '@/components/Footer.vue'
-import { getCoordinatorTasks, getCoordinatorTerms, toggleCoordinatorTaskLock } from '@/services/advisoryService'
+import {
+  getCoordinatorTasks,
+  getCoordinatorTerms,
+  toggleCoordinatorTaskLock,
+} from '@/services/advisoryService'
 
 const loading = ref(false)
 const allTaskRows = ref([])
@@ -68,7 +72,9 @@ const formatDateTime = (value) => {
 }
 
 const isValidAcademicYear = (value) => {
-  const match = String(value || '').trim().match(/^(\d{4})-(\d{4})$/)
+  const match = String(value || '')
+    .trim()
+    .match(/^(\d{4})-(\d{4})$/)
   if (!match) return false
   return Number(match[2]) === Number(match[1]) + 1
 }
@@ -112,12 +118,14 @@ const filteredRows = computed(() => {
   return allTaskRows.value.filter((row) => {
     const matchesQuery =
       !q ||
-      [row.taskName, row.description, row.programCodes.join(' ')].join(' ').toLowerCase().includes(q)
+      [row.taskName, row.description, row.programCodes.join(' ')]
+        .join(' ')
+        .toLowerCase()
+        .includes(q)
 
     const yearFilter = String(selectedYear.value || '').trim()
     const matchesYear =
-      !yearFilter ||
-      (isValidAcademicYear(yearFilter) && String(row.academicYear) === yearFilter)
+      !yearFilter || (isValidAcademicYear(yearFilter) && String(row.academicYear) === yearFilter)
 
     const termFilter = selectedTermNo.value
     const matchesTermNo =
@@ -360,7 +368,9 @@ onMounted(loadTaskRows)
             <div>
               <p class="kicker">Task Management</p>
               <h1 class="headline">Manage Tasks</h1>
-              <p class="support-text">Review existing task activity and create new task entries for upcoming milestones.</p>
+              <p class="support-text">
+                Review existing task activity and create new task entries for upcoming milestones.
+              </p>
             </div>
             <div class="hero-actions">
               <Tag :value="`${filteredRows.length} task(s)`" severity="success" rounded />
@@ -472,7 +482,11 @@ onMounted(loadTaskRows)
       <div class="create-form-grid">
         <div>
           <label class="form-label">Task Name</label>
-          <InputText v-model="createForm.taskName" class="w-full" placeholder="e.g., Chapter 1 Manuscript" />
+          <InputText
+            v-model="createForm.taskName"
+            class="w-full"
+            placeholder="e.g., Chapter 1 Manuscript"
+          />
         </div>
 
         <div>
@@ -523,7 +537,9 @@ onMounted(loadTaskRows)
           <label class="form-label mb-0">Auto-lock after due date</label>
           <div class="autolock-cell">
             <ToggleSwitch v-model="createForm.autoLockAfterDueDate" />
-            <span class="autolock-label">{{ createForm.autoLockAfterDueDate ? 'Enabled' : 'Disabled' }}</span>
+            <span class="autolock-label">{{
+              createForm.autoLockAfterDueDate ? 'Enabled' : 'Disabled'
+            }}</span>
           </div>
         </div>
 
@@ -545,7 +561,11 @@ onMounted(loadTaskRows)
       <div class="create-form-grid">
         <div>
           <label class="form-label">Task Name</label>
-          <InputText v-model="editForm.taskName" class="w-full" placeholder="e.g., Chapter 1 Manuscript" />
+          <InputText
+            v-model="editForm.taskName"
+            class="w-full"
+            placeholder="e.g., Chapter 1 Manuscript"
+          />
         </div>
 
         <div>
@@ -596,7 +616,9 @@ onMounted(loadTaskRows)
           <label class="form-label mb-0">Auto-lock after due date</label>
           <div class="autolock-cell">
             <ToggleSwitch v-model="editForm.autoLockAfterDueDate" />
-            <span class="autolock-label">{{ editForm.autoLockAfterDueDate ? 'Enabled' : 'Disabled' }}</span>
+            <span class="autolock-label">{{
+              editForm.autoLockAfterDueDate ? 'Enabled' : 'Disabled'
+            }}</span>
           </div>
         </div>
 

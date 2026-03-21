@@ -28,15 +28,21 @@ const accountStatus = computed(() => (user.value?.isActive ? 'Active' : 'Inactiv
 const roleName = computed(() => user.value?.roleName || 'User')
 
 const useAdminNavbar = computed(() => {
-  const normalizedRoleName = String(user.value?.roleName || '').trim().toLowerCase()
+  const normalizedRoleName = String(user.value?.roleName || '')
+    .trim()
+    .toLowerCase()
   return normalizedRoleName === 'admin'
 })
 const useCoordinatorNavbar = computed(() => {
-  const normalizedRoleName = String(user.value?.roleName || '').trim().toLowerCase()
+  const normalizedRoleName = String(user.value?.roleName || '')
+    .trim()
+    .toLowerCase()
   return normalizedRoleName === 'coordinator'
 })
 const useFacultyNavbar = computed(() => {
-  const normalizedRoleName = String(user.value?.roleName || '').trim().toLowerCase()
+  const normalizedRoleName = String(user.value?.roleName || '')
+    .trim()
+    .toLowerCase()
   return normalizedRoleName === 'faculty'
 })
 
@@ -106,7 +112,9 @@ onMounted(async () => {
       <Navbar v-else />
     </header>
 
-    <main class="content-wrap mx-auto w-full max-w-6xl px-4 pb-8 pt-24 sm:px-6 sm:pb-10 sm:pt-28 lg:pt-32">
+    <main
+      class="content-wrap mx-auto w-full max-w-6xl px-4 pb-8 pt-24 sm:px-6 sm:pb-10 sm:pt-28 lg:pt-32"
+    >
       <Card class="profile-card">
         <template #title>
           <div class="title-row">
@@ -116,7 +124,11 @@ onMounted(async () => {
             </div>
             <div class="badge-wrap">
               <Tag :value="roleName" severity="success" rounded />
-              <Tag :value="accountStatus" :severity="accountStatus === 'Active' ? 'info' : 'danger'" rounded />
+              <Tag
+                :value="accountStatus"
+                :severity="accountStatus === 'Active' ? 'info' : 'danger'"
+                rounded
+              />
             </div>
           </div>
         </template>
@@ -287,5 +299,4 @@ footer {
 :deep(.profile-card):hover {
   border-color: #0e662e;
 }
-
 </style>

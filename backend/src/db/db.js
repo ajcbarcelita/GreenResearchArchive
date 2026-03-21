@@ -65,7 +65,7 @@ async function initDB(retries = MAX_RETRIES) {
                     if (err) {
                       if (retriesLeft > 0) {
                         logger.warn(
-                          `[WARN] forwardOut failed, retrying (${retriesLeft} left)...`
+                          `[WARN] forwardOut failed, retrying (${retriesLeft} left)...`,
                         );
                         setTimeout(() => tryForwardOut(retriesLeft - 1), 500);
                         return;
@@ -90,7 +90,7 @@ async function initDB(retries = MAX_RETRIES) {
                     });
                     socket.on("close", safeClose);
                     stream.on("close", safeClose);
-                  }
+                  },
                 );
               };
 
