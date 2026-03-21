@@ -2,12 +2,15 @@ import {
   listSubmissions,
   findSubmissionById,
   updateSubmissionStatus,
+  updateSubmissionSummary,
 } from "../models/submissionModel.js";
 import {
   listSubmissionFilesBySubmissionId,
   findSubmissionFileById,
 } from "../models/submissionFileModel.js";
 import { readObject } from "../services/s3CrudService.js";
+import { summarizeSubmissionFileFromS3 } from "../services/submissionSummaryService.js";
+import logger from "../utils/logger.js";
 
 const mapRowToResponse = (row) => {
   return {
@@ -180,7 +183,80 @@ export const toggleRepositoryArchiveStatus = async (req, res) => {
     const updated = await findSubmissionById(db, id);
     if (!updated) return res.status(404).json({ error: "Not found" });
 
-    return res.json({ data: mapRowToResponse(updated) });
+    const responsePayload = {
+      data: {
+        ...mapRowToResponse(updated),
+        ...(nextStatus === "Archived"
+          ? {
+              summaryGeneration: {
+                attempted: true,
+                queued: true,
+                message: "Archiving succeeded. Summary generation started in background.",
+              },
+            }
+          : {}),
+      },
+    };
+
+    const response = res.json(responsePayload);
+
+    if (nextStatus === "Archived") {
+      // Run summary generation asynchronously so archiving is never blocked by AI latency.
+      setImmediate(async () => {
+        try {
+          logger.info(
+            { submissionId: row.submission_id },
+            "Summary generation worker started after archive.",
+          );
+
+          const files = await listSubmissionFilesBySubmissionId(db, row.submission_id);
+          const capstoneFile = files.find(
+            (file) => file.file_type === "Capstone Paper" && file.s3_key,
+          );
+
+          if (!capstoneFile) {
+            logger.info(
+              { submissionId: row.submission_id },
+              "Archived submission has no capstone paper. Skipping summary generation.",
+            );
+            return;
+          }
+
+          logger.info(
+            {
+              submissionId: row.submission_id,
+              s3Key: capstoneFile.s3_key,
+            },
+            "Starting summary generation request.",
+          );
+
+          const generatedSummary = await summarizeSubmissionFileFromS3({
+            s3Key: capstoneFile.s3_key,
+            timeoutMs: 0,
+          });
+
+          await updateSubmissionSummary(db, {
+            submissionId: row.submission_id,
+            summary: generatedSummary,
+          });
+
+          logger.info(
+            { submissionId: row.submission_id },
+            "Summary generated and saved after archive.",
+          );
+        } catch (error) {
+          logger.warn(
+            {
+              submissionId: row.submission_id,
+              error: error?.message || "Unknown error",
+            },
+            "Summary generation failed after archive.",
+          );
+        }
+      });
+    }
+
+    return response;
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

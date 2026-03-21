@@ -4,81 +4,63 @@ const getSummarizerBaseUrl = () =>
     "",
   );
 
-const getRequestTimeoutMs = () => {
-  const raw = Number(process.env.PDF_SUMMARIZER_TIMEOUT_MS || 180000);
-  if (!Number.isFinite(raw) || raw <= 0) return 180000;
-  return raw;
-};
+const POLL_INTERVAL_MS = 15000   // check every 15 seconds
+const POLL_TIMEOUT_MS  = 1800000 // give up after 30 minutes
 
-const parseErrorMessage = async (response) => {
-  try {
-    const payload = await response.json();
-    return payload?.detail || payload?.message || response.statusText;
-  } catch {
-    return response.statusText;
-  }
-};
-
-export const summarizeSubmissionFileFromS3 = async ({ s3Key }) => {
+export const summarizeSubmissionFileFromS3 = async ({ s3Key, submissionId }) => {
   if (!s3Key || !String(s3Key).trim()) {
-    const error = new Error("S3 file key is required for summary generation.");
-    error.statusCode = 400;
-    throw error;
+    const error = new Error("S3 file key is required.")
+    error.statusCode = 400
+    throw error
   }
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    controller.abort();
-  }, getRequestTimeoutMs());
+  const baseUrl = getSummarizerBaseUrl()
 
-  try {
-    const baseUrl = getSummarizerBaseUrl();
-    const endpoint = `${baseUrl}/api/summarize?s3_key=${encodeURIComponent(String(s3Key).trim())}`;
+  // Step 1: Fire the job
+  const triggerRes = await fetch(
+    `${baseUrl}/api/summarize?s3_key=${encodeURIComponent(s3Key)}&submission_id=${encodeURIComponent(submissionId)}`,
+    { method: "POST" }
+  )
+  // Returns immediately with 202 Accepted (not waiting for completion)
 
-    const response = await fetch(endpoint, {
-      method: "POST",
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      const message = await parseErrorMessage(response);
-      const error = new Error(`Summary service failed: ${message}`);
-      error.statusCode = response.status === 404 ? 404 : 502;
-      throw error;
-    }
-
-    const payload = await response.json();
-    const firstResult = Array.isArray(payload) ? payload[0] : null;
-    const summary = String(firstResult?.summary || "").trim();
-
-    if (!summary) {
-      const error = new Error("Summary service returned an empty summary.");
-      error.statusCode = 502;
-      throw error;
-    }
-
-    return summary;
-  } catch (error) {
-    if (error?.name === "AbortError") {
-      const timeoutError = new Error("Summary generation timed out.");
-      timeoutError.statusCode = 504;
-      throw timeoutError;
-    }
-
-    if (error?.statusCode) {
-      throw error;
-    }
-
-    const integrationError = new Error(
-      `Failed to call summary service: ${error?.message || "Unknown error"}`,
-    );
-    integrationError.statusCode = 502;
-    throw integrationError;
-  } finally {
-    clearTimeout(timeoutId);
+  if (!triggerRes.ok && triggerRes.status !== 202) {
+    const text = await triggerRes.text()
+    const error = new Error(`Summary service failed to start: ${text}`)
+    error.statusCode = 502
+    throw error
   }
-};
 
-export default {
-  summarizeSubmissionFileFromS3,
-};
+  // Phase 2: Poll for results (check repeatedly)
+  const deadline = Date.now() + POLL_TIMEOUT_MS
+  while (Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS))
+
+    const statusRes = await fetch(
+      `${baseUrl}/api/summarize/status/${encodeURIComponent(submissionId)}`
+    )
+
+    // Returns current job status: "processing", "done", or "failed"
+
+    if (!statusRes.ok) continue
+
+    const job = await statusRes.json()
+
+    if (job.status === "done" && job.summary) {
+      return job.summary
+    }
+
+    if (job.status === "failed") {
+      const error = new Error(`Summary generation failed: ${job.error}`)
+      error.statusCode = 502
+      throw error
+    }
+
+    // still processing or queued — keep polling
+  }
+
+  const error = new Error("Summary generation timed out after 30 minutes.")
+  error.statusCode = 504
+  throw error
+}
+
+export default { summarizeSubmissionFileFromS3 }

@@ -7,6 +7,8 @@ import DataTable from 'primevue/datatable'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
+import Toast from 'primevue/toast'
+import { useToast } from 'primevue/usetoast'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import Footer from '@/components/Footer.vue'
@@ -31,6 +33,7 @@ const selectedTask = ref('All')
 const selectedTerm = ref('All')
 const versionMode = ref('latest')
 const archivingSubmissionId = ref(null)
+const toast = useToast()
 
 const versionModeOptions = [
   { label: 'Latest Version Only', value: 'latest' },
@@ -174,8 +177,30 @@ const handleArchiveToggle = async (row) => {
         submittedAt: updated.submittedAt,
       }
     })
+
+    if (updated.summaryGeneration?.queued) {
+      toast.add({
+        severity: 'info',
+        summary: 'Archived',
+        detail: 'Submission archived. Summary generation started in the background.',
+        life: 4000
+      })
+    } else {
+      toast.add({
+        severity: 'success',
+        summary: updated.status === 'Archived' ? 'Archived' : 'Unarchived',
+        detail: 'Submission status updated successfully.',
+        life: 3000
+      })
+    }
   } catch (error) {
     console.error('Failed to toggle archive status', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Could not update submission status. Please try again.',
+      life: 4000
+    })
   } finally {
     archivingSubmissionId.value = null
   }
@@ -204,6 +229,7 @@ onMounted(loadSubmissions)
 
 <template>
   <div class="submission-monitoring-page min-h-screen flex flex-col font-Karla">
+    <Toast />
     <header>
       <NavbarFaculty v-if="isFaculty" />
       <NavbarCoordinator v-else />
