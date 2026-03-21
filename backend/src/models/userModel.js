@@ -66,8 +66,8 @@ export const insertUserFromOnboarding = async (
 ) => {
   const result = await db.query(
     `
-      INSERT INTO users (google_id, email, university_id, fname, lname, mname, program_id, role_id, last_login, is_active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, true)
+      INSERT INTO users (google_id, email, university_id, fname, lname, mname, program_id, role_id, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
       RETURNING user_id, email, university_id, fname, lname, mname, program_id, role_id, is_active, created_at, last_login
     `,
     [
@@ -221,17 +221,35 @@ export const listUsersForAdmin = async (
 
 export const updateAdminManagedUser = async (
   db,
-  { userId, roleId, programId, isActive },
+  { userId, roleId, programId, isActive, fname, mname, lname },
 ) => {
   const result = await db.query(
     `
       UPDATE users
-      SET role_id = $1, program_id = $2, is_active = $3
-      WHERE user_id = $4
-      RETURNING user_id, role_id, program_id, is_active
+      SET role_id = $1,
+          program_id = $2,
+          is_active = $3,
+          fname = $4,
+          mname = $5,
+          lname = $6
+      WHERE user_id = $7
+      RETURNING user_id, role_id, program_id, is_active, fname, mname, lname
     `,
-    [roleId, programId, isActive, userId],
+    [roleId, programId, isActive, fname, mname, lname, userId],
   );
 
   return result.rows[0] || null;
+};
+
+// userSessionModel.js
+export const revokeSessionsByUserId = async (db, userId) => {
+  const result = await db.query(
+    `UPDATE user_sessions
+     SET is_revoked = true
+     WHERE user_id = $1
+       AND is_revoked = false
+     RETURNING *`,
+    [userId]
+  );
+  return result.rows; // all revoked sessions
 };

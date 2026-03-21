@@ -17,6 +17,8 @@ import {
   getUsersAdminMeta,
   listUsersAdmin,
   updateUserAdmin,
+  createUserAdmin,
+  revokeUserSessionsAdmin
 } from '@/services/userManagementService'
 
 const toast = useToast()
@@ -37,6 +39,9 @@ const selectedStatus = ref('All')
 const dialogVisible = ref(false)
 const activeUserId = ref(null)
 const form = ref({
+  firstName: '',
+  middleName: '',
+  lastName: '',
   roleId: null,
   programId: null,
   isActive: true,
@@ -77,14 +82,118 @@ const validateForm = () => {
   return !errors.roleId && !errors.programId
 }
 
+const newUserDialogVisible = ref(false)
+const newUserForm = ref({
+  email: '',
+  universityId: '',
+  firstName: '',
+  middleName: '',
+  lastName: '',
+  roleId: null,
+  programId: null,
+})
+const newUserFormErrors = ref({
+  email: '',
+  universityId: '',
+  firstName: '',
+  lastName: '',
+  roleId: '',
+  programId: '',
+})
+
+const openNewUserDialog = () => {
+  newUserDialogVisible.value = true
+  newUserForm.value = {
+    email: '',
+    universityId: '',
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    roleId: null,
+    programId: null,
+  }
+  newUserFormErrors.value = {}
+}
+
+const DLSU_EMAIL_REGEX = /^[^\s@]+@dlsu\.edu\.ph$/i
+
+const validateNewUserForm = () => {
+  const errors = {}
+
+  if (!newUserForm.value.email || !DLSU_EMAIL_REGEX.test(newUserForm.value.email)) {
+    errors.email = 'Enter a valid DLSU email.'
+  }
+
+  if (!newUserForm.value.universityId || !/^\d{1,8}$/.test(newUserForm.value.universityId)) {
+    errors.universityId = 'University ID must be numeric, max 8 digits.'
+  }
+
+  if (!newUserForm.value.firstName) errors.firstName = 'First name is required.'
+  if (!newUserForm.value.lastName) errors.lastName = 'Last name is required.'
+  if (!newUserForm.value.roleId) errors.roleId = 'Role is required.'
+  
+  if (Number(newUserForm.value.roleId) === Number(studentRoleId.value) && !newUserForm.value.programId) {
+    errors.programId = 'Program is required for Student role.'
+  }
+
+  newUserFormErrors.value = errors
+  return Object.keys(errors).length === 0
+}
+
+const savingNewUser = ref(false)
+
+const handleSaveNewUser = async () => {
+  if (!validateNewUserForm()) return
+
+  savingNewUser.value = true
+  try {
+    const payload = {
+      email: newUserForm.value.email,
+      universityId: newUserForm.value.universityId,
+      firstName: newUserForm.value.firstName,
+      middleName: newUserForm.value.middleName || null,
+      lastName: newUserForm.value.lastName,
+      roleId: Number(newUserForm.value.roleId),
+      programId: Number(newUserForm.value.programId) || null,
+    }
+
+    await createUserAdmin(payload) // <-- call your new backend service
+
+    toast.add({
+      severity: 'success',
+      summary: 'User created',
+      detail: 'New user added successfully. They will complete onboarding on first login.',
+      life: 3000,
+    })
+
+    newUserDialogVisible.value = false
+    await loadUsers()
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Creation failed',
+      detail: error?.response?.data?.message || 'Unable to create user.',
+      life: 3500,
+    })
+  } finally {
+    savingNewUser.value = false
+  }
+}
+
 const openEditDialog = (user) => {
   activeUserId.value = user.userId
   form.value = {
+    firstName: user.firstName || '',
+    middleName: user.middleName || '',
+    lastName: user.lastName || '',
     roleId: user.roleId,
     programId: user.programId || null,
     isActive: Boolean(user.isActive),
   }
   formErrors.value = {
+    firstName: '',
+    middleName: '',
+    lastName: '',
     roleId: '',
     programId: '',
   }
@@ -157,6 +266,9 @@ const handleSave = async () => {
   saving.value = true
   try {
     const payload = {
+      firstName: form.value.firstName,
+      middleName: form.value.middleName,
+      lastName: form.value.lastName,
       roleId: Number(form.value.roleId),
       programId: selectedRoleIsStudent.value ? Number(form.value.programId) : null,
       isActive: Boolean(form.value.isActive),
@@ -184,6 +296,36 @@ const handleSave = async () => {
   }
 }
 
+const confirmRevokeSessionsRow = async (userId) => {
+  if (!userId) return;
+
+  const confirmed = window.confirm(
+    'Are you sure you want to revoke all sessions for this user? They will be logged out on all devices.'
+  );
+
+  if (!confirmed) return;
+
+  try {
+    await revokeUserSessionsAdmin(userId);
+    toast.add({
+      severity: 'success',
+      summary: 'Sessions revoked',
+      detail: 'User will be required to log in again on all devices.',
+      life: 3000,
+    });
+    // Optionally reload the table to reflect session status if needed
+    await loadUsers();
+  } catch (error) {
+    console.error('Failed to revoke sessions', error);
+    toast.add({
+      severity: 'error',
+      summary: 'Revocation failed',
+      detail: error?.response?.data?.message || 'Could not revoke sessions.',
+      life: 3500,
+    });
+  }
+};
+
 const totals = computed(() => ({
   totalUsers: users.value.length,
   activeUsers: users.value.filter((row) => row.isActive).length,
@@ -208,6 +350,54 @@ onMounted(async () => {
   await loadUsers()
 })
 
+watch(() => newUserForm.value.email, (val) => {
+  if (!val) newUserFormErrors.value.email = 'Email is required.'
+  else if (!DLSU_EMAIL_REGEX.test(val)) newUserFormErrors.value.email = 'Enter a valid DLSU email.'
+  else newUserFormErrors.value.email = ''
+})
+
+watch(() => newUserForm.value.universityId, (val) => {
+  if (!val) newUserFormErrors.value.universityId = 'University ID is required.'
+  else if (!/^\d{8}$/.test(val)) newUserFormErrors.value.universityId = 'Must be numeric, max 8 digits.'
+  else newUserFormErrors.value.universityId = ''
+})
+
+watch(() => newUserForm.value.firstName, (val) => {
+  newUserFormErrors.value.firstName = val ? '' : 'First name is required.'
+})
+
+watch(() => newUserForm.value.lastName, (val) => {
+  newUserFormErrors.value.lastName = val ? '' : 'Last name is required.'
+})
+
+watch(() => newUserForm.value.roleId, (val) => {
+  newUserFormErrors.value.roleId = val ? '' : 'Role is required.'
+})
+
+watch(() => newUserForm.value.programId, (val) => {
+  if (Number(newUserForm.value.roleId) === Number(studentRoleId.value)) {
+    newUserFormErrors.value.programId = val ? '' : 'Program is required for Student role.'
+  } else {
+    newUserFormErrors.value.programId = ''
+  }
+})
+
+// For new user dialog
+watch(() => newUserForm.value.roleId, (val) => {
+  if (Number(val) !== Number(studentRoleId.value)) {
+    newUserForm.value.programId = null
+    newUserFormErrors.value.programId = ''
+  }
+})
+
+// For edit dialog
+watch(() => form.value.roleId, (val) => {
+  if (Number(val) !== Number(studentRoleId.value)) {
+    form.value.programId = null
+    formErrors.value.programId = ''
+  }
+})
+
 </script>
 
 <template>
@@ -228,7 +418,11 @@ onMounted(async () => {
                 Manage role assignment, account status, and student program mappings across the platform.
               </p>
             </div>
-            <Button icon="pi pi-refresh" label="Refresh" outlined :loading="loading" @click="loadUsers" />
+
+            <div class="action-buttons">
+              <Button icon="pi pi-refresh" label="Refresh" outlined :loading="loading" @click="loadUsers" />
+              <Button icon="pi pi-plus" label="New User" @click="openNewUserDialog"/>
+            </div>
           </div>
         </template>
       </Card>
@@ -279,7 +473,24 @@ onMounted(async () => {
             <Column field="lastLogin" header="Last Login" sortable />
             <Column header="Actions">
               <template #body="slotProps">
-                <Button size="small" text icon="pi pi-pencil" label="Edit" @click="openEditDialog(slotProps.data)" />
+                <div class="row-actions">
+                  <Button 
+                    size="small" 
+                    text 
+                    icon="pi pi-pencil" 
+                    label="Edit" 
+                    @click="openEditDialog(slotProps.data)" 
+                  />
+                  <Button
+                    size="small"
+                    text
+                    icon="pi pi-sign-out"
+                    label="Revoke"
+                    severity="danger"
+                    class="ml-2"
+                    @click="confirmRevokeSessionsRow(slotProps.data.userId)"
+                  />
+                </div>
               </template>
             </Column>
           </DataTable>
@@ -294,6 +505,24 @@ onMounted(async () => {
       :style="{ width: 'min(95vw, 36rem)' }"
     >
       <div class="dialog-grid">
+
+        <div class="field">
+          <label for="firstName">First Name</label>
+          <InputText id="firstName" v-model="form.firstName" />
+          <small v-if="formErrors.firstName" class="error-text">{{ formErrors.firstName }}</small>
+        </div>
+
+        <div class="field">
+          <label for="middleName">Middle Name</label>
+          <InputText id="middleName" v-model="form.middleName" />
+        </div>
+
+        <div class="field">
+          <label for="lastName">Last Name</label>
+          <InputText id="lastName" v-model="form.lastName" />
+          <small v-if="formErrors.lastName" class="error-text">{{ formErrors.lastName }}</small>
+        </div>
+
         <div class="field">
           <label for="roleId">Role</label>
           <Select id="roleId" v-model="form.roleId" :options="roleOptions.filter((item) => item.value !== 'All')" optionLabel="label" optionValue="value" />
@@ -326,6 +555,67 @@ onMounted(async () => {
       <template #footer>
         <Button label="Cancel" text @click="dialogVisible = false" />
         <Button label="Save Changes" :loading="saving" @click="handleSave" />
+      </template>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="newUserDialogVisible"
+      header="Add New User"
+      modal
+      :style="{ width: 'min(95vw, 36rem)' }"
+    >
+      <div class="dialog-grid">
+        <div class="field">
+          <label>Email</label>
+          <InputText v-model="newUserForm.email" placeholder="user@dlsu.edu.ph" />
+          <small v-if="newUserFormErrors.email" class="error-text">{{ newUserFormErrors.email }}</small>
+        </div>
+
+        <div class="field">
+          <label>University ID</label>
+          <InputText v-model="newUserForm.universityId" placeholder="8-digit ID" />
+          <small v-if="newUserFormErrors.universityId" class="error-text">{{ newUserFormErrors.universityId }}</small>
+        </div>
+
+        <div class="field">
+          <label>First Name</label>
+          <InputText v-model="newUserForm.firstName" />
+          <small v-if="newUserFormErrors.firstName" class="error-text">{{ newUserFormErrors.firstName }}</small>
+        </div>
+
+        <div class="field">
+          <label>Middle Name</label>
+          <InputText v-model="newUserForm.middleName" />
+        </div>
+
+        <div class="field">
+          <label>Last Name</label>
+          <InputText v-model="newUserForm.lastName" />
+          <small v-if="newUserFormErrors.lastName" class="error-text">{{ newUserFormErrors.lastName }}</small>
+        </div>
+
+        <div class="field">
+          <label>Role</label>
+          <Select v-model="newUserForm.roleId" :options="roleOptions.filter(r => r.value !== 'All')" optionLabel="label" optionValue="value" />
+          <small v-if="newUserFormErrors.roleId" class="error-text">{{ newUserFormErrors.roleId }}</small>
+        </div>
+
+        <div class="field">
+          <label>Program (Student only)</label>
+          <Select
+            v-model="newUserForm.programId"
+            :options="programOptions.filter(p => p.value !== 'All')"
+            optionLabel="label"
+            optionValue="value"
+            :disabled="Number(newUserForm.roleId) !== Number(studentRoleId)"
+          />
+          <small v-if="newUserFormErrors.programId" class="error-text">{{ newUserFormErrors.programId }}</small>
+        </div>
+      </div>
+
+      <template #footer>
+        <Button label="Cancel" text @click="newUserDialogVisible = false" />
+        <Button label="Create User" :loading="savingNewUser" @click="handleSaveNewUser" />
       </template>
     </Dialog>
 
@@ -436,6 +726,18 @@ onMounted(async () => {
   border: 1px solid #d1dfd7;
   border-radius: 0.9rem;
   box-shadow: 0 10px 22px rgba(19, 52, 39, 0.06);
+}
+
+/* Add this alongside your other styles */
+.action-buttons {
+  display: flex;
+  gap: 1rem; /* Adjust this to change the space between the two buttons */
+  align-items: center; /* Keeps the buttons perfectly aligned with each other */
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 @media (max-width: 1100px) {

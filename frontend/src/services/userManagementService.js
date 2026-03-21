@@ -24,8 +24,19 @@ export const updateUserAdmin = async (userId, payload) => {
   return data?.user || null
 }
 
+export const createUserAdmin = async (payload) => {
+  const { data } = await api.post('/api/admin/users', payload)
+  return data
+}
+
+export const revokeUserSessionsAdmin = async (userId) => {
+  return await api.post(`/api/admin/users/${userId}/revoke-sessions`);
+};
+
 export default {
   listUsersAdmin,
   getUsersAdminMeta,
   updateUserAdmin,
+  createUserAdmin,
+  revokeUserSessionsAdmin
 }

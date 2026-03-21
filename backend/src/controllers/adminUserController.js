@@ -4,6 +4,8 @@ import {
   findUserById,
   listUsersForAdmin,
   updateAdminManagedUser,
+  insertUserFromOnboarding,
+  revokeSessionsByUserId
 } from "../models/userModel.js";
 import { findRoleByNameExact } from "../models/roleModel.js";
 
@@ -14,10 +16,31 @@ const querySchema = Joi.object({
   isActive: Joi.string().trim().valid("true", "false", "").allow(null),
 });
 
+const DLSU_EMAIL_REGEX = /^[^\s@]+@dlsu\.edu\.ph$/i;
+
+const createUserSchema = Joi.object({
+  email: Joi.string().trim().email().pattern(DLSU_EMAIL_REGEX).required()
+    .messages({
+      "string.pattern.base": "Email must be a valid DLSU email (example@dlsu.edu.ph).",
+    }),
+  universityId: Joi.string().pattern(/^\d{1,8}$/).required()
+    .messages({
+      "string.pattern.base": "University ID must be numeric and up to 8 digits.",
+    }),
+  firstName: Joi.string().trim().max(100).required(),
+  middleName: Joi.string().trim().max(100).allow("", null),
+  lastName: Joi.string().trim().max(100).required(),
+  roleId: Joi.number().integer().positive().required(),
+  programId: Joi.number().integer().positive().allow(null),
+});
+
 const updateSchema = Joi.object({
   roleId: Joi.number().integer().positive().required(),
   programId: Joi.number().integer().positive().allow(null),
   isActive: Joi.boolean().required(),
+  firstName: Joi.string().trim().max(100).required(),
+  middleName: Joi.string().trim().max(100).allow(null, ""),
+  lastName: Joi.string().trim().max(100).required(),
 });
 
 const ensureAdmin = (req, res) => {
@@ -124,6 +147,91 @@ export const listAdminUsers = async (req, res, next) => {
   }
 };
 
+export const createAdminUser = async (req, res, next) => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const { error, value } = createUserSchema.validate(req.body, {
+      abortEarly: false,
+      stripUnknown: true,
+    });
+
+    if (error) {
+      return res.status(400).json({
+        message: "Invalid request body",
+        details: error.details.map((d) => d.message),
+      });
+    }
+
+    const db = req.app?.locals?.db;
+
+    // Check if role exists
+    const roleLookup = await db.query(
+      "SELECT role_id, role_name FROM ref_roles WHERE role_id = $1 LIMIT 1",
+      [value.roleId]
+    );
+    const role = roleLookup.rows[0];
+    if (!role) {
+      return res.status(400).json({ message: "Selected role does not exist." });
+    }
+
+    const isStudent = role.role_name.trim().toLowerCase() === "student";
+
+    // Program check
+    if (isStudent && !value.programId) {
+      return res.status(400).json({
+        message: "Program is required for Student role.",
+      });
+    }
+    if (!isStudent && value.programId) {
+      return res.status(400).json({
+        message: "Only Student users can have an assigned program.",
+      });
+    }
+
+    if (isStudent) {
+      const programExists = await findDegreeProgramById(db, value.programId);
+      if (!programExists) {
+        return res.status(400).json({ message: "Selected degree program does not exist." });
+      }
+    }
+
+    // Insert user — minimal fields, Google login flow handles the rest
+    const newUser = await insertUserFromOnboarding(db, {
+      googleId: null, // user hasn’t logged in yet
+      email: value.email,
+      universityId: value.universityId,
+      firstName: value.firstName,
+      middleName: value.middleName || null,
+      lastName: value.lastName,
+      roleId: value.roleId,
+      programId: isStudent ? value.programId : null,
+    });
+
+    return res.status(201).json({
+      message: "User created successfully",
+      user: {
+        userId: newUser.user_id,
+        email: newUser.email,
+        universityId: newUser.university_id,
+        firstName: newUser.fname,
+        middleName: newUser.mname,
+        lastName: newUser.lname,
+        roleId: newUser.role_id,
+        programId: newUser.program_id,
+        isActive: newUser.is_active,
+      },
+    });
+  } catch (error) {
+    if (error?.code === "23505") {
+      return res.status(409).json({
+        message: "A unique user field conflict occurred (email or university ID).",
+      });
+    }
+    return next(error);
+  }
+};
+
 export const updateAdminUser = async (req, res, next) => {
   try {
     if (!ensureAdmin(req, res)) return;
@@ -193,6 +301,9 @@ export const updateAdminUser = async (req, res, next) => {
       roleId: value.roleId,
       programId: value.programId || null,
       isActive: value.isActive,
+      fname: value.firstName,
+      mname: value.middleName || null,
+      lname: value.lastName,
     });
 
     return res.status(200).json({
@@ -201,6 +312,9 @@ export const updateAdminUser = async (req, res, next) => {
         userId: updated.user_id,
         roleId: updated.role_id,
         programId: updated.program_id,
+        firstName: updated.fname,
+        middleName: updated.mname,
+        lastName: updated.lname,
         isActive: updated.is_active,
       },
     });
@@ -253,5 +367,24 @@ export const getAdminUserMeta = async (req, res, next) => {
     });
   } catch (error) {
     return next(error);
+  }
+};
+
+// Revoke all sessions for a specific user
+export const revokeAllUserSessions = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required.' });
+    }
+
+    const db = req.app?.locals?.db;
+    await revokeSessionsByUserId(db, userId); // pass db here
+
+    return res.status(200).json({ message: 'All sessions revoked for user.' });
+  } catch (error) {
+    console.error('Failed to revoke sessions:', error);
+    return res.status(500).json({ message: 'Failed to revoke user sessions.' });
   }
 };
