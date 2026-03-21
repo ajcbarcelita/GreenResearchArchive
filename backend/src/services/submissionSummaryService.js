@@ -1,8 +1,4 @@
-const getSummarizerBaseUrl = () =>
-  (process.env.PDF_SUMMARIZER_BASE_URL || "http://localhost:8000").replace(
-    /\/+$/,
-    "",
-  );
+const getSummarizerBaseUrl = () => "http://localhost:8000"
 
 const POLL_INTERVAL_MS = 15000   // check every 15 seconds
 const POLL_TIMEOUT_MS  = 1800000 // give up after 30 minutes
