@@ -8,6 +8,7 @@ import advisoryRoutes from "./routes/advisoryRoutes.js";
 import auditLogRoutes from "./routes/auditLogRoutes.js";
 import adminProgramRoutes from "./routes/adminProgramRoutes.js";
 import adminUserRoutes from "./routes/adminUserRoutes.js";
+import coordinatorRoutes from "./routes/coordinatorRoutes.js";
 import repositoryRoutes from "./routes/repositoryRoutes.js";
 import studentSubmissionRoutes from "./routes/studentSubmissionRoutes.js";
 
@@ -49,6 +50,7 @@ app.use("/api/advisory", advisoryRoutes);
 app.use("/api/audit-logs", auditLogRoutes);
 app.use("/api/admin/programs", adminProgramRoutes);
 app.use("/api/admin/users", adminUserRoutes);
+app.use("/api/coordinator", coordinatorRoutes);
 app.use("/api/repository", repositoryRoutes);
 app.use("/api/submissions", studentSubmissionRoutes);
 
