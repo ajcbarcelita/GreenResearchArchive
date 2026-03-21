@@ -500,3 +500,104 @@ export const toggleCoordinatorTaskAutoLock = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+export const getReviewQueue = async (req, res) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) return res.status(500).json({ error: "Database not initialized" });
+
+    const userId = Number(req.auth?.sub);
+
+    const result = await db.query(
+      `
+      SELECT
+        s.submission_id,
+        s.title,
+        s.abstract,
+        s.status,
+        s.version_no,
+        s.submitted_at,
+        s.is_locked,
+        cg.group_name,
+        cg.group_id,
+        rdp.program_code,
+        t.task_name,
+        (
+          SELECT json_agg(json_build_object(
+            'file_id', sf.file_id,
+            'file_name', sf.file_name,
+            'file_type', sf.file_type,
+            'file_size', sf.file_size,
+            's3_key', sf.s3_key
+          ))
+          FROM submission_files sf
+          WHERE sf.submission_id = s.submission_id
+        ) as files
+      FROM submissions s
+      JOIN capstone_groups cg ON s.group_id = cg.group_id
+      JOIN ref_degree_programs rdp ON cg.program_id = rdp.program_id
+      JOIN tasks t ON s.task_id = t.task_id
+      WHERE cg.group_adviser = $1
+        AND s.status IN ('Submitted', 'Under Review', 'Revision Requested')
+      ORDER BY s.submitted_at DESC
+      `,
+      [userId],
+    );
+
+    return res.json({ data: result.rows });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const updateReviewStatus = async (req, res) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) return res.status(500).json({ error: "Database not initialized" });
+
+    const userId = Number(req.auth?.sub);
+    const { submissionId } = req.params;
+    const { status, remarks } = req.body;
+
+    // Verify ownership (adviser of the group)
+    const checkRes = await db.query(
+      `
+      SELECT s.status, cg.group_adviser
+      FROM submissions s
+      JOIN capstone_groups cg ON s.group_id = cg.group_id
+      WHERE s.submission_id = $1
+      `,
+      [submissionId],
+    );
+
+    if (checkRes.rowCount === 0) {
+      return res.status(404).json({ error: "Submission not found" });
+    }
+
+    const submission = checkRes.rows[0];
+    if (Number(submission.group_adviser) !== userId) {
+      return res
+        .status(403)
+        .json({ error: "Not authorized to review this submission" });
+    }
+
+    // Update status
+    await db.query(
+      `UPDATE submissions SET status = $1 WHERE submission_id = $2`,
+      [status, submissionId],
+    );
+
+    // Add audit log
+    await db.query(
+      `
+      INSERT INTO submission_audit_logs (submission_id, changed_by, old_status, new_status, remarks)
+      VALUES ($1, $2, $3, $4, $5)
+      `,
+      [submissionId, userId, submission.status, status, remarks || ""],
+    );
+
+    return res.json({ data: { success: true } });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};

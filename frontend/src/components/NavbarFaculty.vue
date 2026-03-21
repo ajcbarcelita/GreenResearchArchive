@@ -16,9 +16,7 @@
           <div class="flex items-center space-x-6 text-base font-semibold whitespace-nowrap">
             <router-link to="/faculty/home" class="nav-link">Home</router-link>
             <router-link to="/faculty/my-advisees" class="nav-link">My Advisees</router-link>
-            <router-link to="/faculty/submissions" class="nav-link"
-              >Submission Monitoring</router-link
-            >
+            <router-link to="/faculty/review-queue" class="nav-link">Review Queue</router-link>
             <router-link to="/faculty/repository" class="nav-link">Repository</router-link>
           </div>
         </div>

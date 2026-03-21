@@ -65,6 +65,19 @@ export const toggleCoordinatorTaskAutoLock = async (taskId) => {
   return response?.data?.data || null
 }
 
+export const getReviewQueue = async () => {
+  const response = await authApi.get('/api/advisory/review-queue')
+  return response?.data?.data || []
+}
+
+export const updateSubmissionStatus = async (submissionId, status, remarks = '') => {
+  const response = await authApi.put(`/api/advisory/submissions/${submissionId}/status`, {
+    status,
+    remarks,
+  })
+  return response?.data?.data || null
+}
+
 export default {
   getAdvisoryLoad,
   getMyGroups,
@@ -75,4 +88,6 @@ export default {
   getCoordinatorTerms,
   toggleCoordinatorTaskLock,
   toggleCoordinatorTaskAutoLock,
+  getReviewQueue,
+  updateSubmissionStatus,
 }

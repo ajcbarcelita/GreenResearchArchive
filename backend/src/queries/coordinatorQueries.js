@@ -98,7 +98,7 @@ export const getPendingFinalValidation = `
   JOIN ref_degree_programs rdp ON cg.program_id = rdp.program_id
   JOIN users u ON cg.group_adviser = u.user_id
   LEFT JOIN group_members gm ON cg.group_id = gm.group_id
-  WHERE s.status = 'Under Review'
+  WHERE s.status = 'Approved'
   GROUP BY s.submission_id, s.title, s.abstract, s.status, s.submitted_at,
            cg.group_name, cg.group_adviser, rdp.program_name, rdp.program_id, u.fname, u.lname
   ORDER BY s.submitted_at DESC;

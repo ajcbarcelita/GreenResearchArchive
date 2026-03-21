@@ -12,6 +12,7 @@ import FacultyCoordinatorSubmissionView from '../views/Coordinator/SubmissionMon
 import CoordinatorTasksView from '../views/Coordinator/CoordinatorTasksView.vue'
 import FacultyHomeView from '../views/Faculty/HomeView.vue'
 import FacultyMyAdviseesView from '../views/Faculty/MyAdviseesView.vue'
+import ReviewQueueView from '../views/Faculty/ReviewQueueView.vue'
 import AdminDashboardView from '../views/Admin/DashboardView.vue'
 import AdminUsersView from '../views/Admin/UserManagementView.vue'
 import AdminProgramsView from '../views/Admin/ProgramManagementView.vue'
@@ -237,7 +238,7 @@ const router = createRouter({
     {
       path: '/faculty/review-queue',
       name: 'faculty-review-queue',
-      redirect: '/faculty/submissions',
+      component: ReviewQueueView,
     },
     {
       path: '/faculty/repository',

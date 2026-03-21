@@ -16,6 +16,8 @@ import {
   getCoordinatorTerms,
   toggleCoordinatorTaskLock,
   toggleCoordinatorTaskAutoLock,
+  getReviewQueue,
+  updateReviewStatus,
 } from "../controllers/advisoryController.js";
 
 const router = express.Router();
@@ -43,6 +45,22 @@ router.patch(
   requireAuth,
   requireRegisteredUser,
   toggleCoordinatorTaskAutoLock,
+);
+
+// Review Queue for advisers
+router.get(
+  "/review-queue",
+  requireAuth,
+  requireRegisteredUser,
+  getReviewQueue,
+);
+
+// Update submission status (adviser only)
+router.put(
+  "/submissions/:submissionId/status",
+  requireAuth,
+  requireRegisteredUser,
+  updateReviewStatus,
 );
 
 // Authenticated endpoints for advisers
