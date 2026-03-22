@@ -16,6 +16,10 @@ import {
   toggleTaskLockStatus,
   toggleTaskAutoLockAfterDueDate,
   listAcademicTerms,
+  findAcademicTermByYearAndTermNo,
+  createCoordinatorTask as createCoordinatorTaskModel,
+  updateCoordinatorTask as updateCoordinatorTaskModel,
+  deleteCoordinatorTask as deleteCoordinatorTaskModel,
 } from "../models/submissionModel.js";
 import { findUserProfileById } from "../models/userModel.js";
 
@@ -498,6 +502,167 @@ export const toggleCoordinatorTaskAutoLock = async (req, res) => {
       return res.status(error.statusCode).json({ error: error.message });
     }
     return res.status(500).json({ error: error.message });
+  }
+};
+
+const isValidAcademicYear = (value) => {
+  const match = String(value || "").trim().match(/^(\d{4}-\d{4})$/);
+  if (!match) return false;
+  const parts = value.split("-");
+  return Number(parts[1]) === Number(parts[0]) + 1;
+};
+
+const isValidTermNo = (value) => {
+  const num = Number(value);
+  return Number.isInteger(num) && num >= 1 && num <= 3;
+};
+
+const getTermId = async (db, body) => {
+  if (body.termId && Number.isInteger(Number(body.termId))) {
+    return Number(body.termId);
+  }
+
+  const academicYear = String(body.termYear || "").trim();
+  const termNo = Number(body.termNo);
+
+  if (!isValidAcademicYear(academicYear) || !isValidTermNo(termNo)) {
+    throw { statusCode: 400, message: "Invalid term selection" };
+  }
+
+  const term = await findAcademicTermByYearAndTermNo(db, academicYear, termNo);
+  if (!term) {
+    throw { statusCode: 400, message: "Academic term not found" };
+  }
+
+  return term.term_id;
+};
+
+export const createCoordinatorTask = async (req, res) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) return res.status(500).json({ error: "Database not initialized" });
+
+    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    if (roleName !== "coordinator" && roleName !== "faculty") {
+      return res
+        .status(403)
+        .json({ error: "Only faculty and coordinator can create tasks" });
+    }
+
+    const taskName = String(req.body.taskName || "").trim();
+    if (!taskName) {
+      return res.status(400).json({ error: "Task name is required" });
+    }
+
+    const termId = await getTermId(db, req.body);
+
+    const description = String(req.body.description || "").trim() || null;
+    const dueDate = req.body.dueDate ? new Date(req.body.dueDate) : null;
+    const autoLockAfterDueDate = Boolean(req.body.autoLockAfterDueDate);
+
+    const created = await createCoordinatorTaskModel(db, {
+      taskName,
+      description,
+      dueDate,
+      termId,
+      autoLockAfterDueDate,
+    });
+
+    return res.status(201).json({ data: created });
+  } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ error: error.message });
+    }
+    if (error.code === "23503") {
+      return res.status(400).json({ error: "Term does not exist" });
+    }
+    return res.status(500).json({ error: error.message || "Internal server error" });
+  }
+};
+
+export const updateCoordinatorTask = async (req, res) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) return res.status(500).json({ error: "Database not initialized" });
+
+    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    if (roleName !== "coordinator" && roleName !== "faculty") {
+      return res
+        .status(403)
+        .json({ error: "Only faculty and coordinator can update tasks" });
+    }
+
+    const taskId = Number(req.params.taskId);
+    if (!Number.isInteger(taskId) || taskId <= 0) {
+      return res.status(400).json({ error: "Invalid task ID" });
+    }
+
+    const taskName = String(req.body.taskName || "").trim();
+    if (!taskName) {
+      return res.status(400).json({ error: "Task name is required" });
+    }
+
+    const termId = await getTermId(db, req.body);
+
+    const description = String(req.body.description || "").trim() || null;
+    const dueDate = req.body.dueDate ? new Date(req.body.dueDate) : null;
+    const autoLockAfterDueDate = Boolean(req.body.autoLockAfterDueDate);
+
+    const updated = await updateCoordinatorTaskModel(db, taskId, {
+      taskName,
+      description,
+      dueDate,
+      termId,
+      autoLockAfterDueDate,
+    });
+
+    if (!updated) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    return res.json({ data: updated });
+  } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ error: error.message });
+    }
+    if (error.code === "23503") {
+      return res.status(400).json({ error: "Term does not exist" });
+    }
+    return res.status(500).json({ error: error.message || "Internal server error" });
+  }
+};
+
+export const deleteCoordinatorTask = async (req, res) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) return res.status(500).json({ error: "Database not initialized" });
+
+    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    if (roleName !== "coordinator" && roleName !== "faculty") {
+      return res
+        .status(403)
+        .json({ error: "Only faculty and coordinator can delete tasks" });
+    }
+
+    const taskId = Number(req.params.taskId);
+    if (!Number.isInteger(taskId) || taskId <= 0) {
+      return res.status(400).json({ error: "Invalid task ID" });
+    }
+
+    const deleted = await deleteCoordinatorTaskModel(db, taskId);
+    if (!deleted) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    return res.status(204).send();
+  } catch (error) {
+    if (error?.statusCode) {
+      return res.status(error.statusCode).json({ error: error.message });
+    }
+    if (error.code === "23503") {
+      return res.status(400).json({ error: "Cannot delete task with existing submissions" });
+    }
+    return res.status(500).json({ error: error.message || "Internal server error" });
   }
 };
 

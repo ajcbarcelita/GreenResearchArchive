@@ -15,6 +15,9 @@ import {
   getCoordinatorTasks,
   getCoordinatorTerms,
   toggleCoordinatorTaskLock,
+  createCoordinatorTask,
+  updateCoordinatorTask,
+  deleteCoordinatorTask,
 } from '@/services/advisoryService'
 
 const loading = ref(false)
@@ -167,7 +170,7 @@ const createTaskLocally = async () => {
     return
   }
 
-  const selectedYear = createForm.value.termYear
+  const selectedYear = String(createForm.value.termYear || '').trim()
   const selectedTermNo = createForm.value.termNo
 
   if (!isValidAcademicYear(selectedYear)) {
@@ -180,33 +183,23 @@ const createTaskLocally = async () => {
     return
   }
 
-  const termNoNumber = Number(selectedTermNo)
-  const nowIso = new Date().toISOString()
+  const payload = {
+    taskName,
+    description: String(createForm.value.description || '').trim() || null,
+    dueDate: createForm.value.dueDate ? new Date(createForm.value.dueDate).toISOString() : null,
+    termYear: selectedYear,
+    termNo: Number(selectedTermNo),
+    autoLockAfterDueDate: Boolean(createForm.value.autoLockAfterDueDate),
+  }
 
   creating.value = true
   try {
-    allTaskRows.value = [
-      {
-        taskId: `draft-${Date.now()}`,
-        taskName,
-        description: String(createForm.value.description || '').trim() || 'No description',
-        term: termLabel(selectedYear, termNoNumber),
-        termKey: formatDbTerm(selectedYear, termNoNumber),
-        termId: null,
-        academicYear: selectedYear || null,
-        termNo: termNoNumber,
-        dueDate: createForm.value.dueDate || null,
-        autoLockAfterDueDate: createForm.value.autoLockAfterDueDate === true,
-        createdAt: nowIso,
-        latestSubmissionAt: null,
-        submissionCount: 0,
-        programCodes: [],
-        isDraft: true,
-      },
-      ...allTaskRows.value,
-    ]
-
+    await createCoordinatorTask(payload)
     showCreateDialog.value = false
+    await loadTaskRows()
+  } catch (error) {
+    console.error('Failed to create task', error)
+    alert(error?.response?.data?.error || 'Failed to create task.')
   } finally {
     creating.value = false
   }
@@ -217,7 +210,7 @@ const openEditTask = (row) => {
     taskId: row.taskId,
     taskName: row.taskName || '',
     description: row.description || '',
-    dueDate: row.dueDate || '',
+    dueDate: row.dueDate ? new Date(row.dueDate) : null,
     termYear: row.academicYear || null,
     termNo: row.termNo || null,
     autoLockAfterDueDate: row.autoLockAfterDueDate === true,
@@ -228,13 +221,19 @@ const openEditTask = (row) => {
 const saveTaskLocally = async () => {
   if (editing.value) return
 
+  const taskId = Number(editForm.value.taskId)
+  if (!Number.isInteger(taskId) || taskId <= 0) {
+    alert('Invalid task ID.')
+    return
+  }
+
   const taskName = String(editForm.value.taskName || '').trim()
   if (!taskName) {
     alert('Task name is required.')
     return
   }
 
-  const selectedYear = editForm.value.termYear
+  const selectedYear = String(editForm.value.termYear || '').trim()
   const selectedTermNo = editForm.value.termNo
 
   if (!isValidAcademicYear(selectedYear)) {
@@ -247,38 +246,45 @@ const saveTaskLocally = async () => {
     return
   }
 
-  const termNoNumber = Number(selectedTermNo)
+  const payload = {
+    taskName,
+    description: String(editForm.value.description || '').trim() || null,
+    dueDate: editForm.value.dueDate ? new Date(editForm.value.dueDate).toISOString() : null,
+    termYear: selectedYear,
+    termNo: Number(selectedTermNo),
+    autoLockAfterDueDate: Boolean(editForm.value.autoLockAfterDueDate),
+  }
 
   editing.value = true
   try {
-    allTaskRows.value = allTaskRows.value.map((row) => {
-      if (row.taskId !== editForm.value.taskId) return row
-
-      return {
-        ...row,
-        taskName,
-        description: String(editForm.value.description || '').trim() || 'No description',
-        dueDate: editForm.value.dueDate || null,
-        term: termLabel(selectedYear, termNoNumber),
-        termKey: formatDbTerm(selectedYear, termNoNumber),
-        termId: row.termId || null,
-        academicYear: selectedYear || row.academicYear,
-        termNo: termNoNumber,
-        autoLockAfterDueDate: editForm.value.autoLockAfterDueDate === true,
-      }
-    })
-
+    await updateCoordinatorTask(taskId, payload)
     showEditDialog.value = false
+    await loadTaskRows()
+  } catch (error) {
+    console.error('Failed to update task', error)
+    alert(error?.response?.data?.error || 'Failed to update task.')
   } finally {
     editing.value = false
   }
 }
 
-const deleteTaskLocally = (row) => {
+const deleteTaskLocally = async (row) => {
   const ok = confirm(`Delete task "${row.taskName || 'Untitled Task'}"?`)
   if (!ok) return
 
-  allTaskRows.value = allTaskRows.value.filter((item) => item.taskId !== row.taskId)
+  const taskId = Number(row.taskId)
+  if (!Number.isInteger(taskId) || taskId <= 0) {
+    alert('Cannot delete unsaved task.')
+    return
+  }
+
+  try {
+    await deleteCoordinatorTask(taskId)
+    await loadTaskRows()
+  } catch (error) {
+    console.error('Failed to delete task', error)
+    alert(error?.response?.data?.error || 'Failed to delete task.')
+  }
 }
 
 const toggleTaskLock = async (row) => {

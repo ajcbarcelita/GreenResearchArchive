@@ -16,6 +16,9 @@ import {
   getCoordinatorTerms,
   toggleCoordinatorTaskLock,
   toggleCoordinatorTaskAutoLock,
+  createCoordinatorTask,
+  updateCoordinatorTask,
+  deleteCoordinatorTask,
   getReviewQueue,
   updateReviewStatus,
 } from "../controllers/advisoryController.js";
@@ -45,6 +48,30 @@ router.patch(
   requireAuth,
   requireRegisteredUser,
   toggleCoordinatorTaskAutoLock,
+);
+
+// POST /api/advisory/tasks -> create a new coordinator task
+router.post(
+  "/tasks",
+  requireAuth,
+  requireRegisteredUser,
+  createCoordinatorTask,
+);
+
+// PUT /api/advisory/tasks/:taskId -> update a coordinator task
+router.put(
+  "/tasks/:taskId",
+  requireAuth,
+  requireRegisteredUser,
+  updateCoordinatorTask,
+);
+
+// DELETE /api/advisory/tasks/:taskId -> delete a coordinator task
+router.delete(
+  "/tasks/:taskId",
+  requireAuth,
+  requireRegisteredUser,
+  deleteCoordinatorTask,
 );
 
 // Review Queue for advisers

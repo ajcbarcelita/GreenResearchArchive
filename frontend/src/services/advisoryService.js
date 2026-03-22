@@ -65,6 +65,21 @@ export const toggleCoordinatorTaskAutoLock = async (taskId) => {
   return response?.data?.data || null
 }
 
+export const createCoordinatorTask = async (payload) => {
+  const response = await authApi.post('/api/advisory/tasks', payload)
+  return response?.data?.data || null
+}
+
+export const updateCoordinatorTask = async (taskId, payload) => {
+  const response = await authApi.put(`/api/advisory/tasks/${taskId}`, payload)
+  return response?.data?.data || null
+}
+
+export const deleteCoordinatorTask = async (taskId) => {
+  const response = await authApi.delete(`/api/advisory/tasks/${taskId}`)
+  return response?.status === 204 || response?.data?.data || null
+}
+
 export const getReviewQueue = async () => {
   const response = await authApi.get('/api/advisory/review-queue')
   return response?.data?.data || []
@@ -88,6 +103,9 @@ export default {
   getCoordinatorTerms,
   toggleCoordinatorTaskLock,
   toggleCoordinatorTaskAutoLock,
+  createCoordinatorTask,
+  updateCoordinatorTask,
+  deleteCoordinatorTask,
   getReviewQueue,
   updateSubmissionStatus,
 }

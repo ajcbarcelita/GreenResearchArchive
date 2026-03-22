@@ -217,6 +217,71 @@ export const findTaskById = async (db, taskId) => {
   return result.rows[0] || null;
 };
 
+export const findAcademicTermByYearAndTermNo = async (db, academicYear, termNo) => {
+  const result = await db.query(
+    `
+      SELECT term_id, academic_year, term_no
+      FROM academic_terms
+      WHERE academic_year = $1
+        AND term_no = $2
+      LIMIT 1
+    `,
+    [academicYear, termNo],
+  );
+  return result.rows[0] || null;
+};
+
+export const createCoordinatorTask = async (
+  db,
+  { taskName, description, dueDate, termId, autoLockAfterDueDate = false },
+) => {
+  const result = await db.query(
+    `
+      INSERT INTO tasks (task_name, description, due_date, term_id, auto_lock_after_due_date)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING task_id, task_name, description, due_date, term_id, is_locked, auto_lock_after_due_date, created_at
+    `,
+    [taskName, description || null, dueDate || null, termId, autoLockAfterDueDate],
+  );
+
+  return result.rows[0] || null;
+};
+
+export const updateCoordinatorTask = async (
+  db,
+  taskId,
+  { taskName, description, dueDate, termId, autoLockAfterDueDate = false },
+) => {
+  const result = await db.query(
+    `
+      UPDATE tasks
+      SET task_name = $1,
+          description = $2,
+          due_date = $3,
+          term_id = $4,
+          auto_lock_after_due_date = $5
+      WHERE task_id = $6
+      RETURNING task_id, task_name, description, due_date, term_id, is_locked, auto_lock_after_due_date, created_at
+    `,
+    [taskName, description || null, dueDate || null, termId, autoLockAfterDueDate, taskId],
+  );
+
+  return result.rows[0] || null;
+};
+
+export const deleteCoordinatorTask = async (db, taskId) => {
+  const result = await db.query(
+    `
+      DELETE FROM tasks
+      WHERE task_id = $1
+      RETURNING task_id
+    `,
+    [taskId],
+  );
+
+  return result.rows[0] || null;
+};
+
 export const updateSubmissionStatus = async (db, { submissionId, status }) => {
   const result = await db.query(
     `
@@ -485,7 +550,7 @@ export const listAllTasksWithSubmissionStats = async (db) => {
     ? "t.auto_lock_after_due_date AS auto_lock_after_due_date"
     : "false::boolean AS auto_lock_after_due_date";
   const autoLockGroupBy = hasAutoLockAfterDueDate
-    ? ", t.auto_lock_after_due_date"
+    ? "t.auto_lock_after_due_date,"
     : "";
 
   const result = await db.query(
