@@ -51,7 +51,7 @@ const mapAdvisoryRow = (row) => ({
 const buildSummary = (rows) => {
   const adviserIds = new Set(rows.map((row) => row.adviserId));
   const statusesNeedingAttention = new Set([
-    "Revision Requested",
+    "Submitted",
     "Under Review",
   ]);
 
@@ -720,7 +720,7 @@ export const getReviewQueue = async (req, res) => {
       JOIN ref_degree_programs rdp ON cg.program_id = rdp.program_id
       JOIN tasks t ON s.task_id = t.task_id
       WHERE cg.group_adviser = $1
-        AND s.status IN ('Submitted', 'Under Review', 'Revision Requested')
+        AND s.status IN ('Submitted', 'Under Review')
       ORDER BY s.submitted_at DESC
       `,
       [userId],

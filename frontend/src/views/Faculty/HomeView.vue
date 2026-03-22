@@ -68,7 +68,9 @@ const riskChartOptions = ref({
       callbacks: {
         label: (context) => {
           const group = context.raw.groupName
-          return `${group}: ${context.raw.y} revisions, ${context.raw.x} days inactive`
+          const revs = context.raw.actualY
+          const days = context.raw.actualX
+          return `${group}: ${revs} revision${revs !== 1 ? 's' : ''}, ${days} day${days !== 1 ? 's' : ''} inactive`
         },
       },
     },
@@ -82,13 +84,17 @@ const riskChartOptions = ref({
         font: { size: 10, weight: 'bold' },
       },
       min: -0.5,
-      max: 5.5,
+      max: 6,
       grid: { color: '#f0f0f0' },
       ticks: {
         stepSize: 1,
         precision: 0,
         font: { size: 9 },
-        callback: (value) => (value >= 0 && value <= 5 ? value : null),
+        callback: (value) => {
+          if (value >= 0 && value <= 5) return value
+          if (value === 6) return '5+'
+          return null
+        },
       },
     },
     x: {
@@ -99,12 +105,16 @@ const riskChartOptions = ref({
         font: { size: 10, weight: 'bold' },
       },
       min: -0.8,
-      max: 15.8,
+      max: 16.5,
       grid: { color: '#f0f0f0' },
       ticks: {
         stepSize: 3,
         font: { size: 9 },
-        callback: (value) => (value >= 0 && value <= 15 ? value : null),
+        callback: (value) => {
+          if (value >= 0 && value <= 15) return value
+          if (value === 18) return '15+'
+          return null
+        },
       },
     },
   },
@@ -255,8 +265,10 @@ const fetchData = async () => {
       const bubbleColor = '#a3b8af' // Light Green
 
       return {
-        x: diffDays > 15 ? 15 : diffDays,
-        y: revisionCount > 5 ? 5 : revisionCount,
+        x: diffDays > 15 ? 15.5 : diffDays,
+        y: revisionCount > 5 ? 5.5 : revisionCount,
+        actualX: diffDays,
+        actualY: revisionCount,
         r: 8,
         groupName: r.groupName,
         backgroundColor: bubbleColor,
@@ -349,19 +361,19 @@ onMounted(fetchData)
                     class="flex h-1.5 w-full rounded-full overflow-hidden bg-gray-200 shadow-inner"
                   >
                     <div
-                      class="bg-[#a3b8af]"
+                      class="bg-[#f0fdf4]"
                       :style="{ width: (phaseStats.draft / phaseStats.total) * 100 + '%' }"
                     ></div>
                     <div
-                      class="bg-[#355347]"
+                      class="bg-[#22c55e]"
                       :style="{ width: (phaseStats.review / phaseStats.total) * 100 + '%' }"
                     ></div>
                     <div
-                      class="bg-[#17362b]"
+                      class="bg-[#15803d]"
                       :style="{ width: (phaseStats.approved / phaseStats.total) * 100 + '%' }"
                     ></div>
                     <div
-                      class="bg-black"
+                      class="bg-[#064e3b]"
                       :style="{ width: (phaseStats.archived / phaseStats.total) * 100 + '%' }"
                     ></div>
                   </div>

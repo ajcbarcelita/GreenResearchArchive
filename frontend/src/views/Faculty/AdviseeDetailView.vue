@@ -23,6 +23,7 @@ import {
   removeGroupMember,
   deleteGroup,
 } from '@/services/advisoryService'
+import { getCapstoneFileDownloadUrl } from '@/services/repositoryService'
 
 const route = useRoute()
 const router = useRouter()
@@ -158,6 +159,25 @@ const getStatusColor = (status) => {
     default:
       return '#a3b8af'
   }
+}
+
+const formatFileSize = (bytes) => {
+  if (!bytes || isNaN(bytes)) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const handleDownloadFile = (fileId) => {
+  const url = getCapstoneFileDownloadUrl(fileId)
+  const link = document.createElement('a')
+  link.href = url
+  link.target = '_blank'
+  link.rel = 'noopener'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
 }
 
 const fetchDetailData = async () => {
@@ -358,13 +378,14 @@ onMounted(fetchDetailData)
                             <a
                               v-for="file in slotProps.item.files"
                               :key="file.file_id"
-                              :href="`#`"
+                              href="javascript:void(0)"
+                              @click="handleDownloadFile(file.file_id)"
                               class="flex items-center gap-2 px-3 py-1.5 bg-white border border-[#cfe0d6] rounded-lg text-xs font-medium text-[#17362b] hover:bg-[#eaf4ee] transition-colors"
                             >
                               <i class="pi pi-file-pdf text-red-500"></i>
                               <span>{{ file.file_name }}</span>
                               <span class="text-[9px] text-gray-400"
-                                >({{ (file.file_size / 1024 / 1024).toFixed(2) }} MB)</span
+                                >({{ formatFileSize(file.file_size) }})</span
                               >
                             </a>
                           </div>

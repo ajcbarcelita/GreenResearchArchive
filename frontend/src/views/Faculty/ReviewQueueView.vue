@@ -7,6 +7,7 @@ import {
   updateSubmissionStatus,
   deleteSubmission,
 } from '@/services/advisoryService'
+import { getCapstoneFileDownloadUrl } from '@/services/repositoryService'
 import { useToast } from 'primevue/usetoast'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -85,6 +86,14 @@ const handleStatusUpdate = async (newStatus, customRemarks = null, closeDialog =
     if (closeDialog) {
       showReviewDialog.value = false
     }
+
+    // Optimistically remove from list if it no longer belongs in the queue
+    if (newStatus === 'Approved' || newStatus === 'Revision Requested') {
+      submissions.value = submissions.value.filter(
+        (s) => s.submission_id !== selectedSubmission.value.submission_id,
+      )
+    }
+
     await fetchSubmissions()
   } catch (error) {
     console.error('Error updating status:', error)
@@ -133,8 +142,22 @@ const handleDeleteSubmission = async () => {
 }
 
 const downloadFile = (file) => {
-  const url = `${import.meta.env.VITE_API_BASE_URL}/api/repository/files/${file.file_id}/download`
-  window.open(url, '_blank')
+  const url = getCapstoneFileDownloadUrl(file.file_id)
+  const link = document.createElement('a')
+  link.href = url
+  link.target = '_blank'
+  link.rel = 'noopener'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+const formatFileSize = (bytes) => {
+  if (!bytes || isNaN(bytes)) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
 onMounted(fetchSubmissions)
@@ -243,7 +266,7 @@ onMounted(fetchSubmissions)
                   :key="file.file_id"
                   class="flex items-center justify-between p-2 bg-white border border-gray-200 rounded-lg shadow-xs hover:border-green-300 transition-colors"
                 >
-                  <div class="flex items-center space-x-3 truncate">
+                  <div class="flex items-center space-x-3 min-w-0">
                     <i
                       :class="[
                         'pi',
@@ -252,8 +275,13 @@ onMounted(fetchSubmissions)
                           : 'pi-file text-blue-500',
                       ]"
                     ></i>
-                    <span class="text-sm font-medium truncate">{{ file.file_name }}</span>
-                    <Tag :value="file.file_type" severity="secondary" class="text-[10px]" />
+                    <div class="flex flex-col min-w-0">
+                      <span class="text-sm font-medium truncate">{{ file.file_name }}</span>
+                      <div class="flex items-center gap-2">
+                        <Tag :value="file.file_type" severity="secondary" class="text-[9px]" />
+                        <span class="text-[10px] text-gray-400">{{ formatFileSize(file.file_size) }}</span>
+                      </div>
+                    </div>
                   </div>
                   <Button
                     icon="pi pi-download"

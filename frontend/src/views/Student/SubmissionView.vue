@@ -206,7 +206,7 @@ const assignedVersionLabel = computed(() => {
 
 const statusSeverity = computed(() => {
   if (status.value === 'Approved') return 'success'
-  if (status.value === 'Needs Revision') return 'warn'
+  if (status.value === 'Revision Requested' || status.value === 'Needs Revision') return 'warn'
   if (status.value === 'Rejected') return 'danger'
   return 'info'
 })

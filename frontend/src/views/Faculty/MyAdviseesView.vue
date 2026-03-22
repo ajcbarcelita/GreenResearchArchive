@@ -96,7 +96,7 @@
               </div>
 
               <!-- Status -->
-              <div class="w-32 flex flex-col items-start md:items-center">
+              <div class="w-32 flex flex-col items-center text-center">
                 <div
                   class="text-[10px] font-bold text-[#5a877a] uppercase tracking-wider mb-0.5 md:hidden"
                 >
