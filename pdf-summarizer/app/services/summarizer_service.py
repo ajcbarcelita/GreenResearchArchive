@@ -75,7 +75,7 @@ FINDINGS:
 - [finding 1]
 - [finding 2]
 - [finding 3]
-[add more as needed, only what is explicitly stated]
+[add more as needed, only what is explicitly / clearly stated]
 
 CONCLUSIONS & RECOMMENDATIONS:
 [2-4 sentences on conclusions drawn and any recommendations made]
