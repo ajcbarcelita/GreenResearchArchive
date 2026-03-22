@@ -221,7 +221,9 @@ onMounted(() => {
 
         <!-- Repository Health -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 items-stretch">
-          <Card class="flex flex-col shadow-sm rounded-2xl border border-[#cfe0d6] bg-white h-full overflow-hidden">
+          <Card
+            class="flex flex-col shadow-sm rounded-2xl border border-[#cfe0d6] bg-white h-full overflow-hidden"
+          >
             <template #title>
               <h3 class="text-lg font-semibold text-[#17362b]">Repository Health</h3>
             </template>
@@ -265,13 +267,14 @@ onMounted(() => {
           </Card>
 
           <!-- Keyword Popularity Chart -->
-          <Card class="flex flex-col shadow-sm rounded-2xl border border-[#cfe0d6] bg-white h-full overflow-hidden">
+          <Card
+            class="flex flex-col shadow-sm rounded-2xl border border-[#cfe0d6] bg-white h-full overflow-hidden"
+          >
             <template #title>
               <h3 class="text-lg font-semibold text-[#17362b]">Popular Keywords</h3>
             </template>
             <template #content>
               <div class="flex flex-col h-full">
-
                 <div
                   v-if="keywords.length === 0 && !loading"
                   class="text-center py-8 text-[#355347]"
@@ -288,7 +291,6 @@ onMounted(() => {
                     class="max-h-full"
                   />
                 </div>
-
               </div>
             </template>
           </Card>
@@ -297,14 +299,15 @@ onMounted(() => {
         <!-- Research Trends and Adviser Workload -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <!-- Research Trends -->
-          <Card class="flex flex-col shadow-sm rounded-2xl border border-[#cfe0d6] bg-white h-full overflow-hidden">
+          <Card
+            class="flex flex-col shadow-sm rounded-2xl border border-[#cfe0d6] bg-white h-full overflow-hidden"
+          >
             <template #title>
               <h3 class="text-lg font-semibold text-[#17362b]">Research Trends</h3>
             </template>
 
             <template #content>
               <div class="flex flex-col h-full">
-
                 <!-- Empty state -->
                 <div
                   v-if="filteredTrends().length === 0 && !loading"
@@ -330,13 +333,14 @@ onMounted(() => {
                     </Column>
                   </DataTable>
                 </div>
-
               </div>
             </template>
           </Card>
 
           <!-- Adviser Workload -->
-          <Card class="flex flex-col shadow-sm rounded-2xl border border-[#cfe0d6] bg-white h-full overflow-hidden">
+          <Card
+            class="flex flex-col shadow-sm rounded-2xl border border-[#cfe0d6] bg-white h-full overflow-hidden"
+          >
             <template #title>
               <h3 class="text-lg font-semibold text-[#17362b]">Adviser Workload</h3>
             </template>
@@ -382,11 +386,11 @@ onMounted(() => {
                     :loading="loading"
                     class="p-datatable-sm"
                   >
-                  <Column field="adviser_name" header="Adviser" sortable />
-                  <Column field="group_count" header="Groups" sortable />
-                  <Column field="student_count" header="Students" sortable />
-                  <Column field="approved_count" header="Approved" sortable />
-                </DataTable>
+                    <Column field="adviser_name" header="Adviser" sortable />
+                    <Column field="group_count" header="Groups" sortable />
+                    <Column field="student_count" header="Students" sortable />
+                    <Column field="approved_count" header="Approved" sortable />
+                  </DataTable>
                 </div>
               </div>
             </template>

@@ -40,8 +40,9 @@ export const authenticateWithGoogle = async (req, res, next) => {
       const user = await updateGoogleUserLogin(dbClient, googleProfile);
 
       // Create session for refresh token
-      const userAgent = req.headers["user-agent"] || "";
-      const ipAddress = req.ip || req.connection.remoteAddress || "";
+      const userAgent = req.headers["user-agent"] || "Unknown Device";
+      const ipAddress =
+        req.headers["x-forwarded-for"]?.split(",")[0] || req.ip || "Unknown IP";
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
       const session = await createSession(

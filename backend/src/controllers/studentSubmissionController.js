@@ -137,11 +137,11 @@ export const getStudentTasks = async (req, res, next) => {
       isActiveTerm: r.is_active_term,
       submission: r.submission_id
         ? {
-          submissionId: r.submission_id,
-          status: r.submission_status,
-          versionNo: r.submission_version_no,
-          submittedAt: r.submitted_at,
-        }
+            submissionId: r.submission_id,
+            status: r.submission_status,
+            versionNo: r.submission_version_no,
+            submittedAt: r.submitted_at,
+          }
         : null,
     }));
 
@@ -592,8 +592,8 @@ export const generateCurrentStudentSubmissionSummary = async (
 
     const generatedSummary = await summarizeSubmissionFileFromS3({
       s3Key: capstoneFile.s3_key,
-      submissionId: String(row.submission_id),  
-    })
+      submissionId: String(row.submission_id),
+    });
 
     const updatedSubmission = await updateSubmissionSummary(db, {
       submissionId: currentSubmission.submission_id,

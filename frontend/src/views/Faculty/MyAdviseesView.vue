@@ -73,7 +73,9 @@
 
               <!-- Latest Submission -->
               <div class="flex-2 min-w-0 hidden lg:block">
-                <div class="text-[10px] font-bold text-[#5a877a] uppercase tracking-wider mb-0.5">Project Title</div>
+                <div class="text-[10px] font-bold text-[#5a877a] uppercase tracking-wider mb-0.5">
+                  Project Title
+                </div>
                 <div class="text-xs font-medium text-[#355347] truncate">
                   {{ group.latestSubmissionTitle || 'No submission yet' }}
                 </div>
@@ -81,17 +83,27 @@
 
               <!-- Activity Date -->
               <div class="w-24 hidden sm:block text-center">
-                <div class="text-[10px] font-bold text-[#5a877a] uppercase tracking-wider mb-0.5">Updated</div>
+                <div class="text-[10px] font-bold text-[#5a877a] uppercase tracking-wider mb-0.5">
+                  Updated
+                </div>
                 <div class="text-xs text-[#355347]">
-                  {{ group.latestSubmittedAt ? new Date(group.latestSubmittedAt).toLocaleDateString() : 'N/A' }}
+                  {{
+                    group.latestSubmittedAt
+                      ? new Date(group.latestSubmittedAt).toLocaleDateString()
+                      : 'N/A'
+                  }}
                 </div>
               </div>
 
               <!-- Status -->
               <div class="w-32 flex flex-col items-start md:items-center">
-                <div class="text-[10px] font-bold text-[#5a877a] uppercase tracking-wider mb-0.5 md:hidden">Status</div>
-                <Tag 
-                  :value="group.latestSubmissionStatus || 'No Submission'" 
+                <div
+                  class="text-[10px] font-bold text-[#5a877a] uppercase tracking-wider mb-0.5 md:hidden"
+                >
+                  Status
+                </div>
+                <Tag
+                  :value="group.latestSubmissionStatus || 'No Submission'"
                   :severity="getStatusSeverity(group.latestSubmissionStatus)"
                   class="text-[10px] px-2 py-0.5"
                 />

@@ -77,12 +77,7 @@ router.delete(
 );
 
 // Review Queue for advisers
-router.get(
-  "/review-queue",
-  requireAuth,
-  requireRegisteredUser,
-  getReviewQueue,
-);
+router.get("/review-queue", requireAuth, requireRegisteredUser, getReviewQueue);
 
 // Update submission status (adviser only)
 router.put(

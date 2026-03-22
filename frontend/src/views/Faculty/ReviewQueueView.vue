@@ -2,7 +2,11 @@
 import { ref, onMounted } from 'vue'
 import NavbarFaculty from '@/components/NavbarFaculty.vue'
 import Footer from '@/components/Footer.vue'
-import { getReviewQueue, updateSubmissionStatus, deleteSubmission } from '@/services/advisoryService'
+import {
+  getReviewQueue,
+  updateSubmissionStatus,
+  deleteSubmission,
+} from '@/services/advisoryService'
 import { useToast } from 'primevue/usetoast'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -58,7 +62,7 @@ const openReview = (submission) => {
   selectedSubmission.value = submission
   remarks.value = ''
   showReviewDialog.value = true
-  
+
   // If status is 'Submitted', automatically move to 'Under Review'
   if (submission.status === 'Submitted') {
     handleStatusUpdate('Under Review', 'Started review process.', false)
@@ -70,14 +74,14 @@ const handleStatusUpdate = async (newStatus, customRemarks = null, closeDialog =
   try {
     const finalRemarks = customRemarks !== null ? customRemarks : remarks.value
     await updateSubmissionStatus(selectedSubmission.value.submission_id, newStatus, finalRemarks)
-    
+
     toast.add({
       severity: 'success',
       summary: 'Success',
       detail: `Submission status updated to ${newStatus}.`,
       life: 3000,
     })
-    
+
     if (closeDialog) {
       showReviewDialog.value = false
     }
@@ -96,10 +100,14 @@ const handleStatusUpdate = async (newStatus, customRemarks = null, closeDialog =
 }
 
 const handleDeleteSubmission = async () => {
-  if (!confirm('Are you sure you want to permanently DELETE this submission? This action cannot be undone.')) {
+  if (
+    !confirm(
+      'Are you sure you want to permanently DELETE this submission? This action cannot be undone.',
+    )
+  ) {
     return
   }
-  
+
   processing.value = true
   try {
     await deleteSubmission(selectedSubmission.value.submission_id)
@@ -208,7 +216,9 @@ onMounted(fetchSubmissions)
             </div>
             <div>
               <label class="block text-sm font-bold text-gray-700">Abstract</label>
-              <div class="mt-1 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm max-h-48 overflow-y-auto">
+              <div
+                class="mt-1 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm max-h-48 overflow-y-auto"
+              >
                 {{ selectedSubmission.abstract }}
               </div>
             </div>
@@ -237,7 +247,9 @@ onMounted(fetchSubmissions)
                     <i
                       :class="[
                         'pi',
-                        file.file_type === 'Capstone Paper' ? 'pi-file-pdf text-red-500' : 'pi-file text-blue-500'
+                        file.file_type === 'Capstone Paper'
+                          ? 'pi-file-pdf text-red-500'
+                          : 'pi-file text-blue-500',
                       ]"
                     ></i>
                     <span class="text-sm font-medium truncate">{{ file.file_name }}</span>

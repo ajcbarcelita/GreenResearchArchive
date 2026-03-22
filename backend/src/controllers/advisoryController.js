@@ -507,7 +507,9 @@ export const toggleCoordinatorTaskAutoLock = async (req, res) => {
 };
 
 const isValidAcademicYear = (value) => {
-  const match = String(value || "").trim().match(/^(\d{4}-\d{4})$/);
+  const match = String(value || "")
+    .trim()
+    .match(/^(\d{4}-\d{4})$/);
   if (!match) return false;
   const parts = value.split("-");
   return Number(parts[1]) === Number(parts[0]) + 1;
@@ -543,7 +545,9 @@ export const createCoordinatorTask = async (req, res) => {
     const db = req.app?.locals?.db;
     if (!db) return res.status(500).json({ error: "Database not initialized" });
 
-    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    const roleName = String(req.auth?.roleName || "")
+      .trim()
+      .toLowerCase();
     if (roleName !== "coordinator" && roleName !== "faculty") {
       return res
         .status(403)
@@ -577,7 +581,9 @@ export const createCoordinatorTask = async (req, res) => {
     if (error.code === "23503") {
       return res.status(400).json({ error: "Term does not exist" });
     }
-    return res.status(500).json({ error: error.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: error.message || "Internal server error" });
   }
 };
 
@@ -586,7 +592,9 @@ export const updateCoordinatorTask = async (req, res) => {
     const db = req.app?.locals?.db;
     if (!db) return res.status(500).json({ error: "Database not initialized" });
 
-    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    const roleName = String(req.auth?.roleName || "")
+      .trim()
+      .toLowerCase();
     if (roleName !== "coordinator" && roleName !== "faculty") {
       return res
         .status(403)
@@ -629,7 +637,9 @@ export const updateCoordinatorTask = async (req, res) => {
     if (error.code === "23503") {
       return res.status(400).json({ error: "Term does not exist" });
     }
-    return res.status(500).json({ error: error.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: error.message || "Internal server error" });
   }
 };
 
@@ -638,7 +648,9 @@ export const deleteCoordinatorTask = async (req, res) => {
     const db = req.app?.locals?.db;
     if (!db) return res.status(500).json({ error: "Database not initialized" });
 
-    const roleName = String(req.auth?.roleName || "").trim().toLowerCase();
+    const roleName = String(req.auth?.roleName || "")
+      .trim()
+      .toLowerCase();
     if (roleName !== "coordinator" && roleName !== "faculty") {
       return res
         .status(403)
@@ -661,9 +673,13 @@ export const deleteCoordinatorTask = async (req, res) => {
       return res.status(error.statusCode).json({ error: error.message });
     }
     if (error.code === "23503") {
-      return res.status(400).json({ error: "Cannot delete task with existing submissions" });
+      return res
+        .status(400)
+        .json({ error: "Cannot delete task with existing submissions" });
     }
-    return res.status(500).json({ error: error.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: error.message || "Internal server error" });
   }
 };
 

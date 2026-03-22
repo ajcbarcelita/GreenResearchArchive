@@ -11,6 +11,7 @@ import adminUserRoutes from "./routes/adminUserRoutes.js";
 import coordinatorRoutes from "./routes/coordinatorRoutes.js";
 import repositoryRoutes from "./routes/repositoryRoutes.js";
 import studentSubmissionRoutes from "./routes/studentSubmissionRoutes.js";
+import adminDashboardRoutes from "./routes/adminDashboardRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -53,5 +54,6 @@ app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/coordinator", coordinatorRoutes);
 app.use("/api/repository", repositoryRoutes);
 app.use("/api/submissions", studentSubmissionRoutes);
+app.use("/api/admin/dashboard", adminDashboardRoutes);
 
 export default app;

@@ -187,7 +187,10 @@ export const toggleRepositoryArchiveStatus = async (req, res) => {
 
     let capstoneFile = null;
     if (nextStatus === "Archived") {
-      const files = await listSubmissionFilesBySubmissionId(db, row.submission_id);
+      const files = await listSubmissionFilesBySubmissionId(
+        db,
+        row.submission_id,
+      );
       capstoneFile = files.find(
         (file) =>
           file.file_type === "Capstone Paper" &&
@@ -235,7 +238,7 @@ export const toggleRepositoryArchiveStatus = async (req, res) => {
           const generatedSummary = await summarizeSubmissionFileFromS3({
             s3Key: capstoneFile.s3_key,
             submissionId: String(row.submission_id),
-          })
+          });
 
           await updateSubmissionSummary(db, {
             submissionId: row.submission_id,

@@ -14,7 +14,15 @@ import { useConfirm } from 'primevue/useconfirm'
 import NavbarFaculty from '@/components/NavbarFaculty.vue'
 import Footer from '@/components/Footer.vue'
 import * as advisoryService from '@/services/advisoryService'
-import { getAdvisoryLoad, getGroupMembers, getGroupSubmissions, searchStudents, addGroupMember, removeGroupMember, deleteGroup } from '@/services/advisoryService'
+import {
+  getAdvisoryLoad,
+  getGroupMembers,
+  getGroupSubmissions,
+  searchStudents,
+  addGroupMember,
+  removeGroupMember,
+  deleteGroup,
+} from '@/services/advisoryService'
 
 const route = useRoute()
 const router = useRouter()
@@ -137,12 +145,18 @@ const handleRemove = async (studentId, studentName) => {
 
 const getStatusColor = (status) => {
   switch (status) {
-    case 'Approved': return '#17362b'
-    case 'Archived': return '#000000'
-    case 'Revision Requested': return '#ef4444'
-    case 'Under Review': return '#355347'
-    case 'Submitted': return '#7aaf96'
-    default: return '#a3b8af'
+    case 'Approved':
+      return '#17362b'
+    case 'Archived':
+      return '#000000'
+    case 'Revision Requested':
+      return '#ef4444'
+    case 'Under Review':
+      return '#355347'
+    case 'Submitted':
+      return '#7aaf96'
+    default:
+      return '#a3b8af'
   }
 }
 
@@ -151,18 +165,18 @@ const fetchDetailData = async () => {
   try {
     const advisoryData = await getAdvisoryLoad()
     const allGroups = advisoryData.rows || []
-    group.value = allGroups.find(g => String(g.groupId) === String(groupId))
-    
+    group.value = allGroups.find((g) => String(g.groupId) === String(groupId))
+
     if (group.value) {
       const [membersData, submissionsData] = await Promise.all([
         getGroupMembers(groupId),
-        getGroupSubmissions(groupId)
+        getGroupSubmissions(groupId),
       ])
-      
+
       members.value = membersData
-      
+
       // Map submissions to timeline items
-      const items = submissionsData.map(s => ({
+      const items = submissionsData.map((s) => ({
         id: s.submission_id,
         title: s.title,
         status: s.status,
@@ -172,7 +186,7 @@ const fetchDetailData = async () => {
         files: s.files || [],
         audit: s.audit_logs || [],
         icon: s.status === 'Approved' ? 'pi pi-check-circle' : 'pi pi-file',
-        color: getStatusColor(s.status)
+        color: getStatusColor(s.status),
       }))
 
       // Add "Creation" event
@@ -181,7 +195,7 @@ const fetchDetailData = async () => {
         date: group.value.groupCreatedAt,
         icon: 'pi pi-plus',
         color: '#cfe0d6',
-        description: 'The capstone group was established.'
+        description: 'The capstone group was established.',
       })
 
       timelineItems.value = items.sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -209,24 +223,30 @@ onMounted(fetchDetailData)
         <!-- Back Button & Title -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <Button 
-              icon="pi pi-arrow-left" 
-              label="Back to Advisees" 
-              class="p-button-text p-button-sm text-[#355347] mb-2 p-0" 
+            <Button
+              icon="pi pi-arrow-left"
+              label="Back to Advisees"
+              class="p-button-text p-button-sm text-[#355347] mb-2 p-0"
               @click="router.push('/faculty/my-advisees')"
             />
-            <h1 class="text-3xl font-extrabold text-[#17362b]">{{ group?.groupName || 'Group Details' }}</h1>
+            <h1 class="text-3xl font-extrabold text-[#17362b]">
+              {{ group?.groupName || 'Group Details' }}
+            </h1>
             <p class="text-[#5a877a] flex items-center gap-2 mt-1">
               <i class="pi pi-tag text-xs"></i>
               {{ group?.programCode || 'No Program' }} • {{ members.length }} Members
             </p>
           </div>
           <div v-if="group" class="flex gap-2">
-            <Tag :value="group.latestSubmissionStatus || 'No Submission'" severity="success" class="bg-[#d8eedf] text-[#1b4332] border-[#cfe0d6]" />
-            <Button 
-              label="Delete Group" 
-              icon="pi pi-trash" 
-              class="p-button-outlined p-button-danger p-button-sm font-bold" 
+            <Tag
+              :value="group.latestSubmissionStatus || 'No Submission'"
+              severity="success"
+              class="bg-[#d8eedf] text-[#1b4332] border-[#cfe0d6]"
+            />
+            <Button
+              label="Delete Group"
+              icon="pi pi-trash"
+              class="p-button-outlined p-button-danger p-button-sm font-bold"
               @click="confirmDeleteGroup"
             />
           </div>
@@ -237,11 +257,21 @@ onMounted(fetchDetailData)
           <p>Loading group progress...</p>
         </div>
 
-        <div v-else-if="!group" class="text-center py-20 border border-dashed border-[#cfe0d6] rounded-2xl bg-white">
+        <div
+          v-else-if="!group"
+          class="text-center py-20 border border-dashed border-[#cfe0d6] rounded-2xl bg-white"
+        >
           <i class="pi pi-exclamation-circle text-4xl text-red-400 mb-4"></i>
           <h2 class="text-xl font-bold text-[#17362b]">Group Not Found</h2>
-          <p class="text-[#5a877a] mb-6">The group you're looking for doesn't exist or you don't have access.</p>
-          <Button label="Return to List" icon="pi pi-arrow-left" @click="router.push('/faculty/my-advisees')" class="bg-[#17362b] border-none" />
+          <p class="text-[#5a877a] mb-6">
+            The group you're looking for doesn't exist or you don't have access.
+          </p>
+          <Button
+            label="Return to List"
+            icon="pi pi-arrow-left"
+            @click="router.push('/faculty/my-advisees')"
+            class="bg-[#17362b] border-none"
+          />
         </div>
 
         <div v-else class="space-y-6">
@@ -254,56 +284,94 @@ onMounted(fetchDetailData)
                 </template>
                 <template #content>
                   <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
-                    <div v-if="timelineItems.length === 1 && timelineItems[0].status === 'Group Created'" class="text-center py-10">
-                       <i class="pi pi-inbox text-3xl text-gray-300 mb-2"></i>
-                       <p class="text-sm text-[#5a877a]">No submissions yet.</p>
+                    <div
+                      v-if="
+                        timelineItems.length === 1 && timelineItems[0].status === 'Group Created'
+                      "
+                      class="text-center py-10"
+                    >
+                      <i class="pi pi-inbox text-3xl text-gray-300 mb-2"></i>
+                      <p class="text-sm text-[#5a877a]">No submissions yet.</p>
                     </div>
                     <Timeline :value="timelineItems" class="custom-timeline mt-4">
                       <template #opposite="slotProps">
-                        <small class="text-[#5a877a] font-bold">{{ new Date(slotProps.item.date).toLocaleDateString() }}</small>
+                        <small class="text-[#5a877a] font-bold">{{
+                          new Date(slotProps.item.date).toLocaleDateString()
+                        }}</small>
                       </template>
                       <template #marker="slotProps">
-                        <span class="flex w-8 h-8 items-center justify-center text-white rounded-full z-1 shadow-sm" :style="{ backgroundColor: slotProps.item.color }">
+                        <span
+                          class="flex w-8 h-8 items-center justify-center text-white rounded-full z-1 shadow-sm"
+                          :style="{ backgroundColor: slotProps.item.color }"
+                        >
                           <i :class="slotProps.item.icon"></i>
                         </span>
                       </template>
                       <template #content="slotProps">
                         <div class="mb-10 bg-[#f8faf9] p-4 rounded-xl border border-[#eaf4ee]">
                           <div class="flex items-center justify-between mb-2">
-                            <div class="font-bold text-[#17362b] text-base">{{ slotProps.item.task || slotProps.item.status }}</div>
-                            <Tag v-if="slotProps.item.version" :value="`v${slotProps.item.version}`" severity="info" class="text-[10px]" />
+                            <div class="font-bold text-[#17362b] text-base">
+                              {{ slotProps.item.task || slotProps.item.status }}
+                            </div>
+                            <Tag
+                              v-if="slotProps.item.version"
+                              :value="`v${slotProps.item.version}`"
+                              severity="info"
+                              class="text-[10px]"
+                            />
                           </div>
-                          
-                          <div v-if="slotProps.item.title" class="text-sm font-semibold text-[#355347] mb-2 italic">
+
+                          <div
+                            v-if="slotProps.item.title"
+                            class="text-sm font-semibold text-[#355347] mb-2 italic"
+                          >
                             "{{ slotProps.item.title }}"
                           </div>
 
                           <!-- Remarks/Audit Logs -->
-                          <div v-if="slotProps.item.audit && slotProps.item.audit.length" class="mt-3 space-y-2">
-                            <div v-for="log in slotProps.item.audit" :key="log.log_id" class="text-[11px] bg-white p-2 rounded border border-[#cfe0d6]">
+                          <div
+                            v-if="slotProps.item.audit && slotProps.item.audit.length"
+                            class="mt-3 space-y-2"
+                          >
+                            <div
+                              v-for="log in slotProps.item.audit"
+                              :key="log.log_id"
+                              class="text-[11px] bg-white p-2 rounded border border-[#cfe0d6]"
+                            >
                               <div class="flex justify-between font-bold text-[#17362b] mb-1">
                                 <span>Status: {{ log.new_status }}</span>
-                                <span class="text-gray-400">{{ new Date(log.changed_at).toLocaleDateString() }}</span>
+                                <span class="text-gray-400">{{
+                                  new Date(log.changed_at).toLocaleDateString()
+                                }}</span>
                               </div>
-                              <p v-if="log.remarks" class="text-[#5a877a] italic">"{{ log.remarks }}"</p>
+                              <p v-if="log.remarks" class="text-[#5a877a] italic">
+                                "{{ log.remarks }}"
+                              </p>
                             </div>
                           </div>
 
                           <!-- Files -->
-                          <div v-if="slotProps.item.files && slotProps.item.files.length" class="mt-4 flex flex-wrap gap-2">
-                            <a 
-                              v-for="file in slotProps.item.files" 
+                          <div
+                            v-if="slotProps.item.files && slotProps.item.files.length"
+                            class="mt-4 flex flex-wrap gap-2"
+                          >
+                            <a
+                              v-for="file in slotProps.item.files"
                               :key="file.file_id"
-                              :href="`#`" 
+                              :href="`#`"
                               class="flex items-center gap-2 px-3 py-1.5 bg-white border border-[#cfe0d6] rounded-lg text-xs font-medium text-[#17362b] hover:bg-[#eaf4ee] transition-colors"
                             >
                               <i class="pi pi-file-pdf text-red-500"></i>
                               <span>{{ file.file_name }}</span>
-                              <span class="text-[9px] text-gray-400">({{ (file.file_size / 1024 / 1024).toFixed(2) }} MB)</span>
+                              <span class="text-[9px] text-gray-400"
+                                >({{ (file.file_size / 1024 / 1024).toFixed(2) }} MB)</span
+                              >
                             </a>
                           </div>
 
-                          <p v-if="slotProps.item.description" class="text-sm text-[#5a877a] mt-1">{{ slotProps.item.description }}</p>
+                          <p v-if="slotProps.item.description" class="text-sm text-[#5a877a] mt-1">
+                            {{ slotProps.item.description }}
+                          </p>
                         </div>
                       </template>
                     </Timeline>
@@ -323,12 +391,18 @@ onMounted(fetchDetailData)
                     <div class="text-4xl font-black text-[#17362b] mb-1">
                       {{ group.latestVersionNo || 1 }}
                     </div>
-                    <div class="text-xs font-bold text-[#355347] uppercase tracking-widest">Total Revisions</div>
+                    <div class="text-xs font-bold text-[#355347] uppercase tracking-widest">
+                      Total Revisions
+                    </div>
                   </div>
                   <div class="mt-4 p-3 bg-white rounded-xl border border-[#cfe0d6]">
                     <div class="flex justify-between text-xs mb-1">
                       <span class="font-bold text-[#355347]">Last Activity</span>
-                      <span class="text-[#5a877a]">{{ group.latestSubmittedAt ? new Date(group.latestSubmittedAt).toLocaleDateString() : 'None' }}</span>
+                      <span class="text-[#5a877a]">{{
+                        group.latestSubmittedAt
+                          ? new Date(group.latestSubmittedAt).toLocaleDateString()
+                          : 'None'
+                      }}</span>
                     </div>
                     <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2">
                       <div class="bg-[#17362b] h-1.5 rounded-full" style="width: 70%"></div>
@@ -343,12 +417,17 @@ onMounted(fetchDetailData)
                 </template>
                 <template #content>
                   <div class="flex flex-col h-full">
-                    <p class="text-xs text-[#5a877a] italic mb-4">Private notes only visible to you.</p>
-                    <textarea 
+                    <p class="text-xs text-[#5a877a] italic mb-4">
+                      Private notes only visible to you.
+                    </p>
+                    <textarea
                       class="flex-1 w-full rounded-lg border border-[#cfe0d6] p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#17362b]/20 bg-[#fafafa] min-h-[120px]"
                       placeholder="Type notes here..."
                     ></textarea>
-                    <Button label="Save Notes" class="w-full mt-3 bg-[#17362b] border-none text-sm" />
+                    <Button
+                      label="Save Notes"
+                      class="w-full mt-3 bg-[#17362b] border-none text-sm"
+                    />
                   </div>
                 </template>
               </Card>
@@ -364,27 +443,40 @@ onMounted(fetchDetailData)
               </template>
               <template #content>
                 <div class="mt-2">
-                  <p class="text-xs font-semibold uppercase tracking-wide text-[#355347] mb-4">Current Members</p>
-                  <DataTable :value="members" class="p-datatable-sm shadow-xs border border-[#eaf4ee] rounded-lg overflow-hidden">
+                  <p class="text-xs font-semibold uppercase tracking-wide text-[#355347] mb-4">
+                    Current Members
+                  </p>
+                  <DataTable
+                    :value="members"
+                    class="p-datatable-sm shadow-xs border border-[#eaf4ee] rounded-lg overflow-hidden"
+                  >
                     <Column header="Student">
                       <template #body="{ data }">
                         <div class="flex items-center gap-3">
-                          <div class="w-8 h-8 rounded-full bg-[#d8eedf] flex items-center justify-center text-[#1b4332] font-bold text-xs">
+                          <div
+                            class="w-8 h-8 rounded-full bg-[#d8eedf] flex items-center justify-center text-[#1b4332] font-bold text-xs"
+                          >
                             {{ data.fname?.[0] }}{{ data.lname?.[0] }}
                           </div>
                           <div>
-                            <div class="font-bold text-sm text-[#17362b]">{{ data.fname }} {{ data.lname }}</div>
+                            <div class="font-bold text-sm text-[#17362b]">
+                              {{ data.fname }} {{ data.lname }}
+                            </div>
                             <div class="text-[10px] text-[#5a877a]">{{ data.email }}</div>
                           </div>
                         </div>
                       </template>
                     </Column>
-                    <Column field="university_id" header="ID Number" class="text-sm text-[#355347]"></Column>
+                    <Column
+                      field="university_id"
+                      header="ID Number"
+                      class="text-sm text-[#355347]"
+                    ></Column>
                     <Column header="Actions" class="text-right">
                       <template #body="{ data }">
-                        <Button 
+                        <Button
                           label="Remove"
-                          class="p-button-text p-button-danger p-button-sm font-bold" 
+                          class="p-button-text p-button-danger p-button-sm font-bold"
                           @click="handleRemove(data.student_id, `${data.fname} ${data.lname}`)"
                         />
                       </template>
@@ -401,7 +493,9 @@ onMounted(fetchDetailData)
               </template>
               <template #content>
                 <div class="mt-2">
-                  <p class="text-xs font-semibold uppercase tracking-wide text-[#355347] mb-4">Search Students</p>
+                  <p class="text-xs font-semibold uppercase tracking-wide text-[#355347] mb-4">
+                    Search Students
+                  </p>
                   <div class="relative">
                     <span class="absolute inset-y-0 left-3 flex items-center text-[#7aaf96]">
                       <i class="pi pi-search text-xs"></i>
@@ -418,20 +512,32 @@ onMounted(fetchDetailData)
                     <i class="pi pi-spin pi-spinner mr-1"></i>Searching...
                   </div>
 
-                  <ul v-if="searchResults.length" class="mt-2 max-h-60 overflow-y-auto rounded-lg border border-[#cfe0d6] bg-white divide-y divide-[#eaf4ee]">
-                    <li v-for="s in searchResults" :key="s.user_id" class="p-2 hover:bg-[#f8faf9] transition-colors flex items-center justify-between gap-2">
+                  <ul
+                    v-if="searchResults.length"
+                    class="mt-2 max-h-60 overflow-y-auto rounded-lg border border-[#cfe0d6] bg-white divide-y divide-[#eaf4ee]"
+                  >
+                    <li
+                      v-for="s in searchResults"
+                      :key="s.user_id"
+                      class="p-2 hover:bg-[#f8faf9] transition-colors flex items-center justify-between gap-2"
+                    >
                       <div class="min-w-0">
-                        <div class="text-xs font-bold text-[#17362b] truncate">{{ s.fname }} {{ s.lname }}</div>
+                        <div class="text-xs font-bold text-[#17362b] truncate">
+                          {{ s.fname }} {{ s.lname }}
+                        </div>
                         <div class="text-[9px] text-[#5a877a] truncate">{{ s.university_id }}</div>
                       </div>
-                      <Button 
-                        icon="pi pi-plus" 
-                        class="p-button-rounded p-button-text p-button-sm text-[#17362b]" 
+                      <Button
+                        icon="pi pi-plus"
+                        class="p-button-rounded p-button-text p-button-sm text-[#17362b]"
                         @click="selectStudent(s)"
                       />
                     </li>
                   </ul>
-                  <div v-else-if="searchQuery && !searching" class="mt-2 text-center py-4 text-xs text-[#5a877a] italic">
+                  <div
+                    v-else-if="searchQuery && !searching"
+                    class="mt-2 text-center py-4 text-xs text-[#5a877a] italic"
+                  >
                     No students found.
                   </div>
                 </div>
@@ -449,8 +555,14 @@ onMounted(fetchDetailData)
 </template>
 
 <style scoped>
-:deep(.p-card-body) { padding: 1.5rem !important; }
-:deep(.p-timeline-event-opposite) { flex: 0; min-width: 100px; text-align: left !important; }
+:deep(.p-card-body) {
+  padding: 1.5rem !important;
+}
+:deep(.p-timeline-event-opposite) {
+  flex: 0;
+  min-width: 100px;
+  text-align: left !important;
+}
 
 .custom-timeline :deep(.p-timeline-event-content) {
   padding-left: 2rem;

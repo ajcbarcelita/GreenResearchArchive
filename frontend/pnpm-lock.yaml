@@ -28,6 +28,9 @@ importers:
       tailwindcss:
         specifier: ^4.1.18
         version: 4.1.18
+      ua-parser-js:
+        specifier: ^2.0.9
+        version: 2.0.9
       vue:
         specifier: ^3.5.27
         version: 3.5.27
@@ -669,9 +672,6 @@ packages:
       {
         integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==,
       }
-
-  '@kurkle/color@0.3.4':
-    resolution: {integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==}
 
   '@oxlint/darwin-arm64@1.42.0':
     resolution:
@@ -1440,10 +1440,6 @@ packages:
       }
     engines: { pnpm: '>=8' }
 
-  chart.js@4.5.1:
-    resolution: {integrity: sha512-GIjfiT9dbmHRiYi6Nl2yFCq7kkwdkp1W/lp2J99rX0yo9tgJGn3lKQATztIjb5tVtevcBtIdICNWqlq5+E8/Pw==}
-    engines: {pnpm: '>=8'}
-
   chokidar@5.0.0:
     resolution:
       {
@@ -1568,6 +1564,12 @@ packages:
         integrity: sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==,
       }
     engines: { node: '>=0.4.0' }
+
+  detect-europe-js@0.1.2:
+    resolution:
+      {
+        integrity: sha512-lgdERlL3u0aUdHocoouzT10d9I89VVhk0qNRmll7mXdGfJT1/wqZ2ZLA4oJAjeACPY5fT1wsbq2AT+GkuInsow==,
+      }
 
   detect-libc@2.1.2:
     resolution:
@@ -2001,6 +2003,12 @@ packages:
       }
     engines: { node: '>=14.16' }
     hasBin: true
+
+  is-standalone-pwa@0.1.1:
+    resolution:
+      {
+        integrity: sha512-9Cbovsa52vNQCjdXOzeQq5CnCbAcRk05aU62K20WO372NrTv0NxibLFCK6lQ4/iZEFdEA3p3t2VNOn8AJ53F5g==,
+      }
 
   is-what@5.5.0:
     resolution:
@@ -2727,6 +2735,19 @@ packages:
         integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==,
       }
     engines: { node: '>= 0.8.0' }
+
+  ua-is-frozen@0.1.2:
+    resolution:
+      {
+        integrity: sha512-RwKDW2p3iyWn4UbaxpP2+VxwqXh0jpvdxsYpZ5j/MLLiQOfbsV5shpgQiw93+KMYQPcteeMQ289MaAFzs3G9pw==,
+      }
+
+  ua-parser-js@2.0.9:
+    resolution:
+      {
+        integrity: sha512-OsqGhxyo/wGdLSXMSJxuMGN6H4gDnKz6Fb3IBm4bxZFMnyy0sdf6MN96Ie8tC6z/btdO+Bsy8guxlvLdwT076w==,
+      }
+    hasBin: true
 
   ufo@1.6.3:
     resolution:
@@ -3796,6 +3817,8 @@ snapshots:
 
   delayed-stream@1.0.0: {}
 
+  detect-europe-js@0.1.2: {}
+
   detect-libc@2.1.2: {}
 
   dunder-proto@1.0.1:
@@ -4061,6 +4084,8 @@ snapshots:
   is-inside-container@1.0.0:
     dependencies:
       is-docker: 3.0.0
+
+  is-standalone-pwa@0.1.1: {}
 
   is-what@5.5.0: {}
 
@@ -4433,6 +4458,14 @@ snapshots:
   type-check@0.4.0:
     dependencies:
       prelude-ls: 1.2.1
+
+  ua-is-frozen@0.1.2: {}
+
+  ua-parser-js@2.0.9:
+    dependencies:
+      detect-europe-js: 0.1.2
+      is-standalone-pwa: 0.1.1
+      ua-is-frozen: 0.1.2
 
   ufo@1.6.3: {}
 

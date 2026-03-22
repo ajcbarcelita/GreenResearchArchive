@@ -229,7 +229,11 @@ export const findTaskById = async (db, taskId) => {
   return result.rows[0] || null;
 };
 
-export const findAcademicTermByYearAndTermNo = async (db, academicYear, termNo) => {
+export const findAcademicTermByYearAndTermNo = async (
+  db,
+  academicYear,
+  termNo,
+) => {
   const result = await db.query(
     `
       SELECT term_id, academic_year, term_no
@@ -253,7 +257,13 @@ export const createCoordinatorTask = async (
       VALUES ($1, $2, $3, $4, $5)
       RETURNING task_id, task_name, description, due_date, term_id, is_locked, auto_lock_after_due_date, created_at
     `,
-    [taskName, description || null, dueDate || null, termId, autoLockAfterDueDate],
+    [
+      taskName,
+      description || null,
+      dueDate || null,
+      termId,
+      autoLockAfterDueDate,
+    ],
   );
 
   return result.rows[0] || null;
@@ -275,7 +285,14 @@ export const updateCoordinatorTask = async (
       WHERE task_id = $6
       RETURNING task_id, task_name, description, due_date, term_id, is_locked, auto_lock_after_due_date, created_at
     `,
-    [taskName, description || null, dueDate || null, termId, autoLockAfterDueDate, taskId],
+    [
+      taskName,
+      description || null,
+      dueDate || null,
+      termId,
+      autoLockAfterDueDate,
+      taskId,
+    ],
   );
 
   return result.rows[0] || null;

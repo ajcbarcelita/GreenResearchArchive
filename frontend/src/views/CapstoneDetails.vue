@@ -605,7 +605,8 @@ const handleGenerateSummary = async () => {
       toast.add({
         severity: 'warn',
         summary: 'Summary Not Yet Available',
-        detail: 'The AI summary is still being generated or has not started yet. Try again in a few minutes.',
+        detail:
+          'The AI summary is still being generated or has not started yet. Try again in a few minutes.',
         life: 5000,
       })
       return
