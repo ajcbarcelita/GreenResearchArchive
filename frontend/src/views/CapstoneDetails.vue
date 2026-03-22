@@ -469,6 +469,12 @@ const formatCommentDateTime = (value) => {
   })
 }
 
+const getApiErrorMessage = (error) => {
+  const payload = error?.response?.data
+  const raw = payload?.error || payload?.detail || payload?.message || error?.message
+  return String(raw || '').trim()
+}
+
 const triggerBrowserDownload = (url) => {
   const link = document.createElement('a')
   link.href = url
@@ -592,19 +598,6 @@ const handleGenerateSummary = async () => {
       life: 4000,
     })
 
-    const files = await listCapstoneFiles(submissionId)
-    const capstoneFile = files.find(f => f.fileType === 'Capstone Paper' && f.s3Key)
-
-    if (!capstoneFile) {
-      toast.add({
-        severity: 'warn',
-        summary: 'No Capstone File',
-        detail: 'Could not locate the capstone paper file. Please try again later.',
-        life: 5000,
-      })
-      return
-    }
-
     const generated = await generateCapstoneSummary(submissionId)
     const generatedSummary = String(generated?.summary || '').trim()
 
@@ -631,10 +624,32 @@ const handleGenerateSummary = async () => {
     })
   } catch (e) {
     console.error('Failed to fetch or generate summary', e)
+
+    const backendError = getApiErrorMessage(e)
+    if (backendError.toLowerCase().includes('no capstone paper file')) {
+      toast.add({
+        severity: 'warn',
+        summary: 'No Capstone File',
+        detail: backendError,
+        life: 5000,
+      })
+      return
+    }
+
+    if (backendError) {
+      toast.add({
+        severity: 'error',
+        summary: 'Summary Generation Failed',
+        detail: backendError,
+        life: 5500,
+      })
+      return
+    }
+
     toast.add({
       severity: 'error',
-      summary: 'Failed',
-      detail: e?.message || 'Could not generate summary. Please try again.',
+      summary: 'Summary Generation Failed',
+      detail: 'Could not generate summary. Please try again.',
       life: 4500,
     })
   } finally {
