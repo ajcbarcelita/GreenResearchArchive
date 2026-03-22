@@ -185,6 +185,15 @@ const handleArchiveToggle = async (row) => {
         detail: 'Submission archived. Summary generation started in the background.',
         life: 4000
       })
+    } else if (updated.status === 'Archived' && updated.summaryGeneration?.attempted) {
+      toast.add({
+        severity: 'warn',
+        summary: 'Archived (No Summary Source)',
+        detail:
+          updated.summaryGeneration?.message ||
+          'Submission archived, but summary generation was skipped because no file/S3 source was found.',
+        life: 5000
+      })
     } else {
       toast.add({
         severity: 'success',

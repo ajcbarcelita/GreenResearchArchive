@@ -18,6 +18,7 @@ const mapRowToResponse = (row) => {
     groupId: row.group_id,
     title: row.title,
     abstract: row.abstract,
+    summary: row.summary,
     keywords: row.keywords || [],
     versionNo: row.version_no,
     status: row.status,
@@ -27,6 +28,7 @@ const mapRowToResponse = (row) => {
     taskName: row.task_name,
     academicYear: row.academic_year,
     termNo: row.term_no,
+    researchField: row.research_field,
     adviserName:
       row.adviser_fname && row.adviser_lname
         ? `Prof. ${row.adviser_fname} ${row.adviser_lname}`
@@ -183,6 +185,17 @@ export const toggleRepositoryArchiveStatus = async (req, res) => {
     const updated = await findSubmissionById(db, id);
     if (!updated) return res.status(404).json({ error: "Not found" });
 
+    let capstoneFile = null;
+    if (nextStatus === "Archived") {
+      const files = await listSubmissionFilesBySubmissionId(db, row.submission_id);
+      capstoneFile = files.find(
+        (file) =>
+          file.file_type === "Capstone Paper" &&
+          typeof file.s3_key === "string" &&
+          file.s3_key.trim(),
+      );
+    }
+
     const responsePayload = {
       data: {
         ...mapRowToResponse(updated),
@@ -190,8 +203,10 @@ export const toggleRepositoryArchiveStatus = async (req, res) => {
           ? {
               summaryGeneration: {
                 attempted: true,
-                queued: true,
-                message: "Archiving succeeded. Summary generation started in background.",
+                queued: Boolean(capstoneFile),
+                message: capstoneFile
+                  ? "Archiving succeeded. Summary generation started in background."
+                  : "Archiving succeeded but summary generation was skipped because no capstone file/S3 source was found.",
               },
             }
           : {}),
@@ -200,7 +215,7 @@ export const toggleRepositoryArchiveStatus = async (req, res) => {
 
     const response = res.json(responsePayload);
 
-    if (nextStatus === "Archived") {
+    if (nextStatus === "Archived" && capstoneFile) {
       // Run summary generation asynchronously so archiving is never blocked by AI latency.
       setImmediate(async () => {
         try {
@@ -208,19 +223,6 @@ export const toggleRepositoryArchiveStatus = async (req, res) => {
             { submissionId: row.submission_id },
             "Summary generation worker started after archive.",
           );
-
-          const files = await listSubmissionFilesBySubmissionId(db, row.submission_id);
-          const capstoneFile = files.find(
-            (file) => file.file_type === "Capstone Paper" && file.s3_key,
-          );
-
-          if (!capstoneFile) {
-            logger.info(
-              { submissionId: row.submission_id },
-              "Archived submission has no capstone paper. Skipping summary generation.",
-            );
-            return;
-          }
 
           logger.info(
             {
@@ -232,8 +234,8 @@ export const toggleRepositoryArchiveStatus = async (req, res) => {
 
           const generatedSummary = await summarizeSubmissionFileFromS3({
             s3Key: capstoneFile.s3_key,
-            timeoutMs: 0,
-          });
+            submissionId: String(row.submission_id),
+          })
 
           await updateSubmissionSummary(db, {
             submissionId: row.submission_id,
@@ -258,6 +260,65 @@ export const toggleRepositoryArchiveStatus = async (req, res) => {
 
     return response;
   } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+export const generateRepositorySummary = async (req, res) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) return res.status(500).json({ error: "Database not initialized" });
+
+    const submissionId = Number(req.params.id);
+    if (!Number.isInteger(submissionId) || submissionId <= 0) {
+      return res.status(400).json({ error: "Invalid submission ID" });
+    }
+
+    const submission = await findSubmissionById(db, submissionId);
+    if (!submission) return res.status(404).json({ error: "Not found" });
+
+    if (submission.summary && String(submission.summary).trim()) {
+      return res.json({
+        data: {
+          submissionId: submission.submission_id,
+          summary: submission.summary,
+          generated: false,
+        },
+      });
+    }
+
+    const files = await listSubmissionFilesBySubmissionId(db, submissionId);
+    const capstoneFile = files.find(
+      (file) => file.file_type === "Capstone Paper" && file.s3_key,
+    );
+
+    if (!capstoneFile) {
+      return res.status(400).json({
+        error: "No capstone paper file found for this submission.",
+      });
+    }
+
+    const generatedSummary = await summarizeSubmissionFileFromS3({
+      s3Key: capstoneFile.s3_key,
+      submissionId: String(submissionId),
+    });
+
+    await updateSubmissionSummary(db, {
+      submissionId,
+      summary: generatedSummary,
+    });
+
+    return res.json({
+      data: {
+        submissionId,
+        summary: generatedSummary,
+        generated: true,
+      },
+    });
+  } catch (err) {
+    if (err?.statusCode) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
     return res.status(500).json({ error: err.message });
   }
 };

@@ -42,6 +42,11 @@ export const listCapstoneComments = async (id) => {
   return response.data?.data || []
 }
 
+export const generateCapstoneSummary = async (id) => {
+  const response = await api.post(`/api/repository/${id}/summary`)
+  return response.data?.data || null
+}
+
 export default {
   listRepository,
   getCapstoneDetails,
@@ -50,4 +55,5 @@ export default {
   toggleSubmissionArchiveStatus,
   submitCapstoneComment,
   listCapstoneComments,
+  generateCapstoneSummary,
 }

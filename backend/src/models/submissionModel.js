@@ -8,6 +8,12 @@ export const findSubmissionById = async (db, submissionId) => {
               t.task_name,
               at.academic_year,
               at.term_no,
+             (
+               SELECT string_agg(rrf.field_name, ', ' ORDER BY rrf.field_name)
+               FROM paper_fields pf
+               JOIN ref_research_fields rrf ON rrf.field_id = pf.field_id
+               WHERE pf.submission_id = s.submission_id
+             ) AS research_field,
              EXISTS (
                SELECT 1
                FROM submission_files sf
@@ -70,6 +76,12 @@ export const listSubmissions = async (db, { status, programId, q } = {}) => {
            t.task_name,
            at.academic_year,
            at.term_no,
+           (
+             SELECT string_agg(rrf.field_name, ', ' ORDER BY rrf.field_name)
+             FROM paper_fields pf
+             JOIN ref_research_fields rrf ON rrf.field_id = pf.field_id
+             WHERE pf.submission_id = s.submission_id
+           ) AS research_field,
            EXISTS (
              SELECT 1
              FROM submission_files sf

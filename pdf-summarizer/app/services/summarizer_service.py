@@ -27,12 +27,20 @@ def rate_limited_generate(prompt: str, max_tokens: int = 500) -> str:
     return response.choices[0].message.content
 
 def clean_text(text: str) -> str:
+    """For chunk summaries only — strips markdown."""
     text = re.sub(r'\*\*?(.*?)\*\*?', r'\1', text)
     text = re.sub(r'#{1,6}\s*', '', text)
     text = re.sub(r'\n{3,}', '\n\n', text)
     text = re.sub(r'[ \t]+', ' ', text)
     text = text.replace('\\n', ' ').strip()
     return text
+
+def clean_final(text: str) -> str:
+    """For final summary — only normalize whitespace, keep structure."""
+    text = re.sub(r'\*\*?(.*?)\*\*?', r'\1', text)  # remove bold asterisks
+    text = re.sub(r'\n{3,}', '\n\n', text)           # max 2 newlines
+    text = re.sub(r'[ \t]+', ' ', text)               # extra spaces
+    return text.strip()
 
 CHUNK_PROMPT = """You are an academic research analyst. Extract only what is explicitly stated in the section below. Focus on capturing: research objectives, methodology, data, findings, tools used, and conclusions if present.
 
@@ -48,38 +56,44 @@ Document section:
 
 Academic summary:"""
 
-FINAL_PROMPT = """You are an academic research analyst. Using only the section summaries below from a research document titled "{title}", write a structured academic summary.
+FINAL_PROMPT = """You are an academic research analyst. Using only the section summaries below from a research document titled "{title}", write a structured academic summary using the exact format below.
 
-The summary must cover these elements if present in the summaries:
-1. Research objective or problem being addressed
-2. Methodology or approach used
-3. Key findings, results, or outputs
-4. Tools, frameworks, or technologies involved
-5. Conclusions or recommendations
+Use only what is explicitly present in the summaries. Do not add external knowledge or interpretation. Skip any section if the information is not present in the summaries.
 
-Rules:
-- Only include what is explicitly present in the summaries below
-- Do not add any external knowledge or interpretation
-- Plain prose only, no bullet points, markdown, or headers
-- Write as 2-3 cohesive paragraphs
-- Do not introduce the summary or explain what you are doing
+Format your response exactly like this:
+
+OBJECTIVE:
+[2-4 sentences on the research objective or problem being addressed]
+
+METHODOLOGY:
+[2-4 sentences on the approach, framework, or methods used]
+
+TOOLS & TECHNOLOGIES:
+[List each tool, framework, or technology mentioned, one per line, preceded by a dash]
+
+FINDINGS:
+- [finding 1]
+- [finding 2]
+- [finding 3]
+[add more as needed, only what is explicitly stated]
+
+CONCLUSIONS & RECOMMENDATIONS:
+[2-4 sentences on conclusions drawn and any recommendations made]
 
 Section summaries:
 {summaries}
 
-Academic summary:"""
+Structured academic summary:"""
 
 def summarize_chunks(chunks: list[str], doc_title: str = "Document") -> str:
-    # Step 1: summarize each chunk
     chunk_summaries = []
     for i, chunk in enumerate(chunks):
         print(f"  Summarizing chunk {i+1}/{len(chunks)}...")
         chunk_summaries.append(clean_text(rate_limited_generate(
             CHUNK_PROMPT.format(chunk=chunk),
-            max_tokens=250
+            max_tokens=300
         )))
 
-    # Step 2: batch 50 at a time
     SUMMARY_BATCH_SIZE = 50
     batched_summaries = []
     for i in range(0, len(chunk_summaries), SUMMARY_BATCH_SIZE):
@@ -94,16 +108,18 @@ def summarize_chunks(chunks: list[str], doc_title: str = "Document") -> str:
         )))
 
     if len(batched_summaries) == 1:
-        return batched_summaries[0]
+        return clean_final(rate_limited_generate(
+            FINAL_PROMPT.format(title=doc_title, summaries="\n\n".join(batched_summaries)),
+            max_tokens=1200
+        ))
 
-    # Step 3: final synthesis
     print(f"  Final synthesis across {len(batched_summaries)} batches...")
     combined_final = "\n\n".join(
         f"Part {i+1}: {s}" for i, s in enumerate(batched_summaries)
     )
-    return clean_text(rate_limited_generate(
-    FINAL_PROMPT.format(title=doc_title, summaries=combined_final),
-    max_tokens=1200
+    return clean_final(rate_limited_generate(
+        FINAL_PROMPT.format(title=doc_title, summaries=combined_final),
+        max_tokens=1200
     ))
 
 ## 250 - chunk summaries / 600 - batch summaries / 1200 - final synthesis

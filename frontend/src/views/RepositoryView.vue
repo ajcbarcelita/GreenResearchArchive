@@ -1,5 +1,6 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Chip from 'primevue/chip'
@@ -14,6 +15,7 @@ import Footer from '@/components/Footer.vue'
 import { getDegreePrograms, getStoredUser } from '../services/authService'
 
 const user = ref(getStoredUser())
+const route = useRoute()
 
 const useCoordinatorNavbar = computed(() => {
   const normalizedRoleName = String(user.value?.roleName || '')
@@ -56,7 +58,19 @@ import { listRepository } from '@/services/repositoryService'
 const repositoryItems = ref([])
 const loading = ref(false)
 
+const applySearchQueryFromRoute = () => {
+  const rawQuery = route.query?.q
+  const normalizedQuery = Array.isArray(rawQuery)
+    ? String(rawQuery[0] || '').trim()
+    : String(rawQuery || '').trim()
+
+  searchValue.value = normalizedQuery
+  pageStart.value = 0
+}
+
 onMounted(async () => {
+  applySearchQueryFromRoute()
+
   loading.value = true
   try {
     const [repositoryData, programsResponse] = await Promise.all([
@@ -95,6 +109,13 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+watch(
+  () => route.query?.q,
+  () => {
+    applySearchQueryFromRoute()
+  },
+)
 
 const filteredItems = computed(() => {
   const keyword = searchValue.value.trim().toLowerCase()

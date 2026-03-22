@@ -7,6 +7,7 @@ import {
   listRepository,
   getRepositoryById,
   toggleRepositoryArchiveStatus,
+  generateRepositorySummary,
   listRepositorySubmissionFiles,
   downloadRepositorySubmissionFile,
   addRepositoryComment,
@@ -23,6 +24,9 @@ router.get("/:id", getRepositoryById);
 
 // GET /api/repository/:id/files -> list files for a submission
 router.get("/:id/files", listRepositorySubmissionFiles);
+
+// POST /api/repository/:id/summary -> generate or return existing summary
+router.post("/:id/summary", generateRepositorySummary);
 
 // POST /api/repository/:id/comments -> add faculty/coordinator comment to audit logs
 router.post(

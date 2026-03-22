@@ -1,5 +1,7 @@
 <template>
   <div class="min-h-screen flex flex-col bg-ash-white font-Montserrat">
+    <Toast />
+
     <header>
       <NavbarAdmin v-if="useAdminNavbar" />
       <NavbarFaculty v-else-if="useFacultyNavbar" />
@@ -274,13 +276,16 @@
             <div class="space-y-3">
               <button
                 class="w-full text-left text-base px-4 py-3 border-2 border-gray-400 bg-gray-100 rounded-lg hover:bg-gray-200 hover:border-green-text transition font-semibold text-gray-800 shadow-sm"
+                @click="handleViewRelatedResearch"
               >
                 View Related Research
               </button>
               <button
-                class="w-full text-base px-4 py-3 bg-green-text text-white rounded-lg hover:bg-green-700 transition font-semibold shadow-md border-2 border-green-800"
+                class="w-full text-base px-4 py-3 bg-green-text text-white rounded-lg hover:bg-green-700 transition font-semibold shadow-md border-2 border-green-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                :disabled="fetchingSummary"
+                @click="handleGenerateSummary"
               >
-                Generate AI Summary
+                {{ fetchingSummary ? 'Fetching Summary...' : 'Generate AI Summary' }}
               </button>
             </div>
           </div>
@@ -291,12 +296,45 @@
     <footer>
       <Footer />
     </footer>
+
+    <div
+      v-if="summaryModalVisible"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      @click.self="summaryModalVisible = false"
+    >
+      <div
+        ref="summaryModalPanel"
+        class="w-full max-w-3xl rounded-xl border-2 border-gray-300 bg-white shadow-2xl"
+        :style="{ transform: `translate(${summaryModalOffsetX}px, ${summaryModalOffsetY}px)` }"
+      >
+        <div
+          class="flex cursor-move select-none items-center justify-between border-b-3 border-gray-300 px-5 py-4 text-green-text"
+          @pointerdown="startSummaryModalDrag"
+        >
+          <h4 class="text-lg font-semibold">AI Summary</h4>
+          <button
+            class="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+            @click="summaryModalVisible = false"
+          >
+            Close
+          </button>
+        </div>
+
+        <div class="max-h-[65vh] overflow-y-auto px-6 py-5 md:px-7 md:py-6">
+          <p class="whitespace-pre-line leading-relaxed text-gray-800" style="text-align: justify">
+            {{ summaryText }}
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import Toast from 'primevue/toast'
+import { useToast } from 'primevue/usetoast'
 import Navbar from '@/components/Navbar.vue'
 import NavbarFaculty from '@/components/NavbarFaculty.vue'
 import NavbarCoordinator from '@/components/NavbarCoordinator.vue'
@@ -308,21 +346,78 @@ import {
   getCapstoneFileDownloadUrl,
   submitCapstoneComment,
   listCapstoneComments,
+  generateCapstoneSummary,
 } from '@/services/repositoryService'
 import { getStoredUser } from '@/services/authService'
 
 const route = useRoute()
+const router = useRouter()
+const toast = useToast()
 const user = ref(getStoredUser())
 const capstone = ref(null)
 const loading = ref(true)
 const downloading = ref(false)
+const fetchingSummary = ref(false)
+const summaryModalVisible = ref(false)
+const summaryText = ref('')
+const summaryModalPanel = ref(null)
+const summaryModalOffsetX = ref(0)
+const summaryModalOffsetY = ref(0)
 const commentText = ref('')
 const submittingComment = ref(false)
 const commentSuccessMessage = ref('')
 const commentHistory = ref([])
 const loadingComments = ref(false)
+const draggingSummaryModal = ref(false)
+let dragStartPointerX = 0
+let dragStartPointerY = 0
+let dragStartOffsetX = 0
+let dragStartOffsetY = 0
 const MIN_LOAD_MS = 300
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+const onSummaryModalPointerMove = (event) => {
+  if (!draggingSummaryModal.value) return
+
+  const dx = event.clientX - dragStartPointerX
+  const dy = event.clientY - dragStartPointerY
+
+  summaryModalOffsetX.value = dragStartOffsetX + dx
+  summaryModalOffsetY.value = dragStartOffsetY + dy
+}
+
+const stopSummaryModalDrag = () => {
+  draggingSummaryModal.value = false
+}
+
+const startSummaryModalDrag = (event) => {
+  if (event.button !== 0) return
+
+  draggingSummaryModal.value = true
+  dragStartPointerX = event.clientX
+  dragStartPointerY = event.clientY
+  dragStartOffsetX = summaryModalOffsetX.value
+  dragStartOffsetY = summaryModalOffsetY.value
+}
+
+const getRepositoryRoute = () => {
+  if (normalizedRoleName.value === 'faculty') return { name: 'faculty-repository' }
+  if (normalizedRoleName.value === 'coordinator') return { name: 'coordinator-repository' }
+  if (normalizedRoleName.value === 'admin') return { path: '/admin/repository' }
+  return { name: 'repository-view' }
+}
+
+const handleViewRelatedResearch = () => {
+  const keywordQuery = (capstone.value?.keywords || [])
+    .map((keyword) => String(keyword || '').trim())
+    .filter(Boolean)
+    .join(' ')
+
+  router.push({
+    ...getRepositoryRoute(),
+    query: keywordQuery ? { q: keywordQuery } : {},
+  })
+}
 
 const normalizedRoleName = computed(() =>
   String(user.value?.roleName || '')
@@ -432,6 +527,121 @@ const handleDownloadFiles = async () => {
   }
 }
 
+const handleGenerateSummary = async () => {
+  if (fetchingSummary.value) return
+
+  const submissionId = Number(route.params.id)
+  if (!Number.isInteger(submissionId) || submissionId <= 0) {
+    toast.add({
+      severity: 'error',
+      summary: 'Invalid Submission',
+      detail: 'Unable to fetch summary because the submission ID is invalid.',
+      life: 3500,
+    })
+    return
+  }
+
+  fetchingSummary.value = true
+
+  try {
+    // Always fetch latest first to check current summary state
+    const latest = await getCapstoneDetails(submissionId)
+    if (latest) {
+      capstone.value = {
+        ...(capstone.value || {}),
+        ...latest,
+      }
+    }
+
+    const summary = String(latest?.summary || capstone.value?.summary || '').trim()
+
+    // If summary already exists, just show it
+    if (summary) {
+      summaryText.value = summary
+      summaryModalOffsetX.value = 0
+      summaryModalOffsetY.value = 0
+      summaryModalVisible.value = true
+
+      toast.add({
+        severity: 'success',
+        summary: 'Summary Ready',
+        detail: 'AI summary loaded successfully.',
+        life: 2500,
+      })
+      return
+    }
+
+    // No summary — check if there's a file to generate from
+    const hasFile = latest?.hasCapstonePaper || capstone.value?.hasCapstonePaper
+
+    if (!hasFile) {
+      toast.add({
+        severity: 'warn',
+        summary: 'No Capstone File',
+        detail: 'This submission has no uploaded capstone paper. A summary cannot be generated.',
+        life: 5000,
+      })
+      return
+    }
+
+    // Fire the job
+    toast.add({
+      severity: 'info',
+      summary: 'Generating Summary',
+      detail: 'AI summary generation has started. This may take a few minutes.',
+      life: 4000,
+    })
+
+    const files = await listCapstoneFiles(submissionId)
+    const capstoneFile = files.find(f => f.fileType === 'Capstone Paper' && f.s3Key)
+
+    if (!capstoneFile) {
+      toast.add({
+        severity: 'warn',
+        summary: 'No Capstone File',
+        detail: 'Could not locate the capstone paper file. Please try again later.',
+        life: 5000,
+      })
+      return
+    }
+
+    const generated = await generateCapstoneSummary(submissionId)
+    const generatedSummary = String(generated?.summary || '').trim()
+
+    if (!generatedSummary) {
+      toast.add({
+        severity: 'warn',
+        summary: 'Summary Not Yet Available',
+        detail: 'The AI summary is still being generated or has not started yet. Try again in a few minutes.',
+        life: 5000,
+      })
+      return
+    }
+
+    summaryText.value = generatedSummary
+    summaryModalOffsetX.value = 0
+    summaryModalOffsetY.value = 0
+    summaryModalVisible.value = true
+
+    toast.add({
+      severity: 'success',
+      summary: 'Summary Ready',
+      detail: 'AI summary generated successfully.',
+      life: 3000,
+    })
+  } catch (e) {
+    console.error('Failed to fetch or generate summary', e)
+    toast.add({
+      severity: 'error',
+      summary: 'Failed',
+      detail: e?.message || 'Could not generate summary. Please try again.',
+      life: 4500,
+    })
+  } finally {
+    fetchingSummary.value = false
+  }
+}
+
 const handleSubmitComment = async () => {
   if (!canComment.value || submittingComment.value) return
 
@@ -476,9 +686,17 @@ const load = async (id) => {
 }
 
 onMounted(() => {
+  window.addEventListener('pointermove', onSummaryModalPointerMove)
+  window.addEventListener('pointerup', stopSummaryModalDrag)
+
   const id = route.params.id || null
   load(id)
   if (id) loadComments(id)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('pointermove', onSummaryModalPointerMove)
+  window.removeEventListener('pointerup', stopSummaryModalDrag)
 })
 
 watch(

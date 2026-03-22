@@ -10,7 +10,6 @@ import logging
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# In-memory job store { submission_id: { status, summary, error } }
 jobs = {}
 
 def run_summary_job(key: str, submission_id: str):
@@ -31,7 +30,6 @@ def run_summary_job(key: str, submission_id: str):
         if local_path and os.path.exists(local_path):
             os.unlink(local_path)
 
-# Return 202 to accept so that Node does not timeout
 @router.post("/summarize", status_code=202)
 async def summarize_pdfs(
     background_tasks: BackgroundTasks,
@@ -39,8 +37,14 @@ async def summarize_pdfs(
     submission_id: str = "",
     s3_prefix: str = ""
 ):
-    if not s3_key:
+    if not s3_key or not s3_key.strip():
+        # No file — mark job as no_file immediately, don't start a job
+        if submission_id:
+            jobs[submission_id] = {"status": "no_file", "summary": None, "error": "No S3 key provided"}
         raise HTTPException(status_code=400, detail="s3_key is required")
+
+    if not submission_id:
+        raise HTTPException(status_code=400, detail="submission_id is required")
 
     if submission_id in jobs and jobs[submission_id]["status"] == "processing":
         return {"status": "processing", "message": "Already in progress"}
