@@ -185,9 +185,9 @@ onMounted(() => {
     <main class="flex-1 px-4 pt-24 sm:px-6 sm:pt-28 lg:pt-32">
       <div class="w-full max-w-7xl mx-auto">
         <div class="mb-8">
-          <h1 class="text-3xl font-extrabold text-[#17362b]">Coordinator Dashboard</h1>
+          <h1 class="text-5xl font-extrabold text-[#17362b]">Coordinator Dashboard</h1>
           <p class="mt-3 text-[#355347]">
-            Comprehensive analytics and insights for program management.
+            A showcase of the repository summary and its trends.
           </p>
         </div>
 
@@ -236,19 +236,19 @@ onMounted(() => {
                   }}</span>
                 </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-[#355347]">Recent Archives (6 months)</span>
+                  <span class="text-[#355347]">Recent Archives (6 Months)</span>
                   <span class="font-semibold">{{
                     formatNumber(repoHealth.recent_archives || 0)
                   }}</span>
                 </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-[#355347]">Avg. Completion Time</span>
+                  <span class="text-[#355347]">Average Completion Time</span>
                   <span class="font-semibold"
                     >{{ Math.round(repoHealth.avg_completion_days || 0) }} days</span
                   >
                 </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-[#355347]">Well-tagged Submissions</span>
+                  <span class="text-[#355347]">Well-tagged Submissions (2+ Tags)</span>
                   <span class="font-semibold">{{
                     formatPercentage(repoHealth.well_tagged_submissions, repoHealth.total_archived)
                   }}</span>

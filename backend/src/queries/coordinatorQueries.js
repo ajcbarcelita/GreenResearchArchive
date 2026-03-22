@@ -305,7 +305,7 @@ export const getRepositoryHealth = `
     COUNT(DISTINCT s.submission_id) as total_archived,
     COUNT(DISTINCT CASE WHEN s.archived_at >= CURRENT_DATE - INTERVAL '6 months' THEN s.submission_id END) as recent_archives,
     COALESCE(TRUNC(AVG(EXTRACT(EPOCH FROM (s.archived_at - s.created_at))/86400)::numeric), 0)::integer as avg_completion_days,
-    COUNT(DISTINCT CASE WHEN s.keywords IS NOT NULL AND array_length(s.keywords, 1) >= 3 THEN s.submission_id END) as well_tagged_submissions,
+    COUNT(DISTINCT CASE WHEN s.keywords IS NOT NULL AND array_length(s.keywords, 1) >= 2 THEN s.submission_id END) as well_tagged_submissions,
     COUNT(DISTINCT s.submission_id) as total_submissions_in_repo
   FROM submissions s
   WHERE s.status = 'Archived' AND s.archived_at IS NOT NULL;`;
