@@ -232,13 +232,26 @@ export const getKeywordPopularity = `
 `;
 
 export const getResearchTrends = `
+  WITH latest_archived_submissions AS (
+    SELECT s.submission_id, s.group_id, s.task_id
+    FROM submissions s
+    INNER JOIN (
+      SELECT group_id, task_id, MAX(version_no) AS max_version_no
+      FROM submissions
+      GROUP BY group_id, task_id
+    ) latest
+      ON latest.group_id = s.group_id
+      AND latest.task_id = s.task_id
+      AND latest.max_version_no = s.version_no
+    WHERE s.status = 'Archived'
+  )
   SELECT
     rf.field_name,
-    COUNT(pf.submission_id) as submission_count,
-    COUNT(DISTINCT s.group_id) as group_count
+    COUNT(DISTINCT las.submission_id) as submission_count,
+    COUNT(DISTINCT las.group_id) as group_count
   FROM ref_research_fields rf
   LEFT JOIN paper_fields pf ON rf.field_id = pf.field_id
-  LEFT JOIN submissions s ON pf.submission_id = s.submission_id AND s.status = 'Archived'
+  LEFT JOIN latest_archived_submissions las ON pf.submission_id = las.submission_id
   GROUP BY rf.field_id, rf.field_name
   ORDER BY submission_count DESC;
 `;

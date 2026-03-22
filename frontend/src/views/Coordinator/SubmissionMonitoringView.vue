@@ -78,6 +78,11 @@ const statusClass = (status) => {
   return 'status-chip status-default'
 }
 
+const statusLabel = (status) => {
+  if (status === 'Revision Requested') return 'Revision\nRequested'
+  return status || 'Draft'
+}
+
 const actionClass = (status) => {
   if (status === 'Archived') return 'archive-btn unarchive-btn'
   return 'archive-btn archive-active-btn'
@@ -306,7 +311,7 @@ onMounted(loadSubmissions)
             <Column header="Status" sortable field="status" class="column-status">
               <template #body="slotProps">
                 <Tag
-                  :value="slotProps.data.status || 'Draft'"
+                  :value="statusLabel(slotProps.data.status)"
                   :severity="statusSeverity(slotProps.data.status || 'Draft')"
                   :class="[
                     statusClass(slotProps.data.status || 'Draft'),
@@ -408,7 +413,12 @@ onMounted(loadSubmissions)
   margin: 0 !important;
   display: flex;
   width: 100%;
-  height: 1.8rem;
+  min-height: 1.8rem;
+  height: auto;
+  padding: 0.25rem 0.5rem;
+  text-align: center;
+  white-space: pre-line;
+  line-height: 1.05;
   justify-content: center;
   align-items: center;
 }
