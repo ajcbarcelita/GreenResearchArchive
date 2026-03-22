@@ -97,7 +97,7 @@ const loadAnalytics = async () => {
 }
 
 const prepareKeywordChart = () => {
-  const topKeywords = keywords.value.slice(0, 8)
+  const topKeywords = keywords.value.slice(0, 5)
   keywordChartData.value = {
     labels: topKeywords.map((k) => k.keyword),
     datasets: [
@@ -137,7 +137,7 @@ const prepareAdviserChart = () => {
     .filter((a) => Number(a.group_count) > 0)
     .sort((a, b) => b.group_count - a.group_count)
 
-  const topAdvisers = activeAdvisers.slice(0, 5)
+  const topAdvisers = activeAdvisers.slice(0, 3)
   adviserChartData.value = {
     labels: topAdvisers.map((a) => a.adviser_name.split(' ')[0]), // First name only for space
     datasets: [
@@ -156,6 +156,10 @@ const filteredAdvisers = () => {
   return adviserWorkload.value
     .filter((a) => Number(a.group_count) > 0)
     .sort((a, b) => b.group_count - a.group_count)
+}
+
+const filteredTrends = () => {
+  return trends.value.filter((a) => Number(a.submission_count) > 0)
 }
 
 const formatNumber = (num) => {
@@ -216,8 +220,8 @@ onMounted(() => {
         </div>
 
         <!-- Repository Health -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card class="shadow-sm rounded-2xl border border-[#cfe0d6] bg-white">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 items-stretch">
+          <Card class="flex flex-col shadow-sm rounded-2xl border border-[#cfe0d6] bg-white h-full overflow-hidden">
             <template #title>
               <h3 class="text-lg font-semibold text-[#17362b]">Repository Health</h3>
             </template>
@@ -261,21 +265,31 @@ onMounted(() => {
           </Card>
 
           <!-- Keyword Popularity Chart -->
-          <Card class="shadow-sm rounded-2xl border border-[#cfe0d6] bg-white">
+          <Card class="flex flex-col shadow-sm rounded-2xl border border-[#cfe0d6] bg-white h-full overflow-hidden">
             <template #title>
               <h3 class="text-lg font-semibold text-[#17362b]">Popular Keywords</h3>
             </template>
             <template #content>
-              <div v-if="keywords.length === 0 && !loading" class="text-center py-8 text-[#355347]">
-                <p class="text-sm">No keyword data available</p>
+              <div class="flex flex-col h-full">
+
+                <div
+                  v-if="keywords.length === 0 && !loading"
+                  class="text-center py-8 text-[#355347]"
+                >
+                  <p class="text-sm">No keyword data available</p>
+                </div>
+
+                <!-- Chart fills available height -->
+                <div v-else class="flex-1 min-h-0 items-center justify-center">
+                  <Chart
+                    type="bar"
+                    :data="keywordChartData"
+                    :options="keywordChartOptions"
+                    class="max-h-full"
+                  />
+                </div>
+
               </div>
-              <Chart
-                v-else
-                type="bar"
-                :data="keywordChartData"
-                :options="keywordChartOptions"
-                class="h-40"
-              />
             </template>
           </Card>
         </div>
@@ -283,84 +297,97 @@ onMounted(() => {
         <!-- Research Trends and Adviser Workload -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <!-- Research Trends -->
-          <Card class="shadow-sm rounded-2xl border border-[#cfe0d6] bg-white max-h-96">
+          <Card class="flex flex-col shadow-sm rounded-2xl border border-[#cfe0d6] bg-white h-full overflow-hidden">
             <template #title>
-              <h3 class="text-lg font-semibold text-[#17362b]">Topic Trends</h3>
+              <h3 class="text-lg font-semibold text-[#17362b]">Research Trends</h3>
             </template>
+
             <template #content>
-              <div v-if="trends.length === 0 && !loading" class="text-center py-8 text-[#355347]">
-                <p class="text-sm">No research trend data available</p>
-              </div>
-              <div v-else class="overflow-y-auto" style="max-height: 300px">
-                <DataTable
-                  :value="trends.slice(0, 10)"
-                  :loading="loading"
-                  class="p-datatable-sm"
-                  :scrollable="false"
+              <div class="flex flex-col h-full">
+
+                <!-- Empty state -->
+                <div
+                  v-if="filteredTrends().length === 0 && !loading"
+                  class="text-center py-8 text-[#355347]"
                 >
-                  <Column field="field_name" header="Research Field" sortable />
-                  <Column field="submission_count" header="Submissions" sortable>
-                    <template #body="slotProps">
-                      <Tag :value="slotProps.data.submission_count" severity="info" />
-                    </template>
-                  </Column>
-                </DataTable>
+                  <p class="text-sm">No research trend data available</p>
+                </div>
+
+                <!-- Scrollable table -->
+                <div v-else class="flex-1 min-h-0 overflow-y-auto">
+                  <DataTable
+                    :value="filteredTrends().slice(0, 10)"
+                    :loading="loading"
+                    class="p-datatable-sm"
+                  >
+                    <Column field="field_name" header="Research Field" sortable />
+                    <Column field="submission_count" header="Submissions" sortable>
+                      <template #body="slotProps">
+                        <span class="text-[#17362b] font-semibold">
+                          {{ formatNumber(slotProps.data.submission_count) }}
+                        </span>
+                      </template>
+                    </Column>
+                  </DataTable>
+                </div>
+
               </div>
             </template>
           </Card>
 
           <!-- Adviser Workload -->
-          <Card class="shadow-sm rounded-2xl border border-[#cfe0d6] bg-white max-h-96">
+          <Card class="flex flex-col shadow-sm rounded-2xl border border-[#cfe0d6] bg-white h-full overflow-hidden">
             <template #title>
               <h3 class="text-lg font-semibold text-[#17362b]">Adviser Workload</h3>
             </template>
             <template #content>
-              <div
-                v-if="adviserWorkload.length === 0 && !loading"
-                class="text-center py-8 text-[#355347]"
-              >
-                <p class="text-sm">No adviser workload data available</p>
-              </div>
-              <div v-else class="mb-4">
-                <Chart
-                  type="bar"
-                  :data="adviserChartData"
-                  :options="{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: { display: false },
-                    },
-                    scales: {
-                      x: {
-                        beginAtZero: true,
-                        ticks: {
-                          stepSize: 1,
-                          callback: function (value) {
-                            return Number.isInteger(value) ? value : ''
+              <div class="flex flex-col h-full">
+                <div
+                  v-if="adviserWorkload.length === 0 && !loading"
+                  class="text-center py-8 text-[#355347]"
+                >
+                  <p class="text-sm">No adviser workload data available</p>
+                </div>
+                <div v-else class="mb-4">
+                  <Chart
+                    type="bar"
+                    :data="adviserChartData"
+                    :options="{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { display: false },
+                      },
+                      scales: {
+                        x: {
+                          beginAtZero: true,
+                          ticks: {
+                            stepSize: 1,
+                            callback: function (value) {
+                              return Number.isInteger(value) ? value : ''
+                            },
                           },
                         },
+                        y: { beginAtZero: true },
                       },
-                      y: { beginAtZero: true },
-                    },
-                    indexAxis: 'y',
-                  }"
-                  class="h-40"
-                />
-              </div>
-              <div class="overflow-y-auto" style="max-height: 240px;">
-                <DataTable
-                  v-if="filteredAdvisers().length > 0"
-                  :value="filteredAdvisers()"
-                  :loading="loading"
-                  class="p-datatable-sm"
-                  scrollHeight="200px"
-                >
-                <Column field="adviser_name" header="Adviser" sortable />
-                <Column field="group_count" header="Groups" sortable />
-                <Column field="student_count" header="Students" sortable />
-                <Column field="approved_count" header="Approved" sortable />
-              </DataTable>
+                      indexAxis: 'y',
+                    }"
+                    class="h-40"
+                  />
+                </div>
+                <div class="flex-1 overflow-y-auto">
+                  <DataTable
+                    v-if="filteredAdvisers().length > 0"
+                    :value="filteredAdvisers()"
+                    :loading="loading"
+                    class="p-datatable-sm"
+                  >
+                  <Column field="adviser_name" header="Adviser" sortable />
+                  <Column field="group_count" header="Groups" sortable />
+                  <Column field="student_count" header="Students" sortable />
+                  <Column field="approved_count" header="Approved" sortable />
+                </DataTable>
+                </div>
               </div>
             </template>
           </Card>
