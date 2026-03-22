@@ -52,6 +52,23 @@ const mapSubmissionFile = (row) => ({
   versionNo: row.version_no,
 });
 
+const findStatusBeforeLatestArchive = async (db, submissionId) => {
+  const result = await db.query(
+    `
+      SELECT old_status::text AS old_status
+      FROM submission_audit_logs
+      WHERE submission_id = $1
+        AND new_status = 'Archived'::submission_status
+        AND old_status IS NOT NULL
+      ORDER BY changed_at DESC
+      LIMIT 1
+    `,
+    [submissionId],
+  );
+
+  return result.rows[0]?.old_status || null;
+};
+
 export const listRepository = async (req, res) => {
   try {
     const db = req.app?.locals?.db;
@@ -176,7 +193,15 @@ export const toggleRepositoryArchiveStatus = async (req, res) => {
     const row = await findSubmissionById(db, id);
     if (!row) return res.status(404).json({ error: "Not found" });
 
-    const nextStatus = row.status === "Archived" ? "Submitted" : "Archived";
+    const previousStatus =
+      row.status === "Archived"
+        ? await findStatusBeforeLatestArchive(db, row.submission_id)
+        : null;
+
+    // Restore the status that existed before archive; older rows without archive logs
+    // default to Approved because repository entries are expected to be validated.
+    const nextStatus =
+      row.status === "Archived" ? previousStatus || "Approved" : "Archived";
     await updateSubmissionStatus(db, {
       submissionId: row.submission_id,
       status: nextStatus,
