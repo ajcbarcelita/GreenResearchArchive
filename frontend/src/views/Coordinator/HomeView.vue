@@ -133,19 +133,29 @@ const keywordChartOptions = {
 }
 
 const prepareAdviserChart = () => {
-  const topAdvisers = adviserWorkload.value.slice(0, 6)
+  const activeAdvisers = adviserWorkload.value
+    .filter((a) => Number(a.group_count) > 0)
+    .sort((a, b) => b.group_count - a.group_count)
+
+  const topAdvisers = activeAdvisers.slice(0, 5)
   adviserChartData.value = {
     labels: topAdvisers.map((a) => a.adviser_name.split(' ')[0]), // First name only for space
     datasets: [
       {
         label: 'Groups',
-        data: topAdvisers.map((a) => a.group_count),
+        data: topAdvisers.map((a) => Number(a.group_count)),
         backgroundColor: '#355347',
         borderColor: '#355347',
         borderWidth: 1,
       },
     ],
   }
+}
+
+const filteredAdvisers = () => {
+  return adviserWorkload.value
+    .filter((a) => Number(a.group_count) > 0)
+    .sort((a, b) => b.group_count - a.group_count)
 }
 
 const formatNumber = (num) => {
@@ -338,18 +348,20 @@ onMounted(() => {
                   class="h-40"
                 />
               </div>
-              <DataTable
-                v-if="adviserWorkload.length > 0"
-                :value="adviserWorkload.slice(0, 5)"
-                :loading="loading"
-                class="p-datatable-sm"
-                scrollHeight="200px"
-              >
+              <div class="overflow-y-auto" style="max-height: 240px;">
+                <DataTable
+                  v-if="filteredAdvisers().length > 0"
+                  :value="filteredAdvisers()"
+                  :loading="loading"
+                  class="p-datatable-sm"
+                  scrollHeight="200px"
+                >
                 <Column field="adviser_name" header="Adviser" sortable />
                 <Column field="group_count" header="Groups" sortable />
                 <Column field="student_count" header="Students" sortable />
                 <Column field="approved_count" header="Approved" sortable />
               </DataTable>
+              </div>
             </template>
           </Card>
         </div>
