@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import NavbarFaculty from '@/components/NavbarFaculty.vue'
 import Footer from '@/components/Footer.vue'
-import { getReviewQueue, updateSubmissionStatus } from '@/services/advisoryService'
+import { getReviewQueue, updateSubmissionStatus, deleteSubmission } from '@/services/advisoryService'
 import { useToast } from 'primevue/usetoast'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -88,6 +88,35 @@ const handleStatusUpdate = async (newStatus, customRemarks = null, closeDialog =
       severity: 'error',
       summary: 'Error',
       detail: 'Failed to update status.',
+      life: 3000,
+    })
+  } finally {
+    processing.value = false
+  }
+}
+
+const handleDeleteSubmission = async () => {
+  if (!confirm('Are you sure you want to permanently DELETE this submission? This action cannot be undone.')) {
+    return
+  }
+  
+  processing.value = true
+  try {
+    await deleteSubmission(selectedSubmission.value.submission_id)
+    toast.add({
+      severity: 'success',
+      summary: 'Deleted',
+      detail: 'Submission has been permanently deleted.',
+      life: 3000,
+    })
+    showReviewDialog.value = false
+    await fetchSubmissions()
+  } catch (error) {
+    console.error('Error deleting submission:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Failed to delete submission.',
       life: 3000,
     })
   } finally {
@@ -241,19 +270,29 @@ onMounted(fetchSubmissions)
 
       <template #footer>
         <div class="flex justify-between w-full">
-          <Button
-            label="Revert to Draft"
-            icon="pi pi-undo"
-            class="p-button-outlined p-button-danger"
-            :loading="processing"
-            @click="handleStatusUpdate('Draft')"
-          />
+          <div class="space-x-2">
+            <Button
+              label="Delete Submission"
+              icon="pi pi-trash"
+              class="p-button-text p-button-danger p-button-sm"
+              v-tooltip.top="'Permanently remove this submission from the system'"
+              :loading="processing"
+              @click="handleDeleteSubmission"
+            />
+          </div>
           <div class="space-x-2">
             <Button
               label="Cancel"
               class="p-button-text p-button-secondary"
               @click="showReviewDialog = false"
               :disabled="processing"
+            />
+            <Button
+              label="Request Revision"
+              icon="pi pi-exclamation-triangle"
+              class="p-button-warning"
+              :loading="processing"
+              @click="handleStatusUpdate('Revision Requested')"
             />
             <Button
               label="Approve Submission"

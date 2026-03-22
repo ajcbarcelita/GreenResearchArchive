@@ -21,6 +21,7 @@ import {
   deleteCoordinatorTask,
   getReviewQueue,
   updateReviewStatus,
+  deleteSubmission,
 } from "../controllers/advisoryController.js";
 
 const router = express.Router();
@@ -88,6 +89,14 @@ router.put(
   requireAuth,
   requireRegisteredUser,
   updateReviewStatus,
+);
+
+// Delete submission (adviser only)
+router.delete(
+  "/submissions/:submissionId",
+  requireAuth,
+  requireRegisteredUser,
+  deleteSubmission,
 );
 
 // Authenticated endpoints for advisers

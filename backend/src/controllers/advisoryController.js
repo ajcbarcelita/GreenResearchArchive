@@ -766,3 +766,43 @@ export const updateReviewStatus = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+export const deleteSubmission = async (req, res) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) return res.status(500).json({ error: "Database not initialized" });
+
+    const userId = Number(req.auth?.sub);
+    const { submissionId } = req.params;
+
+    // Verify ownership (adviser of the group)
+    const checkRes = await db.query(
+      `
+      SELECT cg.group_adviser
+      FROM submissions s
+      JOIN capstone_groups cg ON s.group_id = cg.group_id
+      WHERE s.submission_id = $1
+      `,
+      [submissionId],
+    );
+
+    if (checkRes.rowCount === 0) {
+      return res.status(404).json({ error: "Submission not found" });
+    }
+
+    if (Number(checkRes.rows[0].group_adviser) !== userId) {
+      return res
+        .status(403)
+        .json({ error: "Not authorized to delete this submission" });
+    }
+
+    // Delete submission - cascading will handle files, fields, and audit logs
+    await db.query(`DELETE FROM submissions WHERE submission_id = $1`, [
+      submissionId,
+    ]);
+
+    return res.json({ data: { success: true } });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};

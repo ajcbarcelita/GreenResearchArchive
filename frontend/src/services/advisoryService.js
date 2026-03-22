@@ -93,6 +93,11 @@ export const updateSubmissionStatus = async (submissionId, status, remarks = '')
   return response?.data?.data || null
 }
 
+export const deleteSubmission = async (submissionId) => {
+  const response = await authApi.delete(`/api/advisory/submissions/${submissionId}`)
+  return response?.data?.data || null
+}
+
 export default {
   getAdvisoryLoad,
   getMyGroups,
@@ -108,4 +113,5 @@ export default {
   deleteCoordinatorTask,
   getReviewQueue,
   updateSubmissionStatus,
+  deleteSubmission,
 }
