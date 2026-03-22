@@ -20,8 +20,6 @@
             @click="openCreateDialog"
             class="flex items-center gap-1 rounded-lg bg-[#17362b] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#1f4a3a] transition-colors shrink-0"
           >
-            <img src="../../assets/plus.png" alt="plus icon" class="w-4 h-4" />
-            <i class="pi pi-plus text-xs"></i>
             Create Group
           </button>
         </div>
@@ -48,141 +46,66 @@
             @click="openCreateDialog"
             class="mt-6 flex items-center gap-2 rounded-lg bg-[#17362b] px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-[#1f4a3a] transition-colors"
           >
-            <img src="../../assets/plus.png" alt="plus icon" class="w-4 h-4" />
             Create your first group
           </button>
         </div>
 
         <!-- Group cards -->
-        <div v-else class="space-y-5">
+        <div v-else class="space-y-3">
           <div
             v-for="group in groups"
             :key="group.groupId"
-            class="rounded-2xl border border-[#cfe0d6] bg-white shadow-sm overflow-hidden"
+            class="rounded-xl border border-[#cfe0d6] bg-white shadow-sm overflow-hidden hover:border-[#2d6a4f] transition-colors"
           >
-            <!-- Card header -->
-            <div
-              class="flex items-center justify-between bg-[#f0f8f3] px-5 py-4 border-b border-[#cfe0d6]"
-            >
-              <div>
-                <div class="text-base font-bold text-[#17362b]">{{ group.groupName }}</div>
-                <div class="mt-0.5 text-xs text-[#355347]">
-                  <span class="inline-flex items-center gap-1">
-                    <i class="pi pi-tag text-[10px]"></i>
-                    {{ group.programCode || 'No program assigned' }}
-                  </span>
+            <!-- Single Row Content -->
+            <div class="flex flex-col md:flex-row md:items-center gap-4 px-5 py-4 bg-[#f8faf9]">
+              <!-- Group & Program -->
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-bold text-[#17362b] truncate">{{ group.groupName }}</div>
+                <div class="mt-0.5 text-[10px] text-[#5a877a] flex items-center gap-1">
+                  <i class="pi pi-tag text-[9px]"></i>
+                  {{ group.programCode || 'No program' }}
+                  <span class="mx-1 text-gray-300">•</span>
+                  <i class="pi pi-users text-[9px]"></i>
+                  {{ group.memberCount }} members
                 </div>
               </div>
-              <span
-                class="inline-flex items-center gap-1.5 rounded-full bg-[#d8eedf] px-3 py-1 text-xs font-semibold text-[#1b4332]"
-              >
-                <i class="pi pi-users text-[10px]"></i>
-                {{ members[group.groupId]?.length ?? group.memberCount }} member{{
-                  (members[group.groupId]?.length ?? group.memberCount) !== 1 ? 's' : ''
-                }}
-              </span>
-              <button
-                @click="confirmDeleteGroup(group)"
-                class="ml-2 rounded-md px-2.5 py-1 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 transition-colors"
-              >
-                <i class="pi pi-trash text-[10px] mr-1"></i>Delete Group
-              </button>
-            </div>
 
-            <!-- Card body -->
-            <div class="px-5 py-4">
-              <!-- Member list -->
-              <div v-if="members[group.groupId] && members[group.groupId].length" class="mb-4">
-                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-[#355347]">
-                  Members
-                </p>
-                <ul class="divide-y divide-[#eaf4ee]">
-                  <li
-                    v-for="m in members[group.groupId]"
-                    :key="m.student_id"
-                    class="flex items-center justify-between py-2"
-                  >
-                    <div class="flex items-center gap-3">
-                      <div
-                        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#d8eedf] text-xs font-bold text-[#1b4332]"
-                      >
-                        {{ m.fname?.[0] ?? '' }}{{ m.lname?.[0] ?? '' }}
-                      </div>
-                      <div>
-                        <div class="text-sm font-medium text-[#17362b]">
-                          {{ m.fname }} {{ m.mname ? m.mname + ' ' : '' }}{{ m.lname }}
-                        </div>
-                        <div class="text-xs text-[#5a877a]">{{ m.email || m.university_id }}</div>
-                      </div>
-                    </div>
-                    <button
-                      @click="handleRemove(group.groupId, m.student_id, `${m.fname} ${m.lname}`)"
-                      class="rounded-md px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                      Remove
-                    </button>
-                  </li>
-                </ul>
-              </div>
-              <div v-else class="mb-4 rounded-lg bg-[#f0f8f3] px-4 py-3 text-sm text-[#355347]">
-                No members yet. Use the search below to add students.
+              <!-- Latest Submission -->
+              <div class="flex-2 min-w-0 hidden lg:block">
+                <div class="text-[10px] font-bold text-[#5a877a] uppercase tracking-wider mb-0.5">Project Title</div>
+                <div class="text-xs font-medium text-[#355347] truncate">
+                  {{ group.latestSubmissionTitle || 'No submission yet' }}
+                </div>
               </div>
 
-              <!-- Add student search -->
-              <div>
-                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-[#355347]">
-                  Add Student
-                </p>
-                <div class="relative">
-                  <span class="absolute inset-y-0 left-3 flex items-center text-[#7aaf96]">
-                    <i class="pi pi-search text-xs"></i>
-                  </span>
-                  <input
-                    v-model="searchQueries[group.groupId]"
-                    @input="debouncedSearch(group.groupId)"
-                    placeholder="Search by name, email or student ID…"
-                    class="w-full rounded-lg border border-[#cfe0d6] bg-white pl-8 pr-4 py-2 text-sm text-[#17362b] placeholder-[#aac8b8] focus:outline-none focus:ring-2 focus:ring-[#2d6a4f]/30 focus:border-[#2d6a4f]"
-                  />
+              <!-- Activity Date -->
+              <div class="w-24 hidden sm:block text-center">
+                <div class="text-[10px] font-bold text-[#5a877a] uppercase tracking-wider mb-0.5">Updated</div>
+                <div class="text-xs text-[#355347]">
+                  {{ group.latestSubmittedAt ? new Date(group.latestSubmittedAt).toLocaleDateString() : 'N/A' }}
                 </div>
+              </div>
 
-                <div v-if="searching[group.groupId]" class="mt-2 text-xs text-[#5a877a]">
-                  <i class="pi pi-spin pi-spinner mr-1"></i>Searching…
-                </div>
+              <!-- Status -->
+              <div class="w-32 flex flex-col items-start md:items-center">
+                <div class="text-[10px] font-bold text-[#5a877a] uppercase tracking-wider mb-0.5 md:hidden">Status</div>
+                <Tag 
+                  :value="group.latestSubmissionStatus || 'No Submission'" 
+                  :severity="getStatusSeverity(group.latestSubmissionStatus)"
+                  class="text-[10px] px-2 py-0.5"
+                />
+              </div>
 
-                <ul
-                  v-if="searchResults[group.groupId] && searchResults[group.groupId].length"
-                  class="mt-1 max-h-44 overflow-auto rounded-lg border border-[#cfe0d6] bg-white shadow-sm"
+              <!-- Actions -->
+              <div class="flex items-center justify-end">
+                <button
+                  @click="router.push(`/faculty/my-advisees/${group.groupId}`)"
+                  class="flex items-center gap-1.5 rounded-lg border border-[#cfe0d6] bg-white px-3 py-1.5 text-xs font-semibold text-[#17362b] hover:bg-[#f0f8f3] transition-all"
                 >
-                  <li
-                    v-for="s in searchResults[group.groupId]"
-                    :key="s.user_id"
-                    class="flex items-center justify-between px-3 py-2 hover:bg-[#f0f8f3] transition-colors"
-                  >
-                    <div>
-                      <div class="text-sm font-medium text-[#17362b]">
-                        {{ s.fname }} {{ s.mname ? s.mname + ' ' : '' }}{{ s.lname }}
-                      </div>
-                      <div class="text-xs text-[#5a877a]">{{ s.email || s.university_id }}</div>
-                    </div>
-                    <button
-                      @click.prevent="selectStudent(group.groupId, s)"
-                      class="ml-4 shrink-0 rounded-md bg-[#17362b] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[#1f4a3a] transition-colors"
-                    >
-                      Add
-                    </button>
-                  </li>
-                </ul>
-
-                <div
-                  v-if="
-                    searchResults[group.groupId] &&
-                    searchResults[group.groupId].length === 0 &&
-                    searchQueries[group.groupId]
-                  "
-                  class="mt-2 text-xs text-[#5a877a]"
-                >
-                  No students found for "{{ searchQueries[group.groupId] }}".
-                </div>
+                  <i class="pi pi-eye text-[10px]"></i>
+                  View
+                </button>
               </div>
             </div>
           </div>
@@ -329,9 +252,7 @@
             :disabled="creating"
             class="flex items-center gap-2 rounded-lg bg-[#17362b] mt-4 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-[#1f4a3a] disabled:opacity-60 transition-colors"
           >
-            <img src="../../assets/plus.png" alt="plus icon" class="w-4 h-4" />
             <i v-if="creating" class="pi pi-spin pi-spinner text-xs"></i>
-            <i v-else class="pi pi-plus text-xs"></i>
             Create Group
           </button>
         </div>
@@ -342,9 +263,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import Dialog from 'primevue/dialog'
 import ConfirmDialog from 'primevue/confirmdialog'
 import Toast from 'primevue/toast'
+import Tag from 'primevue/tag'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import Footer from '@/components/Footer.vue'
@@ -354,121 +277,25 @@ import * as authService from '@/services/authService.js'
 
 const toast = useToast()
 const confirm = useConfirm()
+const router = useRouter()
 const groups = ref([])
-const members = ref({})
 const loading = ref(true)
 
-// ── Per-group student search ────────────────────
-const searchQueries = ref({})
-const searchResults = ref({})
-const searching = ref({})
-const searchTimeouts = {}
-
-const debouncedSearch = (groupId) => {
-  if (searchTimeouts[groupId]) clearTimeout(searchTimeouts[groupId])
-  searchTimeouts[groupId] = setTimeout(() => doSearch(groupId), 300)
-}
-
-const doSearch = async (groupId) => {
-  const q = String(searchQueries.value[groupId] || '').trim()
-  if (!q) {
-    searchResults.value = { ...searchResults.value, [groupId]: [] }
-    searching.value = { ...searching.value, [groupId]: false }
-    return
+const getStatusSeverity = (status) => {
+  switch (status) {
+    case 'Submitted':
+      return 'info'
+    case 'Under Review':
+      return 'warn'
+    case 'Approved':
+      return 'success'
+    case 'Revision Requested':
+      return 'danger'
+    case 'Draft':
+      return 'secondary'
+    default:
+      return 'secondary'
   }
-  searching.value = { ...searching.value, [groupId]: true }
-  try {
-    const res = await advisoryService.searchStudents(q)
-    searchResults.value = { ...searchResults.value, [groupId]: res }
-  } catch (err) {
-    console.error(err)
-    searchResults.value = { ...searchResults.value, [groupId]: [] }
-  } finally {
-    searching.value = { ...searching.value, [groupId]: false }
-  }
-}
-
-const selectStudent = async (groupId, student) => {
-  try {
-    await advisoryService.addGroupMember(groupId, { studentId: student.user_id })
-    searchQueries.value = { ...searchQueries.value, [groupId]: '' }
-    searchResults.value = { ...searchResults.value, [groupId]: [] }
-    await loadMembers(groupId)
-    toast.add({
-      severity: 'success',
-      summary: 'Student added',
-      detail: `${student.fname} ${student.lname} was added to the group.`,
-      life: 2500,
-    })
-  } catch (err) {
-    console.error(err)
-    toast.add({
-      severity: 'error',
-      summary: 'Failed to add',
-      detail: err?.response?.data?.error || 'Unable to add student.',
-      life: 3000,
-    })
-  }
-}
-
-const handleRemove = async (groupId, studentId, studentName) => {
-  confirm.require({
-    message: `Remove ${studentName} from this group?`,
-    header: 'Remove Student',
-    rejectLabel: 'Cancel',
-    acceptLabel: 'Remove',
-    acceptClass: 'bg-red-600 hover:bg-red-700',
-    accept: async () => {
-      try {
-        await advisoryService.removeGroupMember(groupId, studentId)
-        await loadMembers(groupId)
-        toast.add({
-          severity: 'success',
-          summary: 'Student removed',
-          detail: `${studentName} was removed from the group.`,
-          life: 2500,
-        })
-      } catch (err) {
-        console.error(err)
-        toast.add({
-          severity: 'error',
-          summary: 'Failed to remove',
-          detail: err?.response?.data?.error || 'Unable to remove student.',
-          life: 3000,
-        })
-      }
-    },
-  })
-}
-
-const confirmDeleteGroup = (group) => {
-  confirm.require({
-    message: `Permanently delete "${group.groupName}"? This cannot be undone.`,
-    header: 'Delete Group',
-    rejectLabel: 'Cancel',
-    acceptLabel: 'Delete',
-    acceptClass: 'bg-red-600 hover:bg-red-700',
-    accept: async () => {
-      try {
-        await advisoryService.deleteGroup(group.groupId)
-        toast.add({
-          severity: 'success',
-          summary: 'Group deleted',
-          detail: `"${group.groupName}" was deleted.`,
-          life: 2500,
-        })
-        await loadGroups()
-      } catch (err) {
-        console.error(err)
-        toast.add({
-          severity: 'error',
-          summary: 'Failed to delete',
-          detail: err?.response?.data?.error || 'Unable to delete group.',
-          life: 3000,
-        })
-      }
-    },
-  })
 }
 
 const loadGroups = async () => {
@@ -476,9 +303,6 @@ const loadGroups = async () => {
   try {
     const resp = await advisoryService.getMyGroups()
     groups.value = resp || []
-    for (const g of groups.value) {
-      await loadMembers(g.groupId)
-    }
   } catch (err) {
     console.error(err)
     toast.add({
@@ -489,16 +313,6 @@ const loadGroups = async () => {
     })
   } finally {
     loading.value = false
-  }
-}
-
-const loadMembers = async (groupId) => {
-  try {
-    const m = await advisoryService.getGroupMembers(groupId)
-    members.value = { ...members.value, [groupId]: m }
-  } catch (err) {
-    console.error(err)
-    members.value = { ...members.value, [groupId]: [] }
   }
 }
 

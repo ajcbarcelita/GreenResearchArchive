@@ -290,14 +290,14 @@ onMounted(fetchSubmissions)
             <Button
               label="Request Revision"
               icon="pi pi-exclamation-triangle"
-              class="p-button-warning"
+              class="p-button-outlined p-button-warning p-button-sm font-bold"
               :loading="processing"
               @click="handleStatusUpdate('Revision Requested')"
             />
             <Button
               label="Approve Submission"
               icon="pi pi-check"
-              class="p-button-success"
+              class="p-button-outlined p-button-success p-button-sm font-bold"
               :loading="processing"
               @click="handleStatusUpdate('Approved')"
             />

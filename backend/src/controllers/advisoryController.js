@@ -41,6 +41,7 @@ const mapAdvisoryRow = (row) => ({
   programCode: row.program_code,
   programName: row.program_name,
   memberCount: toInt(row.member_count) || 0,
+  latestSubmissionTitle: row.latest_submission_title || null,
   latestSubmissionStatus: row.latest_submission_status || null,
   latestSubmittedAt: row.latest_submitted_at || null,
   latestVersionNo: row.latest_version_no ? toInt(row.latest_version_no) : null,
@@ -762,6 +763,77 @@ export const updateReviewStatus = async (req, res) => {
     );
 
     return res.json({ data: { success: true } });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const getGroupSubmissions = async (req, res) => {
+  try {
+    const db = req.app?.locals?.db;
+    if (!db) return res.status(500).json({ error: "Database not initialized" });
+
+    const userId = Number(req.auth?.sub);
+    const { groupId } = req.params;
+
+    // Verify ownership (adviser of the group)
+    const checkRes = await db.query(
+      `SELECT group_adviser FROM capstone_groups WHERE group_id = $1`,
+      [groupId],
+    );
+
+    if (checkRes.rowCount === 0) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    if (Number(checkRes.rows[0].group_adviser) !== userId) {
+      return res
+        .status(403)
+        .json({ error: "Not authorized to view this group's submissions" });
+    }
+
+    const result = await db.query(
+      `
+      SELECT
+        s.submission_id,
+        s.title,
+        s.abstract,
+        s.status,
+        s.version_no,
+        s.submitted_at,
+        s.is_locked,
+        t.task_name,
+        (
+          SELECT json_agg(json_build_object(
+            'file_id', sf.file_id,
+            'file_name', sf.file_name,
+            'file_type', sf.file_type,
+            'file_size', sf.file_size,
+            's3_key', sf.s3_key
+          ))
+          FROM submission_files sf
+          WHERE sf.submission_id = s.submission_id
+        ) as files,
+        (
+          SELECT json_agg(json_build_object(
+            'log_id', sal.log_id,
+            'old_status', sal.old_status,
+            'new_status', sal.new_status,
+            'remarks', sal.remarks,
+            'changed_at', sal.changed_at
+          ) ORDER BY sal.changed_at DESC)
+          FROM submission_audit_logs sal
+          WHERE sal.submission_id = s.submission_id
+        ) as audit_logs
+      FROM submissions s
+      JOIN tasks t ON s.task_id = t.task_id
+      WHERE s.group_id = $1
+      ORDER BY s.submitted_at DESC
+      `,
+      [groupId],
+    );
+
+    return res.json({ data: result.rows });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }

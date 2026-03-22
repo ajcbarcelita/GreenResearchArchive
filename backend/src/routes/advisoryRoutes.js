@@ -21,6 +21,7 @@ import {
   deleteCoordinatorTask,
   getReviewQueue,
   updateReviewStatus,
+  getGroupSubmissions,
   deleteSubmission,
 } from "../controllers/advisoryController.js";
 
@@ -106,6 +107,12 @@ router.get(
   requireAuth,
   requireRegisteredUser,
   getGroupMembers,
+);
+router.get(
+  "/groups/:groupId/submissions",
+  requireAuth,
+  requireRegisteredUser,
+  getGroupSubmissions,
 );
 router.post(
   "/groups/:groupId/members",

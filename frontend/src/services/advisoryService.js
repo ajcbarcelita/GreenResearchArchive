@@ -20,6 +20,11 @@ export const getGroupMembers = async (groupId) => {
   return response?.data?.data || []
 }
 
+export const getGroupSubmissions = async (groupId) => {
+  const response = await authApi.get(`/api/advisory/groups/${groupId}/submissions`)
+  return response?.data?.data || []
+}
+
 export const addGroupMember = async (groupId, payload) => {
   const response = await authApi.post(`/api/advisory/groups/${groupId}/members`, payload)
   return response?.data?.data || null

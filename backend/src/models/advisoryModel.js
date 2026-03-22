@@ -47,6 +47,7 @@ export const listAdvisoryLoadRows = async (
       WITH latest_submission AS (
         SELECT DISTINCT ON (s.group_id)
           s.group_id,
+          s.title,
           s.status,
           s.submitted_at,
           s.version_no,
@@ -76,6 +77,7 @@ export const listAdvisoryLoadRows = async (
         rp.program_code,
         rp.program_name,
         COALESCE(ms.member_count, 0) AS member_count,
+        ls.title AS latest_submission_title,
         ls.status AS latest_submission_status,
         ls.submitted_at AS latest_submitted_at,
         ls.version_no AS latest_version_no,
