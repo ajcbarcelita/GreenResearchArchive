@@ -1,7 +1,11 @@
 import boto3
 import tempfile
 import os
+import logging
 from dotenv import load_dotenv
+
+import logging
+logger = logging.getLogger("uvicorn.error")
 
 load_dotenv()
 

@@ -1,3 +1,5 @@
+import logger from "../utils/logger.js";
+
 const getSummarizerBaseUrl = () =>
   (process.env.PDF_SUMMARIZER_BASE_URL || "http://localhost:8000").replace(
     /\/+$/,
@@ -22,9 +24,27 @@ export const summarizeSubmissionFileFromS3 = async ({
 
   const baseUrl = getSummarizerBaseUrl();
 
+  logger.info(
+    {
+      submissionId,
+      s3Key,
+      summarizerBaseUrl: baseUrl,
+    },
+    "Triggering summary job on PDF summarizer service.",
+  );
+
   const triggerRes = await fetch(
     `${baseUrl}/api/summarize?s3_key=${encodeURIComponent(s3Key)}&submission_id=${encodeURIComponent(submissionId)}`,
     { method: "POST" },
+  );
+
+  logger.info(
+    {
+      submissionId,
+      status: triggerRes.status,
+      ok: triggerRes.ok,
+    },
+    "Summary trigger response received.",
   );
 
   if (!triggerRes.ok && triggerRes.status !== 202) {
@@ -35,18 +55,46 @@ export const summarizeSubmissionFileFromS3 = async ({
   }
 
   const deadline = Date.now() + POLL_TIMEOUT_MS;
+  let pollCount = 0;
   while (Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+    pollCount += 1;
 
     const statusRes = await fetch(
       `${baseUrl}/api/summarize/status/${encodeURIComponent(submissionId)}`,
     );
 
-    if (!statusRes.ok) continue;
+    if (!statusRes.ok) {
+      logger.warn(
+        {
+          submissionId,
+          pollCount,
+          status: statusRes.status,
+        },
+        "Summary status poll failed. Retrying.",
+      );
+      continue;
+    }
 
     const job = await statusRes.json();
 
+    logger.info(
+      {
+        submissionId,
+        pollCount,
+        jobStatus: job.status,
+      },
+      "Summary status polled.",
+    );
+
     if (job.status === "done" && job.summary) {
+      logger.info(
+        {
+          submissionId,
+          pollCount,
+        },
+        "Summary job completed successfully.",
+      );
       return job.summary;
     }
 
@@ -60,11 +108,27 @@ export const summarizeSubmissionFileFromS3 = async ({
     }
 
     if (job.status === "failed") {
+      logger.error(
+        {
+          submissionId,
+          pollCount,
+          error: job.error,
+        },
+        "Summary job reported failure.",
+      );
       const error = new Error(`Summary generation failed: ${job.error}`);
       error.statusCode = 502;
       throw error;
     }
   }
+
+  logger.error(
+    {
+      submissionId,
+      timeoutMs: POLL_TIMEOUT_MS,
+    },
+    "Summary generation timed out while polling status.",
+  );
 
   const error = new Error("Summary generation timed out after 30 minutes.");
   error.statusCode = 504;

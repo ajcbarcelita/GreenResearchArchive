@@ -7,7 +7,7 @@ import tempfile
 import os
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("uvicorn.error")
 
 PAGE_BATCH_SIZE = 20
 

@@ -273,6 +273,11 @@ export const generateRepositorySummary = async (req, res) => {
     if (!db) return res.status(500).json({ error: "Database not initialized" });
 
     const submissionId = Number(req.params.id);
+    logger.info(
+      { submissionId, routeParamId: req.params.id },
+      "Manual summary request received.",
+    );
+
     if (!Number.isInteger(submissionId) || submissionId <= 0) {
       return res.status(400).json({ error: "Invalid submission ID" });
     }
@@ -281,6 +286,10 @@ export const generateRepositorySummary = async (req, res) => {
     if (!submission) return res.status(404).json({ error: "Not found" });
 
     if (submission.summary && String(submission.summary).trim()) {
+      logger.info(
+        { submissionId },
+        "Summary already exists. Returning cached summary.",
+      );
       return res.json({
         data: {
           submissionId: submission.submission_id,
@@ -296,20 +305,40 @@ export const generateRepositorySummary = async (req, res) => {
     );
 
     if (!capstoneFile) {
+      logger.warn(
+        { submissionId },
+        "Manual summary request skipped. No capstone file with S3 key found.",
+      );
       return res.status(400).json({
         error: "No capstone paper file found for this submission.",
       });
     }
+
+    logger.info(
+      {
+        submissionId,
+        fileId: capstoneFile.file_id,
+        s3Key: capstoneFile.s3_key,
+      },
+      "Starting manual summary generation via PDF summarizer service.",
+    );
 
     const generatedSummary = await summarizeSubmissionFileFromS3({
       s3Key: capstoneFile.s3_key,
       submissionId: String(submissionId),
     });
 
+    logger.info(
+      { submissionId },
+      "Manual summary generation completed. Persisting summary.",
+    );
+
     await updateSubmissionSummary(db, {
       submissionId,
       summary: generatedSummary,
     });
+
+    logger.info({ submissionId }, "Manual summary persisted successfully.");
 
     return res.json({
       data: {
@@ -319,6 +348,14 @@ export const generateRepositorySummary = async (req, res) => {
       },
     });
   } catch (err) {
+    logger.error(
+      {
+        routeParamId: req.params?.id,
+        error: err?.message || "Unknown error",
+      },
+      "Manual summary request failed.",
+    );
+
     if (err?.statusCode) {
       return res.status(err.statusCode).json({ error: err.message });
     }

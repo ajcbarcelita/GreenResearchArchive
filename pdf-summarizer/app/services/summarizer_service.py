@@ -2,6 +2,7 @@ from openai import OpenAI
 import os
 import re
 import time
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,6 +11,8 @@ client = OpenAI(
     api_key=os.getenv("DEEPSEEK_API_KEY"),
     base_url="https://api.deepseek.com"
 )
+
+logger = logging.getLogger("uvicorn.error")
 
 SECONDS_BETWEEN_REQUESTS = 2
 
@@ -49,6 +52,8 @@ Rules:
 - Do not infer, assume, or add external knowledge
 - Plain prose only, no bullet points, markdown, or headers
 - Skip anything not clearly explained in the text
+- Prioritize high-level findings over granular statistics or minor UI feedback
+- Skip minor usability complaints, individual percentage breakdowns, and module-level ratings unless they represent a major outcome
 - 3-4 sentences maximum
 
 Document section:
@@ -85,10 +90,12 @@ Section summaries:
 
 Structured academic summary:"""
 
+logger = logging.getLogger("uvicorn.error")
+
 def summarize_chunks(chunks: list[str], doc_title: str = "Document") -> str:
     chunk_summaries = []
     for i, chunk in enumerate(chunks):
-        print(f"  Summarizing chunk {i+1}/{len(chunks)}...")
+        logger.info("[LLM] Summarizing chunk %s/%s", i + 1, len(chunks))  
         chunk_summaries.append(clean_text(rate_limited_generate(
             CHUNK_PROMPT.format(chunk=chunk),
             max_tokens=300
@@ -101,19 +108,24 @@ def summarize_chunks(chunks: list[str], doc_title: str = "Document") -> str:
         combined = "\n\n".join(
             f"Section {i+j+1}: {s}" for j, s in enumerate(batch)
         )
-        print(f"  Batching summaries {i+1}–{min(i+SUMMARY_BATCH_SIZE, len(chunk_summaries))}...")
+        logger.info(  # was print()
+            "[LLM] Batching summaries %s-%s",
+            i + 1,
+            min(i + SUMMARY_BATCH_SIZE, len(chunk_summaries)),
+        )
         batched_summaries.append(clean_text(rate_limited_generate(
             FINAL_PROMPT.format(title=doc_title, summaries=combined),
             max_tokens=600
         )))
 
     if len(batched_summaries) == 1:
+        logger.info("[LLM] Single batch — running final synthesis") 
         return clean_final(rate_limited_generate(
             FINAL_PROMPT.format(title=doc_title, summaries="\n\n".join(batched_summaries)),
             max_tokens=1200
         ))
 
-    print(f"  Final synthesis across {len(batched_summaries)} batches...")
+    logger.info("[LLM] Final synthesis across %s batches", len(batched_summaries))  
     combined_final = "\n\n".join(
         f"Part {i+1}: {s}" for i, s in enumerate(batched_summaries)
     )
